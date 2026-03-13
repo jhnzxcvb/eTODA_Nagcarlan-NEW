@@ -1,5 +1,5 @@
 // src/components/App.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHome, faUsers, faUser, faDollarSign, faCreditCard, faMobileAlt, faExclamationTriangle, faCar, faClipboard } from '@fortawesome/free-solid-svg-icons';
 import Auth from '../Auth';
@@ -18,6 +18,25 @@ export default function App() {
   const [auth, setAuth] = useState(null);
   const [panel, setPanel] = useState('dashboard');
   const { toasts, notify, dismiss } = useToast();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef();
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const logout = () => {
+    localStorage.removeItem('adminToken');
+    setAuth(null);
+    notify('Logged out', 'info');
+  };
 
   // if not authenticated show login/signup
   if (!auth) {
@@ -57,12 +76,19 @@ export default function App() {
             </button>
           ))}
         </nav>
-        <div className="sb-foot">
+        <div className="sb-foot" ref={dropdownRef} onClick={() => setDropdownOpen(!dropdownOpen)} style={{cursor:'pointer', position:'relative'}}>
           <FontAwesomeIcon icon={faUser} className="sb-av" style={{color: 'var(--gold)'}} />
           <div>
             <div style={{fontSize:'.81rem',color:'#fff',fontWeight:600}}>TODA Admin</div>
             <div style={{fontSize:'.67rem',color:'rgba(255,255,255,.4)'}}>Administrator</div>
           </div>
+          {dropdownOpen && (
+            <div style={{position:'absolute', bottom:'100%', left:0, background:'#fff', border:'1px solid #ccc', borderRadius:4, boxShadow:'0 2px 10px rgba(0,0,0,0.1)', zIndex:1000, minWidth:120}}>
+              <div style={{padding:'8px 12px', cursor:'pointer', borderBottom:'1px solid #eee'}} onClick={() => {setPanel('profile'); setDropdownOpen(false);}}>👤 Profile</div>
+              <div style={{padding:'8px 12px', cursor:'pointer', borderBottom:'1px solid #eee'}} onClick={() => {setPanel('settings'); setDropdownOpen(false);}}>⚙️ Settings</div>
+              <div style={{padding:'8px 12px', cursor:'pointer'}} onClick={logout}>🚪 Logout</div>
+            </div>
+          )}
         </div>
       </aside>
 

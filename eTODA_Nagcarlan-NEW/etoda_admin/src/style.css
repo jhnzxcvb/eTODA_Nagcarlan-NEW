@@ -298,6 +298,15 @@ tr:hover td { background: #fafcfb; }
 .toast-error   { background: #b71c1c; color: #fff; }
 .toast-warn    { background: #e65100; color: #fff; }
 .toast-info    { background: #1565c0; color: #fff; }
+.toast-login-error { background: #1a4731; color: #fff; border-left: 4px solid #ef4444; min-width: 300px; }
+
+/* ── DASHBOARD ENHANCEMENTS ── */
+.metric-trend { margin-top: 4px; }
+.date-range .btn { border-radius: 6px; padding: 6px 12px; font-size: 0.75rem; }
+.date-range .btn-outline { background: #fff; color: var(--gray); border: 1px solid var(--gray2); }
+.date-range .btn-outline:hover { background: var(--bg); }
+.date-range .btn-primary { background: #1a4731; color: #fff; border: 1px solid #1a4731; }
+.quick-actions .btn { border-radius: 6px; padding: 8px 16px; font-size: 0.8rem; }
 
 /* ── STATUS SYSTEM ── */
 .status-row { display: flex; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
