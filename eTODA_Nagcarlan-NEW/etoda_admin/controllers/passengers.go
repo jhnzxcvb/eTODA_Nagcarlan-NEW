@@ -8,7 +8,7 @@ import (
 	"etoda_admin/utils"
 )
 
-// Passengers handler for listing passengers (now backed by users table).
+// Passengers handler for listing passengers.
 func Passengers(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		utils.JSONErr(w, "Method not allowed", 405)
@@ -43,7 +43,7 @@ func Passengers(w http.ResponseWriter, r *http.Request) {
 	utils.JSONOK(w, list)
 }
 
-// PassengerByID handles status updates for a passenger record (stored in users table).
+// PassengerByID handles status updates for a passenger record.
 func PassengerByID(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "PATCH" {
 		utils.JSONErr(w, "Method not allowed", 405)
@@ -59,4 +59,14 @@ func PassengerByID(w http.ResponseWriter, r *http.Request) {
 	DB.Exec("UPDATE users SET status=$1 WHERE user_id=$2", b.Status, id)
 	utils.LogAudit(DB, "UPDATE", "Passenger", id, fmt.Sprintf("%s status → %s", name, b.Status))
 	utils.JSONOK(w, map[string]string{"message": "Updated"})
+}
+
+// NotifyNewPassenger is called from PassengerSignup in auth_controller.go
+// after a new passenger successfully registers.
+func NotifyNewPassenger(name string) {
+	InsertNotification(
+		"New Passenger Registered",
+		fmt.Sprintf("%s has created a passenger account.", name),
+		"passenger",
+	)
 }

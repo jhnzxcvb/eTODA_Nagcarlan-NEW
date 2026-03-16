@@ -56,4 +56,9 @@ func SetupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/complaints", middleware.CORS(controllers.Complaints))
 	mux.HandleFunc("/api/complaints/", middleware.CORS(controllers.ComplaintByID))
 	mux.HandleFunc("/api/trips", middleware.CORS(controllers.Trips))
+
+	mux.HandleFunc("/api/notifications",       middleware.CORS(controllers.GetNotifications))
+    mux.HandleFunc("/api/notifications/read",  middleware.CORS(controllers.MarkNotificationsRead))
+    mux.HandleFunc("/api/notifications/clear", middleware.CORS(controllers.ClearNotifications))
+    mux.HandleFunc("/api/notifications/",      middleware.CORS(controllers.DeleteNotification))
 }

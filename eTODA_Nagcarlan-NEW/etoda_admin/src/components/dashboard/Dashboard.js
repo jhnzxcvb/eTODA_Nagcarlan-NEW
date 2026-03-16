@@ -113,7 +113,7 @@ function Dashboard({ notify, setPanel }) {
                     onMouseEnter={e => e.currentTarget.style.background = '#b91c1c'}
                     onMouseLeave={e => e.currentTarget.style.background = '#dc2626'}
                   >
-                    🚨 Review Now →
+                        Review Now →
                   </button>
                 )}
               </div>

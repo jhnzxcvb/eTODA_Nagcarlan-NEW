@@ -9,7 +9,6 @@ import (
 	"etoda_admin/utils"
 )
 
-// fetchDrivers returns a slice of admin drivers matching the optional search term.
 func fetchDrivers(search string) ([]models.AdminDriver, error) {
 	q := `SELECT d.id,d.driver_code,d.name,d.franchise,
         COALESCE(d.body_no,''),COALESCE(d.contact,''),
@@ -37,7 +36,6 @@ func fetchDrivers(search string) ([]models.AdminDriver, error) {
 	return list, nil
 }
 
-// Drivers handler supports GET and POST for admin driver records.
 func Drivers(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
@@ -90,12 +88,18 @@ func Drivers(w http.ResponseWriter, r *http.Request) {
 		qrID := fmt.Sprintf("QR-AES-%s-%s", strings.ReplaceAll(b.Franchise, "-", ""), utils.RandHex())
 		DB.Exec(`INSERT INTO qr_codes(driver_id,franchise,qr_id,status) VALUES($1,$2,$3,'Active')`, dID, b.Franchise, qrID)
 
-		// if mobile login info was provided, store it as well
 		if b.Username != "" || b.Password != "" {
 			DB.Exec(`UPDATE drivers SET username=$1, password_hash=$2 WHERE id=$3`, b.Username, b.Password, dID)
 		}
 
 		utils.LogAudit(DB, "ENROLL", "Driver", code, fmt.Sprintf("Enrolled %s (%s)", b.Name, b.Franchise))
+
+		// 🔔 Auto-insert notification
+		InsertNotification(
+			"New Driver Registered",
+			fmt.Sprintf("%s (%s) has been enrolled as a driver.", b.Name, b.Franchise),
+			"driver",
+		)
 
 		var d models.AdminDriver
 		DB.QueryRow(`SELECT d.id,d.driver_code,d.name,d.franchise,
@@ -113,7 +117,6 @@ func Drivers(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DriverByID handles PATCH/DELETE on a single driver.
 func DriverByID(w http.ResponseWriter, r *http.Request) {
 	id := utils.PathID(r.URL.Path, "/api/drivers/")
 	switch r.Method {

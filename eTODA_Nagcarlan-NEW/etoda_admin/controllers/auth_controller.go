@@ -16,7 +16,6 @@ func PassengerSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create a temporary struct to match Flutter's incoming JSON exactly
 	var input struct {
 		Username    string `json:"username"`
 		FirstName   string `json:"first_name"`
@@ -24,7 +23,7 @@ func PassengerSignup(w http.ResponseWriter, r *http.Request) {
 		LastName    string `json:"last_name"`
 		PhoneNumber string `json:"phone_number"`
 		Email       string `json:"email"`
-		Password    string `json:"password"` // Matches Flutter's key
+		Password    string `json:"password"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -34,7 +33,6 @@ func PassengerSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Storing password as plain text for development as per your request
 	query := `INSERT INTO users (username, first_name, middle_name, last_name, phone_number, email, password_hash) 
 			  VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
@@ -49,13 +47,14 @@ func PassengerSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 🔔 Auto-insert notification for new passenger
+	go NotifyNewPassenger(input.FirstName + " " + input.LastName)
+
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Passenger registered successfully"})
 }
 
-// AdminSignup allows creation of new administrator accounts.  This
-// endpoint is primarily used by the web portal during initial setup and
-// may later be restricted or removed once an admin exists.
+// AdminSignup allows creation of new administrator accounts.
 func AdminSignup(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -108,13 +107,15 @@ func UnifiedLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// --- 1. ATTEMPT ADMIN LOGIN (admins table) ---
+	// --- 1. ATTEMPT ADMIN LOGIN ---
 	var a models.Admin
 	var adminPass string
 	adminQuery := `SELECT admin_id, username, full_name, email, password_hash FROM admins WHERE username=$1`
 	err = DB.QueryRow(adminQuery, creds.Username).Scan(&a.AdminID, &a.Username, &a.FullName, &a.Email, &adminPass)
 	if err == nil && adminPass == creds.Password {
+		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":   true,
 			"role":      "admin",
 			"admin_id":  a.AdminID,
 			"username":  a.Username,
@@ -125,12 +126,11 @@ func UnifiedLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// --- 2. ATTEMPT PASSENGER LOGIN (users table) ---
+	// --- 2. ATTEMPT PASSENGER LOGIN ---
 	var u models.User
 	var userPass string
 	userQuery := `SELECT user_id, username, first_name, COALESCE(middle_name, ''), last_name, phone_number, email, password_hash 
                   FROM users WHERE username=$1`
-
 	err = DB.QueryRow(userQuery, creds.Username).Scan(
 		&u.UserID, &u.Username, &u.FirstName, &u.MiddleName, &u.LastName, &u.PhoneNumber, &u.Email, &userPass,
 	)
@@ -139,6 +139,7 @@ func UnifiedLogin(w http.ResponseWriter, r *http.Request) {
 
 	if err == nil && userPass == creds.Password {
 		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":      false,
 			"role":         "passenger",
 			"user_id":      u.UserID,
 			"username":     u.Username,
@@ -152,13 +153,12 @@ func UnifiedLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// --- 2. ATTEMPT DRIVER LOGIN (drivers table) ---
+	// --- 3. ATTEMPT DRIVER LOGIN ---
 	var d models.UserDriver
 	var driverPass string
 	driverQuery := `SELECT id AS driver_id, username, first_name, COALESCE(middle_name, ''), last_name, 
                            body_number, plate_number, password_hash 
                     FROM drivers WHERE username=$1`
-
 	err = DB.QueryRow(driverQuery, creds.Username).Scan(
 		&d.DriverID, &d.Username, &d.FirstName, &d.MiddleName, &d.LastName, &d.BodyNumber, &d.PlateNumber, &driverPass,
 	)
@@ -166,6 +166,7 @@ func UnifiedLogin(w http.ResponseWriter, r *http.Request) {
 	if err == nil && driverPass == creds.Password {
 		fullName := fmt.Sprintf("%s %s %s", d.FirstName, d.MiddleName, d.LastName)
 		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":      false,
 			"role":         "driver",
 			"driver_id":    d.DriverID,
 			"username":     d.Username,
@@ -204,12 +205,10 @@ func FindUserForReset(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	// 1. Try Users table
 	var userID int
 	var phone string
 	userQuery := "SELECT user_id, phone_number FROM users WHERE username = $1"
 	err := DB.QueryRow(userQuery, req.Username).Scan(&userID, &phone)
-
 	if err == nil {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":           userID,
@@ -219,10 +218,8 @@ func FindUserForReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. Try Drivers table
 	driverQuery := "SELECT driver_id, phone_number FROM drivers WHERE username = $1"
 	err = DB.QueryRow(driverQuery, req.Username).Scan(&userID, &phone)
-
 	if err == nil {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":           userID,
@@ -269,7 +266,6 @@ func ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	_, err := DB.Exec(query, req.NewPassword, req.ID)
 	w.Header().Set("Content-Type", "application/json")
-
 	if err != nil {
 		log.Printf("❌ Reset error: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
