@@ -1,0 +1,61 @@
+name: etoda_nagcarlan
+description: "A Fare Matrix Calculator and Digital TODA system for Nagcarlan using OpenStreetMap."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.11.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # --- NETWORKING & API ---
+  # Connectivity to Golang/Postgres backend
+  http: ^1.2.0
+
+  # --- UI & STYLE ---
+  cupertino_icons: ^1.0.8
+  google_fonts: ^8.0.2
+
+  # --- MAPPING & NAVIGATION (OSM) ---
+  # Replaces Google Maps for a free, API-key-less experience
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.1
+
+  # --- PASSENGER FEATURES ---
+  # QR scanning for Driver IDs
+  mobile_scanner: ^7.2.0
+
+  # --- DRIVER FEATURES ---
+  # Generating Driver ID QR codes
+  qr_flutter: ^4.1.0
+
+  # --- LOCATION & GEOSPATIAL ---
+  # Critical for fare verification and digital queueing in Nagcarlan
+  geolocator: ^14.0.2
+
+  # --- STATE MANAGEMENT ---
+  # Managing Passenger/Driver sessions and app state
+  provider: ^6.1.2
+
+  # --- LOCAL STORAGE ---
+  # Saving login sessions and trip history offline
+  shared_preferences: ^2.5.2
+
+  # --- MEDIA ---
+  image_picker: ^1.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Recommended: Add your eTODA or Nagcarlan Seal assets here
+  # assets:
+  #   - assets/images/nagcarlan_seal.png
+  #   - assets/images/tricycle_icon.png
