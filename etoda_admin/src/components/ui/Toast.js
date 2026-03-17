@@ -1,6 +1,10 @@
 // src/components/ui/Toast.js
-import React from 'react';
-import { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faCheckCircle, faTimesCircle, faExclamationTriangle,
+  faInfoCircle, faLock, faTimes,
+} from '@fortawesome/free-solid-svg-icons';
 
 function useToast() {
   const [toasts, setToasts] = useState([]);
@@ -14,33 +18,89 @@ function useToast() {
   return { toasts, notify, dismiss };
 }
 
+// Config per type — color, icon, label
+const CONFIG = {
+  success:      { bg: '#2d5a1b', border: '#1e3d12', iconBg: 'rgba(255,255,255,0.15)', icon: faCheckCircle,          iconColor: '#fff', label: 'Success'     },
+  error:        { bg: '#dc2626', border: '#b91c1c', iconBg: 'rgba(255,255,255,0.15)', icon: faTimesCircle,           iconColor: '#fff', label: 'Error'       },
+  warn:         { bg: '#d97706', border: '#b45309', iconBg: 'rgba(255,255,255,0.15)', icon: faExclamationTriangle,   iconColor: '#fff', label: 'Warning'     },
+  info:         { bg: '#0284c7', border: '#0369a1', iconBg: 'rgba(255,255,255,0.15)', icon: faInfoCircle,            iconColor: '#fff', label: 'Info'        },
+  'login-error':{ bg: '#1e1e2e', border: '#dc2626', iconBg: '#fee2e2',               icon: faLock,                  iconColor: '#dc2626', label: 'Login Failed' },
+};
+
 function Toasts({ toasts, dismiss }) {
-  const CLS  = { success:'toast-success', error:'toast-error', warn:'toast-warn', info:'toast-info', 'login-error':'toast-login-error' };
-  const ICON = { success:'✅', error:'❌', warn:'⚠️', info:'ℹ️', 'login-error':'✕' };
   return (
-    <div className="toast-wrap">
-      {toasts.map(t => (
-        <div key={t.id} className={`toast ${CLS[t.type]||'toast-success'}`} onClick={() => dismiss(t.id)} style={t.type === 'login-error' ? {justifyContent: 'space-between'} : {}}>
-          {t.type === 'login-error' ? (
-            <>
-              <div style={{display:'flex', alignItems:'center', gap:12}}>
-                <div style={{width:32, height:32, borderRadius:'50%', background:'#fee2e2', display:'flex', alignItems:'center', justifyContent:'center'}}>
-                  <span style={{color:'#ef4444', fontSize:16}}>✕</span>
-                </div>
-                <div>
-                  <div style={{color:'#fff', fontWeight:'bold', fontSize:14}}>Login Failed</div>
-                  <div style={{color:'rgba(255,255,255,0.7)', fontSize:13}}>{t.msg}</div>
-                </div>
+    <div style={{
+      position: 'fixed',
+      top: '20px',
+      right: '20px',
+      zIndex: 99999,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '10px',
+      minWidth: '300px',
+      maxWidth: '380px',
+    }}>
+      {toasts.map(t => {
+        const cfg = CONFIG[t.type] || CONFIG.success;
+        return (
+          <div
+            key={t.id}
+            onClick={() => dismiss(t.id)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '12px 14px',
+              background: cfg.bg,
+              border: `1px solid ${cfg.border}`,
+              borderRadius: '12px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+              cursor: 'pointer',
+              animation: 'slideIn 0.25s ease',
+            }}
+          >
+            <style>{`
+              @keyframes slideIn {
+                from { opacity: 0; transform: translateX(40px); }
+                to   { opacity: 1; transform: translateX(0); }
+              }
+            `}</style>
+
+            {/* Icon circle */}
+            <div style={{
+              width: '34px', height: '34px', borderRadius: '50%',
+              background: cfg.iconBg,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <FontAwesomeIcon icon={cfg.icon} style={{ color: cfg.iconColor, fontSize: '15px' }} />
+            </div>
+
+            {/* Text */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: '#fff', fontWeight: '700', fontSize: '13px', marginBottom: '2px' }}>
+                {cfg.label}
               </div>
-              <button onClick={(e) => {e.stopPropagation(); dismiss(t.id);}} style={{color:'rgba(255,255,255,0.5)', fontSize:18, background:'none', border:'none', cursor:'pointer'}}>×</button>
-            </>
-          ) : (
-            <>
-              <span>{ICON[t.type]}</span><span>{t.msg}</span>
-            </>
-          )}
-        </div>
-      ))}
+              <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', wordBreak: 'break-word' }}>
+                {t.msg}
+              </div>
+            </div>
+
+            {/* Dismiss button */}
+            <button
+              onClick={e => { e.stopPropagation(); dismiss(t.id); }}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'rgba(255,255,255,0.5)', fontSize: '16px',
+                flexShrink: 0, padding: '2px',
+                display: 'flex', alignItems: 'center',
+              }}
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 }
