@@ -69,7 +69,7 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
   String? fromLocation;
   String? toLocation;
   String? activeStationFilter; // Track clicked station for filtering
-  String passengerType = "Normal";
+  String passengerType = "Regular";
   String tripType = "Regular";
   String fare = "₱0.00";
 
@@ -97,10 +97,6 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
     });
     _updateMarkers();
     _calculateFare();
-
-    if (activeStationFilter != null) {
-      _mapController.move(stationCoords[stationName]!, 15);
-    }
   }
 
   void _updateMarkers() {
@@ -112,56 +108,72 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
 
         return Marker(
           point: entry.value,
-          width: isHighlighted ? 120 : 80,
-          height: isHighlighted ? 120 : 80,
+          width: 120,
+          height: 120,
+          alignment: Alignment.topCenter,
           child: GestureDetector(
             onTap: () => _onStationTapped(entry.key),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isHighlighted ? Colors.orange : Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
-                    border: Border.all(color: isHighlighted ? Colors.white : baseColor, width: 1),
-                  ),
-                  child: Text(
-                    "${branding['range']}",
-                    style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: isHighlighted ? Colors.white : baseColor
+            child: AnimatedScale(
+              scale: isHighlighted ? 1.3 : 1.0,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOutBack, // Fixed: changed from backOut to easeOutBack
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: isHighlighted ? Colors.orange : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isHighlighted ? Colors.orange.withOpacity(0.3) : Colors.black12, 
+                          blurRadius: isHighlighted ? 12 : 6,
+                          spreadRadius: isHighlighted ? 2 : 0,
+                          offset: const Offset(0, 3)
+                        )
+                      ],
+                      border: Border.all(color: isHighlighted ? Colors.white : baseColor, width: 2),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Icon(
-                      Icons.location_on,
-                      size: isHighlighted ? 70 : 45,
-                      color: isHighlighted ? Colors.orange : baseColor,
-                    ),
-                    Positioned(
-                      top: isHighlighted ? 12 : 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          branding['logo'],
-                          size: isHighlighted ? 24 : 15,
-                          color: isHighlighted ? Colors.orange : baseColor,
-                        ),
+                    child: Text(
+                      "${branding['range']}",
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isHighlighted ? Colors.white : baseColor
                       ),
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 4),
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Icon(
+                        Icons.location_on,
+                        size: isHighlighted ? 85 : 60,
+                        color: isHighlighted ? Colors.orange : baseColor,
+                      ),
+                      Positioned(
+                        top: isHighlighted ? 15 : 12,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          padding: EdgeInsets.all(isHighlighted ? 7 : 5),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            branding['logo'],
+                            size: isHighlighted ? 30 : 20,
+                            color: isHighlighted ? Colors.orange : baseColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -176,7 +188,7 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
     }
 
     double baseFare = (tripType == "Special Trip") ? 50.0 : 30.0;
-    if (passengerType != "Normal") baseFare *= 0.80;
+    if (passengerType != "Regular") baseFare *= 0.80;
 
     setState(() => fare = "₱${baseFare.toStringAsFixed(2)}");
   }
@@ -184,66 +196,162 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Fare & Station Finder")),
+      appBar: AppBar(
+        title: const Text("Fare & Station Finder"),
+        centerTitle: true,
+        elevation: 0,
+      ),
       body: Container(
         decoration: nagcarlanGradient,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
               _buildSectionCard(
-                icon: Icons.map_outlined,
-                title: "Station Map (Nagcarlan)",
+                icon: Icons.map_rounded,
+                title: "Station Map Explorer",
                 children: [
-                  if (activeStationFilter != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.filter_list, size: 16, color: Colors.orange),
-                          const SizedBox(width: 4),
-                          Text(
-                              "Showing $activeStationFilter (${terminalBranding[activeStationFilter]!['range']})",
-                              style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12)
-                          ),
-                          const Spacer(),
-                          TextButton(
-                            onPressed: () => _onStationTapped(activeStationFilter!),
-                            child: const Text("Clear Filter", style: TextStyle(fontSize: 12)),
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 12.0),
+                    child: Text(
+                      "Select a terminal pin to filter nearby locations",
+                      style: TextStyle(fontSize: 12, color: Colors.black54, fontStyle: FontStyle.italic),
+                    ),
+                  ),
+                  SizedBox(
+                    height: 220,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
                           )
                         ],
                       ),
-                    ),
-                  SizedBox(
-                    height: 250,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(15),
-                      child: FlutterMap(
-                        mapController: _mapController,
-                        options: const MapOptions(
-                          initialCenter: _nagcarlanCenter,
-                          initialZoom: 13,
-                          maxZoom: 18,
-                          minZoom: 12,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Stack(
+                          children: [
+                            FlutterMap(
+                              mapController: _mapController,
+                              options: const MapOptions(
+                                initialCenter: _nagcarlanCenter,
+                                initialZoom: 12.5,
+                                maxZoom: 18,
+                                minZoom: 11,
+                              ),
+                              children: [
+                                TileLayer(
+                                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                  userAgentPackageName: 'com.etoda.nagcarlan',
+                                ),
+                                MarkerLayer(markers: _markers),
+                              ],
+                            ),
+                            Positioned(
+                              right: 12,
+                              bottom: 12,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _buildEnhancedMapButton(
+                                    icon: Icons.add_rounded,
+                                    onPressed: () {
+                                      _mapController.move(
+                                        _mapController.camera.center,
+                                        (_mapController.camera.zoom + 1).clamp(11, 18),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _buildEnhancedMapButton(
+                                    icon: Icons.remove_rounded,
+                                    onPressed: () {
+                                      _mapController.move(
+                                        _mapController.camera.center,
+                                        (_mapController.camera.zoom - 1).clamp(11, 18),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _buildEnhancedMapButton(
+                                    icon: Icons.center_focus_strong_rounded,
+                                    onPressed: () {
+                                      _mapController.move(_nagcarlanCenter, 12.5);
+                                    },
+                                    color: Colors.orange,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        children: [
-                          TileLayer(
-                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.etoda.nagcarlan',
-                          ),
-                          MarkerLayer(markers: _markers),
-                        ],
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               _buildSectionCard(
-                icon: Icons.search,
-                title: "Search Route",
+                icon: Icons.route_rounded,
+                title: "Plan Your Trip",
                 children: [
-                  _buildSearchableDropdown("From", fromLocation, (val) {
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: activeStationFilter != null
+                        ? Padding(
+                            key: ValueKey(activeStationFilter),
+                            padding: const EdgeInsets.only(bottom: 16.0),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.withOpacity(0.2),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.filter_alt_rounded, size: 18, color: Colors.orange),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Terminal Filter Active",
+                                          style: TextStyle(color: Colors.orange.shade800, fontSize: 11, fontWeight: FontWeight.bold),
+                                        ),
+                                        Text(
+                                          activeStationFilter!,
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.cancel_rounded, color: Colors.orange),
+                                    onPressed: () => _onStationTapped(activeStationFilter!),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  )
+                                ],
+                              ),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                  _buildSearchableDropdown("Pick-up Point", fromLocation, (val) {
                     setState(() {
                       fromLocation = val;
                       if (val != null) activeStationFilter = getStationForLocation(val);
@@ -252,43 +360,51 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
                     _calculateFare();
                   }),
                   const SizedBox(height: 16),
-                  _buildSearchableDropdown("To", toLocation, (val) {
+                  _buildSearchableDropdown("Drop-off Destination", toLocation, (val) {
                     setState(() => toLocation = val);
                     _calculateFare();
                   }),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               _buildSectionCard(
-                icon: Icons.tune,
-                title: "Trip Options",
+                icon: Icons.settings_suggest_rounded,
+                title: "Trip Customization",
                 children: [
-                  _buildDropdown(
-                    "Passenger Type",
-                    passengerType,
-                    ["Normal", "Senior", "PWD", "Student"],
-                        (val) {
-                      setState(() => passengerType = val!);
-                      _calculateFare();
-                    },
-                    icon: Icons.person_outline,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDropdown(
-                    "Trip Type",
-                    tripType,
-                    ["Regular", "Special Trip"],
-                        (val) {
-                      setState(() => tripType = val!);
-                      _calculateFare();
-                    },
-                    icon: Icons.alt_route,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildCompactDropdown(
+                          "Passenger",
+                          passengerType,
+                          ["Regular", "Senior", "PWD", "Student"],
+                          (val) {
+                            setState(() => passengerType = val!);
+                            _calculateFare();
+                          },
+                          icon: Icons.person_rounded,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildCompactDropdown(
+                          "Trip Type",
+                          tripType,
+                          ["Regular", "Special Trip"],
+                          (val) {
+                            setState(() => tripType = val!);
+                            _calculateFare();
+                          },
+                          icon: Icons.local_taxi_rounded,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               _buildFareDisplay(),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               const BrandingFooter(),
             ],
           ),
@@ -297,23 +413,30 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
     );
   }
 
-  Widget _buildDropdown(String label, String value, List<String> items, ValueChanged<String?> onChanged, {required IconData icon}) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: nagcarlanGreen),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        filled: true,
-        fillColor: Colors.white.withAlpha(230),
-      ),
-      items: items.map((String category) => DropdownMenuItem(value: category, child: Text(category))).toList(),
-      onChanged: onChanged,
+  Widget _buildCompactDropdown(String label, String value, List<String> items, ValueChanged<String?> onChanged, {required IconData icon}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: nagcarlanGreen)),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<String>(
+          value: value,
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: nagcarlanGreen, size: 20),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            filled: true,
+            fillColor: Colors.white,
+          ),
+          style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500),
+          items: items.map((String category) => DropdownMenuItem(value: category, child: Text(category))).toList(),
+          onChanged: onChanged,
+        ),
+      ],
     );
   }
 
   Widget _buildSearchableDropdown(String label, String? selectedValue, ValueChanged<String?> onChanged) {
-    // Filter locations based on the active station pin range
     final filteredOptions = activeStationFilter == null
         ? locations
         : locations.where((loc) => getStationForLocation(loc) == activeStationFilter).toList();
@@ -329,10 +452,12 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
           focusNode: node,
           decoration: InputDecoration(
             labelText: label,
-            prefixIcon: const Icon(Icons.location_on, color: nagcarlanGreen),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            labelStyle: const TextStyle(color: nagcarlanGreen, fontSize: 14),
+            prefixIcon: const Icon(Icons.location_on_rounded, color: nagcarlanGreen),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             filled: true,
-            fillColor: Colors.white.withAlpha(230),
+            fillColor: Colors.white,
+            floatingLabelBehavior: FloatingLabelBehavior.auto,
           ),
         );
       },
@@ -345,28 +470,90 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: nagcarlanGreen,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: nagcarlanGreen.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          )
+        ],
+        gradient: LinearGradient(
+          colors: [nagcarlanGreen, nagcarlanGreen.withOpacity(0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
       child: Column(
         children: [
-          const Text("ESTIMATED FARE", style: TextStyle(color: Colors.white70, fontSize: 14)),
-          Text(fare, style: const TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.bold)),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.payments_rounded, color: Colors.white70, size: 16),
+              SizedBox(width: 8),
+              Text("TOTAL ESTIMATED FARE", style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(fare, style: const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.w900, letterSpacing: -1)),
+          const SizedBox(height: 4),
+          const Text("Safe travels in Nagcarlan!", style: TextStyle(color: Colors.white60, fontSize: 11, fontStyle: FontStyle.italic)),
         ],
       ),
     );
   }
 
   Widget _buildSectionCard({required IconData icon, required String title, required List<Widget> children}) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(children: [
-          Row(children: [Icon(icon, color: nagcarlanGreen), const SizedBox(width: 8), Text(title, style: const TextStyle(fontWeight: FontWeight.bold))]),
-          const Divider(height: 24),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: nagcarlanGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: nagcarlanGreen, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: nagcarlanGreen)),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Divider(height: 1, color: Colors.black12),
+          ),
           ...children
-        ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnhancedMapButton({required IconData icon, required VoidCallback onPressed, Color? color}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2))],
+          ),
+          child: Icon(icon, color: color ?? nagcarlanGreen, size: 24),
+        ),
       ),
     );
   }
