@@ -99,21 +99,22 @@ func UnifiedLogin(w http.ResponseWriter, r *http.Request) {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}
-	var err error
-	if err = json.NewDecoder(r.Body).Decode(&creds); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Invalid input format"})
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+
 	// --- 1. ATTEMPT ADMIN LOGIN ---
 	var a models.Admin
 	var adminPass string
-	adminQuery := `SELECT admin_id, username, full_name, email, password_hash FROM admins WHERE username=$1`
-	err = DB.QueryRow(adminQuery, creds.Username).Scan(&a.AdminID, &a.Username, &a.FullName, &a.Email, &adminPass)
+	adminQuery := `SELECT admin_id, username, COALESCE(full_name, ''), COALESCE(email, ''), password_hash
+                  FROM admins WHERE username=$1`
+	err := DB.QueryRow(adminQuery, creds.Username).Scan(&a.AdminID, &a.Username, &a.FullName, &a.Email, &adminPass)
 	if err == nil && adminPass == creds.Password {
-		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success":   true,
 			"role":      "admin",
@@ -129,17 +130,16 @@ func UnifiedLogin(w http.ResponseWriter, r *http.Request) {
 	// --- 2. ATTEMPT PASSENGER LOGIN ---
 	var u models.User
 	var userPass string
-	userQuery := `SELECT user_id, username, first_name, COALESCE(middle_name, ''), last_name, phone_number, email, password_hash 
+	userQuery := `SELECT user_id, username, first_name, COALESCE(middle_name, ''), last_name,
+                         COALESCE(phone_number, ''), COALESCE(email, ''), password_hash
                   FROM users WHERE username=$1`
 	err = DB.QueryRow(userQuery, creds.Username).Scan(
 		&u.UserID, &u.Username, &u.FirstName, &u.MiddleName, &u.LastName, &u.PhoneNumber, &u.Email, &userPass,
 	)
 
-	w.Header().Set("Content-Type", "application/json")
-
 	if err == nil && userPass == creds.Password {
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success":      false,
+			"success":      true,
 			"role":         "passenger",
 			"user_id":      u.UserID,
 			"username":     u.Username,
@@ -156,17 +156,30 @@ func UnifiedLogin(w http.ResponseWriter, r *http.Request) {
 	// --- 3. ATTEMPT DRIVER LOGIN ---
 	var d models.UserDriver
 	var driverPass string
-	driverQuery := `SELECT id AS driver_id, username, first_name, COALESCE(middle_name, ''), last_name, 
-                           body_number, plate_number, password_hash 
+	// Fetch necessary fields and handle potential NULLs using COALESCE
+	driverQuery := `SELECT id, username, COALESCE(first_name, ''), COALESCE(middle_name, ''), COALESCE(last_name, ''),
+                           COALESCE(phone_number, ''), COALESCE(email, ''), COALESCE(body_number, ''),
+                           COALESCE(plate_number, ''), password_hash
                     FROM drivers WHERE username=$1`
 	err = DB.QueryRow(driverQuery, creds.Username).Scan(
-		&d.DriverID, &d.Username, &d.FirstName, &d.MiddleName, &d.LastName, &d.BodyNumber, &d.PlateNumber, &driverPass,
+		&d.DriverID, &d.Username, &d.FirstName, &d.MiddleName, &d.LastName,
+		&d.PhoneNumber, &d.Email, &d.BodyNumber, &d.PlateNumber, &driverPass,
 	)
 
 	if err == nil && driverPass == creds.Password {
 		fullName := fmt.Sprintf("%s %s %s", d.FirstName, d.MiddleName, d.LastName)
+
+		// Fallback for drivers where specific name fields are empty but the 'name' column is populated
+		if d.FirstName == "" && d.LastName == "" {
+			var dbName string
+			DB.QueryRow("SELECT name FROM drivers WHERE id=$1", d.DriverID).Scan(&dbName)
+			if dbName != "" {
+				fullName = dbName
+			}
+		}
+
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success":      false,
+			"success":      true,
 			"role":         "driver",
 			"driver_id":    d.DriverID,
 			"username":     d.Username,
@@ -174,6 +187,8 @@ func UnifiedLogin(w http.ResponseWriter, r *http.Request) {
 			"middle_name":  d.MiddleName,
 			"last_name":    d.LastName,
 			"full_name":    fullName,
+			"phone_number": d.PhoneNumber,
+			"email":        d.Email,
 			"body_number":  d.BodyNumber,
 			"plate_number": d.PlateNumber,
 			"message":      "Driver login successful",
@@ -218,7 +233,7 @@ func FindUserForReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	driverQuery := "SELECT driver_id, phone_number FROM drivers WHERE username = $1"
+	driverQuery := "SELECT id, phone_number FROM drivers WHERE username = $1"
 	err = DB.QueryRow(driverQuery, req.Username).Scan(&userID, &phone)
 	if err == nil {
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -256,7 +271,7 @@ func ResetPassword(w http.ResponseWriter, r *http.Request) {
 	if req.Role == "passenger" {
 		query = "UPDATE users SET password_hash = $1 WHERE user_id = $2"
 	} else if req.Role == "driver" {
-		query = "UPDATE drivers SET password_hash = $1 WHERE driver_id = $2"
+		query = "UPDATE drivers SET password_hash = $1 WHERE id = $2"
 	} else {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
