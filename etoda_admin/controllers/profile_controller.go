@@ -23,7 +23,8 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 
 	if role == "passenger" {
 		var u models.User
-		query := `SELECT user_id, username, first_name, COALESCE(middle_name, ''), last_name, phone_number, email 
+		query := `SELECT user_id, username, first_name, COALESCE(middle_name, ''), last_name,
+                         COALESCE(phone_number, ''), COALESCE(email, '')
                   FROM users WHERE user_id = $1`
 
 		err := DB.QueryRow(query, id).Scan(
@@ -38,8 +39,10 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 
 	} else if role == "driver" {
 		var d models.UserDriver
-		query := `SELECT id AS driver_id, username, first_name, COALESCE(middle_name, ''), last_name, 
-                         phone_number, plate_number, COALESCE(body_number, ''), COALESCE(license_no,'') AS license_number 
+		// Ensure all fields match models.UserDriver JSON tags
+		query := `SELECT id, username, COALESCE(first_name, ''), COALESCE(middle_name, ''), COALESCE(last_name, ''),
+                         COALESCE(phone_number, ''), COALESCE(plate_number, ''), COALESCE(body_number, ''),
+                         COALESCE(license_no, '')
                   FROM drivers WHERE id = $1`
 
 		err := DB.QueryRow(query, id).Scan(
@@ -51,6 +54,16 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Driver not found", http.StatusNotFound)
 			return
 		}
+
+		// If names are empty, try fallback to the 'name' column
+		if d.FirstName == "" && d.LastName == "" {
+			var dbName string
+			DB.QueryRow("SELECT COALESCE(name, '') FROM drivers WHERE id=$1", d.DriverID).Scan(&dbName)
+			if dbName != "" {
+				d.FirstName = dbName // Just put it in first name for the UI
+			}
+		}
+
 		json.NewEncoder(w).Encode(d)
 
 	} else {
