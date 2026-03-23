@@ -1,7 +1,11 @@
 // src/components/fare/Fare.js
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faSort, faSortUp, faSortDown, faFileExport, faFileImport, faPencil, faTrash, faMoneyBillWave } from '@fortawesome/free-solid-svg-icons';
+import {
+  faSearch, faSort, faSortUp, faSortDown, faFileExport, faFileImport,
+  faPencil, faTrash, faMoneyBillWave, faCircleCheck, faTriangleExclamation,
+  faRotate, faPlus, faChevronLeft, faChevronRight,
+} from '@fortawesome/free-solid-svg-icons';
 import { api } from '../../lib/api';
 import Loading from '../ui/Loading';
 import Empty from '../ui/Empty';
@@ -29,6 +33,8 @@ function Fare({ notify }) {
   const [selected,    setSelected]    = useState(new Set());
   const [bulkDelOpen, setBulkDelOpen] = useState(false);
   const [bulkDeleting,setBulkDeleting]= useState(false);
+  const [pageSize,    setPageSize]    = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const fileRef = useRef(null);
 
   const [newRows,       setNewRows]       = useState([]);
@@ -69,6 +75,7 @@ function Fare({ notify }) {
   const handleSort = key => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortKey(key); setSortDir('asc'); }
+    setCurrentPage(1);
   };
 
   const SortIcon = ({ col }) => {
@@ -120,7 +127,7 @@ function Fare({ notify }) {
     a.href = URL.createObjectURL(blob);
     a.download = `fare_matrix_${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
-    notify('Fare matrix exported ✅', 'success');
+    notify('Fare matrix exported', 'success');
   };
 
   const addOne = async () => {
@@ -130,7 +137,7 @@ function Fare({ notify }) {
     setSaving(true);
     const r = await api('/api/fare','POST',{ ...form, base_fare: parseFloat(form.base_fare) });
     setSaving(false);
-    if (r.success) { setAddOpen(false); setForm(BLANK); load(); notify('Fare route added ✅'); }
+    if (r.success) { setAddOpen(false); setForm(BLANK); load(); notify('Fare route added'); }
     else notify(r.error||'Failed','error');
   };
 
@@ -153,7 +160,7 @@ function Fare({ notify }) {
     setSaving(false);
     if (r.success) {
       setEditOpen(false); setEditTarget(null); load();
-      notify(`${editTarget.origin} → ${editTarget.destination} updated ✅`);
+      notify(`${editTarget.origin} → ${editTarget.destination} updated`);
     } else notify(r.error||'Failed','error');
   };
 
@@ -257,7 +264,7 @@ function Fare({ notify }) {
     setExcludedRows(new Set());
     if (fileRef.current) fileRef.current.value = '';
     load();
-    notify(`Uploaded ${ok} route(s)${fail?`, ${fail} failed`:''} ✅`, fail?'warn':'success');
+    notify(`Uploaded ${ok} route(s)${fail?`, ${fail} failed`:''}`, fail?'warn':'success');
   };
 
   const base     = parseFloat(form.base_fare)||0;
@@ -282,14 +289,14 @@ function Fare({ notify }) {
         <div className="card-head">
           <div className="card-title">
             <FontAwesomeIcon icon={faMoneyBillWave} style={{ marginRight: 8, color: 'var(--gold)' }} />
-            Fare Matrix <span>(Discounted / Night / Special auto-calculated)</span>
+            Fare Matrix <span>({data.length} routes)</span>
           </div>
           <div className="card-actions">
             <button className="btn btn-ghost btn-sm" onClick={() => { setFileRows([]); setFileError(''); setFileName(''); setExcludedRows(new Set()); setUploadOpen(true); }}>
-              <FontAwesomeIcon icon={faFileImport} style={{ marginRight: 6 }} />Import Tariff
+              <FontAwesomeIcon icon={faFileImport} style={{ marginRight: 6, fontSize: 13 }} />Import Tariff
             </button>
             <button className="btn btn-ghost btn-sm" onClick={exportCSV}>
-              <FontAwesomeIcon icon={faFileExport} style={{ marginRight: 6 }} />Export CSV
+              <FontAwesomeIcon icon={faFileExport} style={{ marginRight: 6, fontSize: 13 }} />Export CSV
             </button>
             <button className="btn btn-green" onClick={() => { setForm(BLANK); setAddOpen(true); }}>
               + Add Route
@@ -302,12 +309,24 @@ function Fare({ notify }) {
             <FontAwesomeIcon icon={faSearch} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#aaa', fontSize: 12 }} />
             <input
               type="text" placeholder="Search origin or destination..."
-              value={search} onChange={e => setSearch(e.target.value)}
+              value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
               style={{ width: '100%', padding: '7px 10px 7px 30px', border: '1.5px solid var(--gray2)', borderRadius: 8, fontSize: '.85rem', outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
           {search && <span style={{ fontSize: '.8rem', color: 'var(--gray)' }}>{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>}
-          <span style={{ fontSize: '.8rem', color: 'var(--gray)', marginLeft: 'auto' }}>{data.length} routes</span>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '.78rem', color: 'var(--gray)' }}>Show</span>
+            {[10, 25, 50].map(n => (
+              <button key={n} onClick={() => { setPageSize(n); setCurrentPage(1); }} style={{
+                padding: '3px 10px', borderRadius: 6,
+                border: pageSize === n ? '1.5px solid var(--green)' : '1.5px solid var(--gray2)',
+                background: pageSize === n ? 'var(--green)' : 'transparent',
+                color: pageSize === n ? '#fff' : 'var(--gray)',
+                fontSize: '.78rem', fontWeight: pageSize === n ? 700 : 400,
+                cursor: 'pointer', transition: 'all 0.15s',
+              }}>{n}</button>
+            ))}
+          </div>
         </div>
 
         {loading ? <Loading/> : data.length===0 ? <Empty/> : (
@@ -354,7 +373,7 @@ function Fare({ notify }) {
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr><td colSpan={9} style={{ textAlign:'center', padding:'24px', color:'var(--gray)' }}>No routes match "{search}"</td></tr>
-                  ) : filtered.map(f => (
+                  ) : filtered.slice((currentPage-1)*pageSize, currentPage*pageSize).map(f => (
                     <tr key={f.id} style={{ background: selected.has(f.id) ? '#fff5f5' : undefined }}>
                       <td style={{ textAlign:'center', paddingRight:0 }}>
                         <input type="checkbox" checked={selected.has(f.id)} onChange={() => toggleOne(f.id)} style={{ cursor:'pointer', width:14, height:14 }} />
@@ -365,15 +384,14 @@ function Fare({ notify }) {
                       <td>₱{Number(f.discounted_fare).toFixed(2)}</td>
                       <td>₱{Number(f.night_fare).toFixed(2)}</td>
                       <td>₱{Number(f.special_fare).toFixed(2)}</td>
-                      <td style={{ fontSize:'.82rem', color:'var(--gray)' }}>{formatDate(f.created_at)}</td>
+                      <td style={{ fontSize: '.85rem' }}>{formatDate(f.created_at)}</td>
                       <td>
-                        {/* ── Driver-style action buttons ── */}
                         <div className="row-actions">
                           <button className="ib ib-edit" onClick={() => openEdit(f)}>
-                            <FontAwesomeIcon icon={faPencil} style={{ marginRight: 4 }} />Edit
+                            <FontAwesomeIcon icon={faPencil} style={{ marginRight: 4, fontSize: 11 }} />Edit
                           </button>
                           <button className="ib ib-del" onClick={() => del(f.id, `${f.origin} → ${f.destination}`)}>
-                            <FontAwesomeIcon icon={faTrash} style={{ marginRight: 4 }} />Delete
+                            <FontAwesomeIcon icon={faTrash} style={{ marginRight: 4, fontSize: 11 }} />Delete
                           </button>
                         </div>
                       </td>
@@ -382,6 +400,35 @@ function Fare({ notify }) {
                 </tbody>
               </table>
             </div>
+            {filtered.length > pageSize && (() => {
+              const totalPages = Math.ceil(filtered.length / pageSize);
+              return (
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 18px', borderTop:'1px solid var(--gray2)' }}>
+                  <span style={{ fontSize:'.8rem', color:'var(--gray)' }}>
+                    Showing {Math.min((currentPage-1)*pageSize+1, filtered.length)}–{Math.min(currentPage*pageSize, filtered.length)} of {filtered.length} routes
+                  </span>
+                  <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                    <button onClick={() => setCurrentPage(p => Math.max(1, p-1))} disabled={currentPage===1}
+                      style={{ background:'none', border:'1px solid var(--gray2)', borderRadius:6, padding:'4px 10px', cursor: currentPage===1 ? 'not-allowed' : 'pointer', opacity: currentPage===1 ? 0.4 : 1 }}>
+                      <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize:11 }} />
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i+1).map(p => (
+                      <button key={p} onClick={() => setCurrentPage(p)} style={{
+                        padding:'4px 10px', borderRadius:6, fontSize:'.8rem',
+                        fontWeight: p===currentPage ? 700 : 400,
+                        border: p===currentPage ? '1.5px solid var(--green)' : '1px solid var(--gray2)',
+                        background: p===currentPage ? 'var(--green)' : 'none',
+                        color: p===currentPage ? '#fff' : 'var(--gray)', cursor:'pointer',
+                      }}>{p}</button>
+                    ))}
+                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p+1))} disabled={currentPage===totalPages}
+                      style={{ background:'none', border:'1px solid var(--gray2)', borderRadius:6, padding:'4px 10px', cursor: currentPage===totalPages ? 'not-allowed' : 'pointer', opacity: currentPage===totalPages ? 0.4 : 1 }}>
+                      <FontAwesomeIcon icon={faChevronRight} style={{ fontSize:11 }} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </>
         )}
       </div>
@@ -517,13 +564,18 @@ function Fare({ notify }) {
             />
           </div>
           {fileName && !fileError && fileRows.length===0 && <div className="box-warn">Reading "{fileName}"...</div>}
-          {fileError && <div className="box-red">⚠️ {fileError}</div>}
+          {fileError && (
+            <div className="box-red" style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <FontAwesomeIcon icon={faTriangleExclamation} style={{ fontSize:13 }} /> {fileError}
+            </div>
+          )}
 
           {fileRows.length > 0 && (
             <>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-                <div style={{ fontWeight:600, fontSize:'.83rem', color:'var(--green)' }}>
-                  ✅ {activeFileRows.length} of {fileRows.length} route(s) selected
+                <div style={{ fontWeight:600, fontSize:'.83rem', color:'var(--green)', display:'flex', alignItems:'center', gap:6 }}>
+                  <FontAwesomeIcon icon={faCircleCheck} style={{ fontSize:13 }} />
+                  {activeFileRows.length} of {fileRows.length} route(s) selected
                 </div>
                 {excludedRows.size > 0 && <span style={{ fontSize:'.78rem', color:'var(--gray)' }}>{excludedRows.size} excluded</span>}
               </div>
@@ -571,7 +623,8 @@ function Fare({ notify }) {
                 r.destination.toLowerCase() === d.destination.toLowerCase()
               )) && (
                 <div style={{ display:'flex', alignItems:'center', gap:8, background:'#fff8e1', border:'1px solid #f59e0b', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:'.8rem', color:'#92400e' }}>
-                  <span>⚠️</span><span><strong>Yellow rows</strong> already exist and will be updated.</span>
+                  <FontAwesomeIcon icon={faTriangleExclamation} style={{ fontSize:12 }} />
+                  <span><strong>Yellow rows</strong> already exist and will be updated.</span>
                 </div>
               )}
             </>
@@ -587,13 +640,16 @@ function Fare({ notify }) {
 
       {/* ── OVERWRITE CONFIRMATION ── */}
       {confirmOpen && (
-        <Modal title="⚠️ Confirm Price Update" onClose={() => setConfirmOpen(false)}>
+        <Modal title="Confirm Price Update" onClose={() => setConfirmOpen(false)}>
           <div style={{ background:'#fff8e1', border:'1px solid #f59e0b', borderRadius:10, padding:'14px 16px', marginBottom:16, fontSize:'.88rem', color:'#78350f', lineHeight:1.6 }}>
             <strong>{overwriteRows.length} existing route(s)</strong> will have their prices updated. This cannot be undone.
           </div>
           {overwriteRows.length > 0 && (
             <>
-              <div style={{ fontWeight:600, fontSize:'.82rem', color:'#d97706', marginBottom:6 }}>🔄 Routes to be updated ({overwriteRows.length}):</div>
+              <div style={{ fontWeight:600, fontSize:'.82rem', color:'#d97706', marginBottom:6, display:'flex', alignItems:'center', gap:6 }}>
+                <FontAwesomeIcon icon={faRotate} style={{ fontSize:12 }} />
+                Routes to be updated ({overwriteRows.length}):
+              </div>
               <div className="tbl-wrap" style={{ maxHeight:160, overflowY:'auto', border:'1px solid #fde68a', borderRadius:7, marginBottom:14 }}>
                 <table>
                   <thead><tr><th>Origin</th><th>Destination</th><th>Old Price</th><th>New Price</th></tr></thead>
@@ -615,7 +671,10 @@ function Fare({ notify }) {
           )}
           {newRows.length > 0 && (
             <>
-              <div style={{ fontWeight:600, fontSize:'.82rem', color:'var(--green)', marginBottom:6 }}>✅ New routes to be added ({newRows.length}):</div>
+              <div style={{ fontWeight:600, fontSize:'.82rem', color:'var(--green)', marginBottom:6, display:'flex', alignItems:'center', gap:6 }}>
+                <FontAwesomeIcon icon={faCircleCheck} style={{ fontSize:12 }} />
+                New routes to be added ({newRows.length}):
+              </div>
               <div className="tbl-wrap" style={{ maxHeight:130, overflowY:'auto', border:'1px solid #bbf7d0', borderRadius:7, marginBottom:14 }}>
                 <table>
                   <thead><tr><th>Origin</th><th>Destination</th><th>Base Fare</th></tr></thead>

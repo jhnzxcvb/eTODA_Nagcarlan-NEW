@@ -8,16 +8,16 @@ import (
 	"etoda_admin/utils"
 )
 
-// Complaints handles GET (list) and POST (new complaint from Flutter)
 func Complaints(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 
 	case "GET":
 		rows, _ := DB.Query(`
-	        SELECT c.id,c.report_code,
-	        COALESCE(p.first_name||' '||COALESCE(p.middle_name,'')||' '||p.last_name,'—'),COALESCE(d.name,'—'),COALESCE(d.franchise,'—'),
-	        COALESCE(c.violation_type,''),COALESCE(c.firebase_id,''),
-	        COALESCE(c.admin_notes,''),c.status,
+	        SELECT c.id, c.report_code,
+	        COALESCE(p.first_name||' '||COALESCE(p.middle_name,'')||' '||p.last_name,'—'),
+	        COALESCE(d.name,'—'), COALESCE(d.franchise,'—'),
+	        COALESCE(c.violation_type,''), COALESCE(c.firebase_id,''),
+	        COALESCE(c.admin_notes,''), c.status,
 	        to_char(c.reported_at,'YYYY-MM-DD')
 	        FROM complaints c
 	        LEFT JOIN users p ON c.passenger_id=p.user_id
@@ -36,7 +36,6 @@ func Complaints(w http.ResponseWriter, r *http.Request) {
 		utils.JSONOK(w, list)
 
 	case "POST":
-		// New complaint filed from Flutter app
 		var b struct {
 			PassengerID int    `json:"passenger_id"`
 			DriverID    int    `json:"driver_id"`
@@ -55,7 +54,7 @@ func Complaints(w http.ResponseWriter, r *http.Request) {
 		var cID int
 		err := DB.QueryRow(
 			`INSERT INTO complaints(report_code, passenger_id, driver_id, violation_type, firebase_id, status, reported_at)
-			 VALUES($1,$2,$3,$4,$5,'Pending',NOW()) RETURNING id`,
+			 VALUES($1,$2,$3,$4,$5,'Open',NOW()) RETURNING id`,
 			code, b.PassengerID, b.DriverID, b.Violation, b.FirebaseID,
 		).Scan(&cID)
 		if err != nil {
@@ -64,8 +63,6 @@ func Complaints(w http.ResponseWriter, r *http.Request) {
 		}
 
 		utils.LogAudit(DB, "CREATE", "Complaint", code, fmt.Sprintf("New complaint %s filed", code))
-
-		// 🔔 Auto-insert notification
 		InsertNotification(
 			"New Complaint Filed",
 			fmt.Sprintf("Complaint %s has been submitted.", code),
@@ -84,7 +81,6 @@ func Complaints(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ComplaintByID handles PATCH (update status/notes) on a single complaint
 func ComplaintByID(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 
@@ -94,14 +90,27 @@ func ComplaintByID(w http.ResponseWriter, r *http.Request) {
 			Status     string `json:"status"`
 			AdminNotes string `json:"admin_notes"`
 		}
-		utils.Decode(r, &b)
+		if err := utils.Decode(r, &b); err != nil {
+			utils.JSONErr(w, "Invalid JSON", 400)
+			return
+		}
+
 		var code string
 		DB.QueryRow("SELECT report_code FROM complaints WHERE id=$1", id).Scan(&code)
+
+		// Always write admin_notes directly — allows clearing with empty string
 		if b.Status == "Resolved" {
-			DB.Exec("UPDATE complaints SET status=$1,admin_notes=COALESCE(NULLIF($2,''),admin_notes),resolved_at=NOW() WHERE id=$3", b.Status, b.AdminNotes, id)
+			DB.Exec(
+				`UPDATE complaints SET status=$1, admin_notes=$2, resolved_at=NOW() WHERE id=$3`,
+				b.Status, b.AdminNotes, id,
+			)
 		} else {
-			DB.Exec("UPDATE complaints SET status=$1,admin_notes=COALESCE(NULLIF($2,''),admin_notes) WHERE id=$3", b.Status, b.AdminNotes, id)
+			DB.Exec(
+				`UPDATE complaints SET status=$1, admin_notes=$2 WHERE id=$3`,
+				b.Status, b.AdminNotes, id,
+			)
 		}
+
 		utils.LogAudit(DB, "UPDATE", "Complaint", code, fmt.Sprintf("Status → %s", b.Status))
 		utils.JSONOK(w, map[string]string{"message": "Updated"})
 
