@@ -82,7 +82,15 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
       final mName = _driverData!['middle_name'] ?? '';
       final lName = _driverData!['last_name'] ?? '';
       fullName = "$fName $mName $lName".trim();
-      if (fullName.isEmpty) fullName = "DRIVER PROFILE";
+      if (fullName.isEmpty) fullName = _driverData!['full_name'] ?? "DRIVER PROFILE";
+    }
+
+    // Helper function to catch both null and empty string values
+    String getVal(String key, String fallback) {
+      final val = _driverData?[key];
+      if (val == null) return fallback;
+      final str = val.toString().trim();
+      return str.isEmpty ? fallback : str;
     }
 
     return Scaffold(
@@ -122,12 +130,22 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                       ),
                     const SizedBox(height: 24),
                     InfoSectionCard(
-                      title: "Vehicle Info",
+                      title: "Contact & Vehicle",
                       icon: Icons.directions_car,
                       items: {
-                        "Plate Number": _driverData?['plate_number'] ?? 'Not Set',
-                        "Body Number": _driverData?['body_number'] ?? 'Not Set',
-                        "Phone": _driverData?['phone_number'] ?? 'Not Set',
+                        "Plate Number": getVal('plate_number', 'Not Set'),
+                        "Body Number": getVal('body_number', 'Not Set'),
+                        "Phone": getVal('phone_number', 'Not Set'),
+                        "Email": getVal('email', 'Not Set'),
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    InfoSectionCard(
+                      title: "Association Details",
+                      icon: Icons.groups,
+                      items: {
+                        "Association": getVal('association', 'Not Set'),
+                        "Franchise": getVal('franchise', 'Not Set'),
                       },
                     ),
                     const SizedBox(height: 12),
@@ -135,8 +153,8 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                       title: "Legal & License",
                       icon: Icons.badge,
                       items: {
-                        "License #": _driverData?['license_number'] ?? 'N/A',
-                        "Username": _driverData?['username'] ?? 'N/A',
+                        "License #": getVal('license_number', 'N/A'),
+                        "Username": getVal('username', 'N/A'),
                       },
                     ),
                     const SizedBox(height: 40),
