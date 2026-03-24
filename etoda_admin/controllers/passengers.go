@@ -2,13 +2,14 @@ package controllers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+	"strings"
 
 	"etoda_admin/models"
 	"etoda_admin/utils"
 )
 
-// Passengers handler for listing passengers.
 func Passengers(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		utils.JSONErr(w, "Method not allowed", 405)
@@ -16,9 +17,10 @@ func Passengers(w http.ResponseWriter, r *http.Request) {
 	}
 	search := r.URL.Query().Get("search")
 	q := `SELECT user_id,
-		username,
-		(first_name || ' ' || COALESCE(middle_name,'') || ' ' || last_name) AS name,
+		COALESCE(username,''),
+		TRIM(REGEXP_REPLACE(first_name || ' ' || COALESCE(NULLIF(TRIM(middle_name),''),'') || ' ' || last_name, '\s+', ' ', 'g')) AS name,
 		COALESCE(email,''),
+		COALESCE(phone_number,''),
 		'Registered' AS session_type,
 		COALESCE(status,'Active'),
 		to_char(created_at,'YYYY-MM-DD')
@@ -26,15 +28,25 @@ func Passengers(w http.ResponseWriter, r *http.Request) {
 	args := []interface{}{}
 	if search != "" {
 		args = append(args, "%"+search+"%")
-		q += ` AND (username ILIKE $1 OR first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1)`
+		q += ` AND (username ILIKE $1 OR first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1 OR phone_number ILIKE $1)`
 	}
 	q += " ORDER BY user_id"
-	rows, _ := DB.Query(q, args...)
+
+	rows, err := DB.Query(q, args...)
+	if err != nil {
+		log.Println("Passengers query error:", err)
+		utils.JSONErr(w, err.Error(), 500)
+		return
+	}
 	defer rows.Close()
+
 	list := []models.Passenger{}
 	for rows.Next() {
 		var p models.Passenger
-		rows.Scan(&p.ID, &p.Code, &p.Name, &p.Email, &p.SessionType, &p.Status, &p.RegisteredAt)
+		if err := rows.Scan(&p.ID, &p.Username, &p.Name, &p.Email, &p.Contact, &p.SessionType, &p.Status, &p.RegisteredAt); err != nil {
+			log.Println("Passengers scan error:", err)
+			continue
+		}
 		list = append(list, p)
 	}
 	if list == nil {
@@ -43,26 +55,80 @@ func Passengers(w http.ResponseWriter, r *http.Request) {
 	utils.JSONOK(w, list)
 }
 
-// PassengerByID handles status updates for a passenger record.
 func PassengerByID(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "PATCH" {
-		utils.JSONErr(w, "Method not allowed", 405)
-		return
-	}
 	id := utils.PathID(r.URL.Path, "/api/passengers/")
-	var b struct {
-		Status string `json:"status"`
+
+	switch r.Method {
+	case "PATCH":
+		var b map[string]string
+		utils.Decode(r, &b)
+
+		sets, args := []string{}, []interface{}{}
+
+		if v, ok := b["status"]; ok {
+			args = append(args, v)
+			sets = append(sets, fmt.Sprintf("status=$%d", len(args)))
+		}
+		if v, ok := b["email"]; ok {
+			args = append(args, v)
+			sets = append(sets, fmt.Sprintf("email=$%d", len(args)))
+		}
+		if v, ok := b["contact"]; ok {
+			args = append(args, v)
+			sets = append(sets, fmt.Sprintf("phone_number=$%d", len(args)))
+		}
+		if v, ok := b["name"]; ok {
+			parts := strings.Fields(strings.TrimSpace(v))
+			switch len(parts) {
+			case 1:
+				args = append(args, parts[0])
+				sets = append(sets, fmt.Sprintf("first_name=$%d", len(args)))
+				args = append(args, "")
+				sets = append(sets, fmt.Sprintf("middle_name=$%d", len(args)))
+				args = append(args, "")
+				sets = append(sets, fmt.Sprintf("last_name=$%d", len(args)))
+			case 2:
+				args = append(args, parts[0])
+				sets = append(sets, fmt.Sprintf("first_name=$%d", len(args)))
+				args = append(args, "")
+				sets = append(sets, fmt.Sprintf("middle_name=$%d", len(args)))
+				args = append(args, parts[1])
+				sets = append(sets, fmt.Sprintf("last_name=$%d", len(args)))
+			default:
+				args = append(args, parts[0])
+				sets = append(sets, fmt.Sprintf("first_name=$%d", len(args)))
+				args = append(args, strings.Join(parts[1:len(parts)-1], " "))
+				sets = append(sets, fmt.Sprintf("middle_name=$%d", len(args)))
+				args = append(args, parts[len(parts)-1])
+				sets = append(sets, fmt.Sprintf("last_name=$%d", len(args)))
+			}
+		}
+
+		if len(sets) == 0 {
+			utils.JSONErr(w, "Nothing to update", 400)
+			return
+		}
+
+		args = append(args, id)
+		DB.Exec(fmt.Sprintf("UPDATE users SET %s WHERE user_id=$%d", strings.Join(sets, ","), len(args)), args...)
+
+		var name string
+		DB.QueryRow("SELECT (first_name||' '||last_name) FROM users WHERE user_id=$1", id).Scan(&name)
+		utils.LogAudit(DB, "UPDATE", "Passenger", id, fmt.Sprintf("Updated passenger: %s", name))
+		utils.JSONOK(w, map[string]string{"message": "Updated"})
+
+	case "DELETE":
+		var name string
+		DB.QueryRow("SELECT (first_name||' '||last_name) FROM users WHERE user_id=$1", id).Scan(&name)
+		DB.Exec("DELETE FROM users WHERE user_id=$1", id)
+		utils.LogAudit(DB, "DELETE", "Passenger", id, fmt.Sprintf("Deleted passenger: %s", name))
+		utils.JSONOK(w, map[string]string{"message": "Deleted"})
+
+	default:
+		utils.JSONErr(w, "Method not allowed", 405)
 	}
-	utils.Decode(r, &b)
-	var name string
-	DB.QueryRow("SELECT (first_name||' '||COALESCE(middle_name,'')||' '||last_name) FROM users WHERE user_id=$1", id).Scan(&name)
-	DB.Exec("UPDATE users SET status=$1 WHERE user_id=$2", b.Status, id)
-	utils.LogAudit(DB, "UPDATE", "Passenger", id, fmt.Sprintf("%s status → %s", name, b.Status))
-	utils.JSONOK(w, map[string]string{"message": "Updated"})
 }
 
-// NotifyNewPassenger is called from PassengerSignup in auth_controller.go
-// after a new passenger successfully registers.
 func NotifyNewPassenger(name string) {
 	InsertNotification(
 		"New Passenger Registered",

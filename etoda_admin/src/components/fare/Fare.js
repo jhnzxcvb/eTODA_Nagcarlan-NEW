@@ -1,7 +1,11 @@
 // src/components/fare/Fare.js
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faSort, faSortUp, faSortDown, faFileExport, faFileImport, faPencil, faTrash, faMoneyBillWave } from '@fortawesome/free-solid-svg-icons';
+import {
+  faSearch, faSort, faSortUp, faSortDown, faFileExport, faFileImport,
+  faPencil, faTrash, faMoneyBillWave, faCircleCheck, faTriangleExclamation,
+  faRotate, faPlus, faChevronLeft, faChevronRight,
+} from '@fortawesome/free-solid-svg-icons';
 import { api } from '../../lib/api';
 import Loading from '../ui/Loading';
 import Empty from '../ui/Empty';
@@ -15,10 +19,12 @@ function Fare({ notify }) {
   const [editTarget,  setEditTarget]  = useState(null);
   const [uploadOpen,  setUploadOpen]  = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteOpen,  setDeleteOpen]  = useState(false);
+  const [deleteTarget,setDeleteTarget]= useState(null);
   const [saving,      setSaving]      = useState(false);
   const [uploading,   setUploading]   = useState(false);
   const [fileRows,    setFileRows]    = useState([]);
-  const [excludedRows,setExcludedRows]= useState(new Set()); // rows unchecked in preview
+  const [excludedRows,setExcludedRows]= useState(new Set());
   const [fileError,   setFileError]   = useState('');
   const [fileName,    setFileName]    = useState('');
   const [search,      setSearch]      = useState('');
@@ -27,6 +33,8 @@ function Fare({ notify }) {
   const [selected,    setSelected]    = useState(new Set());
   const [bulkDelOpen, setBulkDelOpen] = useState(false);
   const [bulkDeleting,setBulkDeleting]= useState(false);
+  const [pageSize,    setPageSize]    = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const fileRef = useRef(null);
 
   const [newRows,       setNewRows]       = useState([]);
@@ -44,7 +52,6 @@ function Fare({ notify }) {
   };
   useEffect(() => { load(); }, []);
 
-  // ── Search + Sort ──
   const filtered = useMemo(() => {
     let rows = [...data];
     if (search.trim()) {
@@ -68,6 +75,7 @@ function Fare({ notify }) {
   const handleSort = key => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortKey(key); setSortDir('asc'); }
+    setCurrentPage(1);
   };
 
   const SortIcon = ({ col }) => {
@@ -75,7 +83,6 @@ function Fare({ notify }) {
     return <FontAwesomeIcon icon={sortDir === 'asc' ? faSortUp : faSortDown} style={{ marginLeft: 4, color: 'var(--green)', fontSize: 10 }} />;
   };
 
-  // ── Bulk select (table) ──
   const allFilteredIds = filtered.map(f => f.id);
   const allChecked     = allFilteredIds.length > 0 && allFilteredIds.every(id => selected.has(id));
   const someChecked    = allFilteredIds.some(id => selected.has(id));
@@ -94,7 +101,6 @@ function Fare({ notify }) {
 
   const deselectAll = () => setSelected(new Set());
 
-  // ── Bulk delete ──
   const doBulkDelete = async () => {
     setBulkDeleting(true);
     let ok = 0, fail = 0;
@@ -109,12 +115,8 @@ function Fare({ notify }) {
     notify(`Deleted ${ok} route(s)${fail ? `, ${fail} failed` : ''}`, 'warn');
   };
 
-  // ── Export CSV ──
   const exportCSV = () => {
-    if (data.length === 0) {
-      notify('No fare routes to export.', 'error');
-      return;
-    }
+    if (data.length === 0) { notify('No fare routes to export.', 'error'); return; }
     const header = 'origin,destination,base_fare,discounted_fare,night_fare,special_fare';
     const rows = data.map(f =>
       `${f.origin},${f.destination},${f.base_fare},${f.discounted_fare},${f.night_fare},${f.special_fare}`
@@ -125,10 +127,9 @@ function Fare({ notify }) {
     a.href = URL.createObjectURL(blob);
     a.download = `fare_matrix_${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
-    notify('Fare matrix exported ✅', 'success');
+    notify('Fare matrix exported', 'success');
   };
 
-  // ── Add ──
   const addOne = async () => {
     if (!form.origin.trim()||!form.destination.trim()||!form.base_fare) {
       notify('All fields are required','error'); return;
@@ -136,11 +137,10 @@ function Fare({ notify }) {
     setSaving(true);
     const r = await api('/api/fare','POST',{ ...form, base_fare: parseFloat(form.base_fare) });
     setSaving(false);
-    if (r.success) { setAddOpen(false); setForm(BLANK); load(); notify('Fare route added ✅'); }
+    if (r.success) { setAddOpen(false); setForm(BLANK); load(); notify('Fare route added'); }
     else notify(r.error||'Failed','error');
   };
 
-  // ── Edit ──
   const openEdit = (f) => {
     setEditTarget(f);
     setEditForm({ origin: f.origin, destination: f.destination, base_fare: String(f.base_fare) });
@@ -160,22 +160,28 @@ function Fare({ notify }) {
     setSaving(false);
     if (r.success) {
       setEditOpen(false); setEditTarget(null); load();
-      notify(`${editTarget.origin} → ${editTarget.destination} updated ✅`);
+      notify(`${editTarget.origin} → ${editTarget.destination} updated`);
     } else notify(r.error||'Failed','error');
   };
 
-  // ── Single delete ──
-  const del = async (id, label) => {
-    if (!window.confirm(`Delete "${label}"?`)) return;
-    const r = await api(`/api/fare/${id}`,'DELETE');
-    if (r.success) {
-      setSelected(prev => { const n = new Set(prev); n.delete(id); return n; });
-      load();
-      notify(`"${label}" deleted`,'warn');
-    }
+  const del = (id, label) => {
+    setDeleteTarget({ id, label });
+    setDeleteOpen(true);
   };
 
-  // ── File parsing ──
+  const confirmDelete = async () => {
+    const r = await api(`/api/fare/${deleteTarget.id}`,'DELETE');
+    if (r.success) {
+      setSelected(prev => { const n = new Set(prev); n.delete(deleteTarget.id); return n; });
+      load();
+      notify(`"${deleteTarget.label}" deleted`, 'warn');
+    } else {
+      notify('Failed to delete route', 'error');
+    }
+    setDeleteOpen(false);
+    setDeleteTarget(null);
+  };
+
   const parseCSV = text => {
     const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
     const rows = [];
@@ -212,7 +218,7 @@ function Fare({ notify }) {
 
   const handleFile = e => {
     setFileError(''); setFileRows([]); setFileName('');
-    setExcludedRows(new Set()); // reset exclusions on new file
+    setExcludedRows(new Set());
     const file = e.target.files[0];
     if (!file) return;
     setFileName(file.name);
@@ -230,14 +236,10 @@ function Fare({ notify }) {
     }
   };
 
-  // Only upload rows that are checked (not excluded)
   const activeFileRows = fileRows.filter((_, i) => !excludedRows.has(i));
 
   const handleUploadClick = () => {
-    if (activeFileRows.length === 0) {
-      notify('No routes selected to upload.', 'error');
-      return;
-    }
+    if (activeFileRows.length === 0) { notify('No routes selected to upload.', 'error'); return; }
     const existing = new Set(data.map(d => `${d.origin.toLowerCase()}|${d.destination.toLowerCase()}`));
     const willOverwrite = activeFileRows.filter(r => existing.has(`${r.origin.toLowerCase()}|${r.destination.toLowerCase()}`));
     const willAdd = activeFileRows.filter(r => !existing.has(`${r.origin.toLowerCase()}|${r.destination.toLowerCase()}`));
@@ -262,7 +264,7 @@ function Fare({ notify }) {
     setExcludedRows(new Set());
     if (fileRef.current) fileRef.current.value = '';
     load();
-    notify(`Uploaded ${ok} route(s)${fail?`, ${fail} failed`:''} ✅`, fail?'warn':'success');
+    notify(`Uploaded ${ok} route(s)${fail?`, ${fail} failed`:''}`, fail?'warn':'success');
   };
 
   const base     = parseFloat(form.base_fare)||0;
@@ -275,14 +277,10 @@ function Fare({ notify }) {
     return d.toLocaleDateString('en-PH', { year:'numeric', month:'short', day:'numeric' });
   };
 
-  // Preview: select/deselect all in file rows
   const allPreviewChecked = fileRows.length > 0 && excludedRows.size === 0;
   const toggleAllPreview  = () => {
-    if (allPreviewChecked) {
-      setExcludedRows(new Set(fileRows.map((_, i) => i)));
-    } else {
-      setExcludedRows(new Set());
-    }
+    if (allPreviewChecked) setExcludedRows(new Set(fileRows.map((_, i) => i)));
+    else setExcludedRows(new Set());
   };
 
   return (
@@ -291,14 +289,14 @@ function Fare({ notify }) {
         <div className="card-head">
           <div className="card-title">
             <FontAwesomeIcon icon={faMoneyBillWave} style={{ marginRight: 8, color: 'var(--gold)' }} />
-            Fare Matrix <span>(Discounted / Night / Special auto-calculated)</span>
+            Fare Matrix <span>({data.length} routes)</span>
           </div>
           <div className="card-actions">
             <button className="btn btn-ghost btn-sm" onClick={() => { setFileRows([]); setFileError(''); setFileName(''); setExcludedRows(new Set()); setUploadOpen(true); }}>
-              <FontAwesomeIcon icon={faFileImport} style={{ marginRight: 6 }} />Import Tariff
+              <FontAwesomeIcon icon={faFileImport} style={{ marginRight: 6, fontSize: 13 }} />Import Tariff
             </button>
             <button className="btn btn-ghost btn-sm" onClick={exportCSV}>
-              <FontAwesomeIcon icon={faFileExport} style={{ marginRight: 6 }} />Export CSV
+              <FontAwesomeIcon icon={faFileExport} style={{ marginRight: 6, fontSize: 13 }} />Export CSV
             </button>
             <button className="btn btn-green" onClick={() => { setForm(BLANK); setAddOpen(true); }}>
               + Add Route
@@ -306,43 +304,46 @@ function Fare({ notify }) {
           </div>
         </div>
 
-        {/* Search bar */}
         <div style={{ padding: '12px 18px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ position: 'relative', flex: 1, maxWidth: 320 }}>
             <FontAwesomeIcon icon={faSearch} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#aaa', fontSize: 12 }} />
             <input
               type="text" placeholder="Search origin or destination..."
-              value={search} onChange={e => setSearch(e.target.value)}
+              value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
               style={{ width: '100%', padding: '7px 10px 7px 30px', border: '1.5px solid var(--gray2)', borderRadius: 8, fontSize: '.85rem', outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
           {search && <span style={{ fontSize: '.8rem', color: 'var(--gray)' }}>{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>}
-          <span style={{ fontSize: '.8rem', color: 'var(--gray)', marginLeft: 'auto' }}>{data.length} routes</span>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '.78rem', color: 'var(--gray)' }}>Show</span>
+            {[10, 25, 50].map(n => (
+              <button key={n} onClick={() => { setPageSize(n); setCurrentPage(1); }} style={{
+                padding: '3px 10px', borderRadius: 6,
+                border: pageSize === n ? '1.5px solid var(--green)' : '1.5px solid var(--gray2)',
+                background: pageSize === n ? 'var(--green)' : 'transparent',
+                color: pageSize === n ? '#fff' : 'var(--gray)',
+                fontSize: '.78rem', fontWeight: pageSize === n ? 700 : 400,
+                cursor: 'pointer', transition: 'all 0.15s',
+              }}>{n}</button>
+            ))}
+          </div>
         </div>
 
         {loading ? <Loading/> : data.length===0 ? <Empty/> : (
           <>
-            {/* Bulk action bar */}
             {selected.size > 0 && (
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '8px 18px',
-                background: '#fef2f2',
-                borderTop: '1px solid #fecaca',
-                borderBottom: '1px solid #fecaca',
-                marginTop: 12,
-              }}>
-                <span style={{ fontSize: '.85rem', color: '#7f1d1d', fontWeight: 600 }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 18px', background:'#fef2f2', borderTop:'1px solid #fecaca', borderBottom:'1px solid #fecaca', marginTop:12 }}>
+                <span style={{ fontSize:'.85rem', color:'#7f1d1d', fontWeight:600 }}>
                   {selected.size} route{selected.size !== 1 ? 's' : ''} selected
                 </span>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ display:'flex', gap:8, alignItems:'center' }}>
                   <button onClick={deselectAll}
-                    style={{ fontSize: '.8rem', color: 'var(--gray)', background: 'none', border: '1px solid var(--gray2)', borderRadius: 6, padding: '4px 12px', cursor: 'pointer' }}>
+                    style={{ fontSize:'.8rem', color:'var(--gray)', background:'none', border:'1px solid var(--gray2)', borderRadius:6, padding:'4px 12px', cursor:'pointer' }}>
                     Deselect all
                   </button>
                   <button onClick={() => setBulkDelOpen(true)}
-                    style={{ fontSize: '.8rem', color: '#7f1d1d', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <FontAwesomeIcon icon={faTrash} style={{ fontSize: 11 }} />
+                    style={{ fontSize:'.8rem', color:'#7f1d1d', background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:6, padding:'4px 12px', cursor:'pointer', fontWeight:600, display:'flex', alignItems:'center', gap:6 }}>
+                    <FontAwesomeIcon icon={faTrash} style={{ fontSize:11 }} />
                     Delete {selected.size} routes
                   </button>
                 </div>
@@ -353,15 +354,15 @@ function Fare({ notify }) {
               <table>
                 <thead>
                   <tr>
-                    <th style={{ width: 40, textAlign: 'center', paddingRight: 0 }}>
+                    <th style={{ width:40, textAlign:'center', paddingRight:0 }}>
                       <input type="checkbox" checked={allChecked}
                         ref={el => { if (el) el.indeterminate = someChecked && !allChecked; }}
-                        onChange={toggleAll} style={{ cursor: 'pointer', width: 14, height: 14 }}
+                        onChange={toggleAll} style={{ cursor:'pointer', width:14, height:14 }}
                       />
                     </th>
-                    <th onClick={() => handleSort('origin')} style={{ cursor: 'pointer', userSelect: 'none' }}>Origin <SortIcon col="origin" /></th>
-                    <th onClick={() => handleSort('destination')} style={{ cursor: 'pointer', userSelect: 'none' }}>Destination <SortIcon col="destination" /></th>
-                    <th onClick={() => handleSort('base_fare')} style={{ cursor: 'pointer', userSelect: 'none' }}>Base <SortIcon col="base_fare" /></th>
+                    <th onClick={() => handleSort('origin')} style={{ cursor:'pointer', userSelect:'none' }}>Origin <SortIcon col="origin" /></th>
+                    <th onClick={() => handleSort('destination')} style={{ cursor:'pointer', userSelect:'none' }}>Destination <SortIcon col="destination" /></th>
+                    <th onClick={() => handleSort('base_fare')} style={{ cursor:'pointer', userSelect:'none' }}>Base <SortIcon col="base_fare" /></th>
                     <th>Discounted (−20%)</th>
                     <th>Night (+15%)</th>
                     <th>Special (×3)</th>
@@ -371,11 +372,11 @@ function Fare({ notify }) {
                 </thead>
                 <tbody>
                   {filtered.length === 0 ? (
-                    <tr><td colSpan={9} style={{ textAlign: 'center', padding: '24px', color: 'var(--gray)' }}>No routes match "{search}"</td></tr>
-                  ) : filtered.map(f => (
+                    <tr><td colSpan={9} style={{ textAlign:'center', padding:'24px', color:'var(--gray)' }}>No routes match "{search}"</td></tr>
+                  ) : filtered.slice((currentPage-1)*pageSize, currentPage*pageSize).map(f => (
                     <tr key={f.id} style={{ background: selected.has(f.id) ? '#fff5f5' : undefined }}>
-                      <td style={{ textAlign: 'center', paddingRight: 0 }}>
-                        <input type="checkbox" checked={selected.has(f.id)} onChange={() => toggleOne(f.id)} style={{ cursor: 'pointer', width: 14, height: 14 }} />
+                      <td style={{ textAlign:'center', paddingRight:0 }}>
+                        <input type="checkbox" checked={selected.has(f.id)} onChange={() => toggleOne(f.id)} style={{ cursor:'pointer', width:14, height:14 }} />
                       </td>
                       <td><strong>{f.origin}</strong></td>
                       <td>{f.destination}</td>
@@ -383,17 +384,14 @@ function Fare({ notify }) {
                       <td>₱{Number(f.discounted_fare).toFixed(2)}</td>
                       <td>₱{Number(f.night_fare).toFixed(2)}</td>
                       <td>₱{Number(f.special_fare).toFixed(2)}</td>
-                      <td style={{ fontSize: '.82rem', color: 'var(--gray)' }}>{formatDate(f.created_at)}</td>
+                      <td style={{ fontSize: '.85rem' }}>{formatDate(f.created_at)}</td>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.82rem' }}>
-                          <button onClick={() => openEdit(f)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--green)', fontWeight: 600, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <FontAwesomeIcon icon={faPencil} style={{ fontSize: 11 }} />Edit
+                        <div className="row-actions">
+                          <button className="ib ib-edit" onClick={() => openEdit(f)}>
+                            <FontAwesomeIcon icon={faPencil} style={{ marginRight: 4, fontSize: 11 }} />Edit
                           </button>
-                          <span style={{ color: 'var(--gray2)' }}>·</span>
-                          <button onClick={() => del(f.id, `${f.origin} → ${f.destination}`)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontWeight: 600, padding: 0 }}>
-                            Delete
+                          <button className="ib ib-del" onClick={() => del(f.id, `${f.origin} → ${f.destination}`)}>
+                            <FontAwesomeIcon icon={faTrash} style={{ marginRight: 4, fontSize: 11 }} />Delete
                           </button>
                         </div>
                       </td>
@@ -402,24 +400,70 @@ function Fare({ notify }) {
                 </tbody>
               </table>
             </div>
+            {filtered.length > pageSize && (() => {
+              const totalPages = Math.ceil(filtered.length / pageSize);
+              return (
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 18px', borderTop:'1px solid var(--gray2)' }}>
+                  <span style={{ fontSize:'.8rem', color:'var(--gray)' }}>
+                    Showing {Math.min((currentPage-1)*pageSize+1, filtered.length)}–{Math.min(currentPage*pageSize, filtered.length)} of {filtered.length} routes
+                  </span>
+                  <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                    <button onClick={() => setCurrentPage(p => Math.max(1, p-1))} disabled={currentPage===1}
+                      style={{ background:'none', border:'1px solid var(--gray2)', borderRadius:6, padding:'4px 10px', cursor: currentPage===1 ? 'not-allowed' : 'pointer', opacity: currentPage===1 ? 0.4 : 1 }}>
+                      <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize:11 }} />
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i+1).map(p => (
+                      <button key={p} onClick={() => setCurrentPage(p)} style={{
+                        padding:'4px 10px', borderRadius:6, fontSize:'.8rem',
+                        fontWeight: p===currentPage ? 700 : 400,
+                        border: p===currentPage ? '1.5px solid var(--green)' : '1px solid var(--gray2)',
+                        background: p===currentPage ? 'var(--green)' : 'none',
+                        color: p===currentPage ? '#fff' : 'var(--gray)', cursor:'pointer',
+                      }}>{p}</button>
+                    ))}
+                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p+1))} disabled={currentPage===totalPages}
+                      style={{ background:'none', border:'1px solid var(--gray2)', borderRadius:6, padding:'4px 10px', cursor: currentPage===totalPages ? 'not-allowed' : 'pointer', opacity: currentPage===totalPages ? 0.4 : 1 }}>
+                      <FontAwesomeIcon icon={faChevronRight} style={{ fontSize:11 }} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </>
         )}
       </div>
 
+      {/* ── SINGLE DELETE CONFIRM ── */}
+      {deleteOpen && deleteTarget && (
+        <Modal title="Delete Route" onClose={() => { setDeleteOpen(false); setDeleteTarget(null); }}>
+          <div style={{ background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:10, padding:'14px 16px', marginBottom:16, fontSize:'.88rem', color:'#7f1d1d', lineHeight:1.6 }}>
+            Are you sure you want to delete <strong>"{deleteTarget.label}"</strong>?<br/>
+            This cannot be undone.
+          </div>
+          <div className="modal-footer">
+            <button className="btn btn-ghost" onClick={() => { setDeleteOpen(false); setDeleteTarget(null); }}>Cancel</button>
+            <button onClick={confirmDelete}
+              style={{ background:'#dc2626', color:'#fff', border:'none', borderRadius:8, padding:'8px 18px', fontWeight:700, cursor:'pointer' }}>
+              Yes, Delete Route
+            </button>
+          </div>
+        </Modal>
+      )}
+
       {/* ── BULK DELETE CONFIRM ── */}
       {bulkDelOpen && (
         <Modal title="Delete Selected Routes" onClose={() => setBulkDelOpen(false)}>
-          <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 10, padding: '14px 16px', marginBottom: 16, fontSize: '.88rem', color: '#7f1d1d', lineHeight: 1.6 }}>
+          <div style={{ background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:10, padding:'14px 16px', marginBottom:16, fontSize:'.88rem', color:'#7f1d1d', lineHeight:1.6 }}>
             You are about to delete <strong>{selected.size} route(s)</strong>. This cannot be undone.
           </div>
-          <div className="tbl-wrap" style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #fca5a5', borderRadius: 7, marginBottom: 14 }}>
+          <div className="tbl-wrap" style={{ maxHeight:200, overflowY:'auto', border:'1px solid #fca5a5', borderRadius:7, marginBottom:14 }}>
             <table>
               <thead><tr><th>Origin</th><th>Destination</th><th>Base Fare</th></tr></thead>
               <tbody>
                 {data.filter(f => selected.has(f.id)).map(f => (
-                  <tr key={f.id} style={{ background: '#fff5f5' }}>
+                  <tr key={f.id} style={{ background:'#fff5f5' }}>
                     <td>{f.origin}</td><td>{f.destination}</td>
-                    <td style={{ color: '#dc2626', fontWeight: 600 }}>₱{Number(f.base_fare).toFixed(2)}</td>
+                    <td style={{ color:'#dc2626', fontWeight:600 }}>₱{Number(f.base_fare).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -428,7 +472,7 @@ function Fare({ notify }) {
           <div className="modal-footer">
             <button className="btn btn-ghost" onClick={() => setBulkDelOpen(false)}>Cancel</button>
             <button onClick={doBulkDelete} disabled={bulkDeleting}
-              style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontWeight: 700, cursor: 'pointer' }}>
+              style={{ background:'#dc2626', color:'#fff', border:'none', borderRadius:8, padding:'8px 18px', fontWeight:700, cursor:'pointer' }}>
               {bulkDeleting ? 'Deleting...' : `Yes, Delete ${selected.size} Routes`}
             </button>
           </div>
@@ -474,14 +518,14 @@ function Fare({ notify }) {
       {editOpen && editTarget && (
         <Modal title={`Edit: ${editTarget.origin} → ${editTarget.destination}`} onClose={() => setEditOpen(false)}>
           <div className="box-info">Only base fare can be edited. Origin and destination are fixed.</div>
-          <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
-            <div style={{ flex: 1, background: 'var(--bg)', borderRadius: 7, padding: '10px 12px' }}>
-              <div style={{ fontSize: '.7rem', color: 'var(--gray)', textTransform: 'uppercase', marginBottom: 2 }}>Origin</div>
-              <div style={{ fontWeight: 600 }}>{editTarget.origin}</div>
+          <div style={{ display:'flex', gap:12, marginBottom:14 }}>
+            <div style={{ flex:1, background:'var(--bg)', borderRadius:7, padding:'10px 12px' }}>
+              <div style={{ fontSize:'.7rem', color:'var(--gray)', textTransform:'uppercase', marginBottom:2 }}>Origin</div>
+              <div style={{ fontWeight:600 }}>{editTarget.origin}</div>
             </div>
-            <div style={{ flex: 1, background: 'var(--bg)', borderRadius: 7, padding: '10px 12px' }}>
-              <div style={{ fontSize: '.7rem', color: 'var(--gray)', textTransform: 'uppercase', marginBottom: 2 }}>Destination</div>
-              <div style={{ fontWeight: 600 }}>{editTarget.destination}</div>
+            <div style={{ flex:1, background:'var(--bg)', borderRadius:7, padding:'10px 12px' }}>
+              <div style={{ fontSize:'.7rem', color:'var(--gray)', textTransform:'uppercase', marginBottom:2 }}>Destination</div>
+              <div style={{ fontWeight:600 }}>{editTarget.destination}</div>
             </div>
           </div>
           <div className="field">
@@ -520,39 +564,32 @@ function Fare({ notify }) {
             />
           </div>
           {fileName && !fileError && fileRows.length===0 && <div className="box-warn">Reading "{fileName}"...</div>}
-          {fileError && <div className="box-red">⚠️ {fileError}</div>}
+          {fileError && (
+            <div className="box-red" style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <FontAwesomeIcon icon={faTriangleExclamation} style={{ fontSize:13 }} /> {fileError}
+            </div>
+          )}
 
           {fileRows.length > 0 && (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <div style={{ fontWeight: 600, fontSize: '.83rem', color: 'var(--green)' }}>
-                  ✅ {activeFileRows.length} of {fileRows.length} route(s) selected
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                <div style={{ fontWeight:600, fontSize:'.83rem', color:'var(--green)', display:'flex', alignItems:'center', gap:6 }}>
+                  <FontAwesomeIcon icon={faCircleCheck} style={{ fontSize:13 }} />
+                  {activeFileRows.length} of {fileRows.length} route(s) selected
                 </div>
-                {excludedRows.size > 0 && (
-                  <span style={{ fontSize: '.78rem', color: 'var(--gray)' }}>
-                    {excludedRows.size} excluded
-                  </span>
-                )}
+                {excludedRows.size > 0 && <span style={{ fontSize:'.78rem', color:'var(--gray)' }}>{excludedRows.size} excluded</span>}
               </div>
-
-              <div className="tbl-wrap" style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--gray2)', borderRadius: 7, marginBottom: 12 }}>
+              <div className="tbl-wrap" style={{ maxHeight:220, overflowY:'auto', border:'1px solid var(--gray2)', borderRadius:7, marginBottom:12 }}>
                 <table>
                   <thead>
                     <tr>
-                      <th style={{ width: 36, textAlign: 'center' }}>
-                        <input type="checkbox"
-                          checked={allPreviewChecked}
+                      <th style={{ width:36, textAlign:'center' }}>
+                        <input type="checkbox" checked={allPreviewChecked}
                           ref={el => { if (el) el.indeterminate = !allPreviewChecked && excludedRows.size < fileRows.length; }}
-                          onChange={toggleAllPreview}
-                          style={{ cursor: 'pointer', width: 14, height: 14 }}
+                          onChange={toggleAllPreview} style={{ cursor:'pointer', width:14, height:14 }}
                         />
                       </th>
-                      <th>Origin</th>
-                      <th>Destination</th>
-                      <th>Base</th>
-                      <th>Disc.</th>
-                      <th>Night</th>
-                      <th>Special</th>
+                      <th>Origin</th><th>Destination</th><th>Base</th><th>Disc.</th><th>Night</th><th>Special</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -563,26 +600,14 @@ function Fare({ notify }) {
                       );
                       const excluded = excludedRows.has(i);
                       return (
-                        <tr key={i} style={{
-                          background: excluded ? '#f5f5f5' : isExisting ? '#fff8e1' : 'transparent',
-                          opacity: excluded ? 0.45 : 1,
-                          transition: 'opacity 0.15s',
-                        }}>
-                          <td style={{ textAlign: 'center' }}>
-                            <input type="checkbox"
-                              checked={!excluded}
-                              onChange={() => {
-                                setExcludedRows(prev => {
-                                  const n = new Set(prev);
-                                  n.has(i) ? n.delete(i) : n.add(i);
-                                  return n;
-                                });
-                              }}
-                              style={{ cursor: 'pointer', width: 14, height: 14 }}
+                        <tr key={i} style={{ background: excluded ? '#f5f5f5' : isExisting ? '#fff8e1' : 'transparent', opacity: excluded ? 0.45 : 1, transition:'opacity 0.15s' }}>
+                          <td style={{ textAlign:'center' }}>
+                            <input type="checkbox" checked={!excluded}
+                              onChange={() => { setExcludedRows(prev => { const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n; }); }}
+                              style={{ cursor:'pointer', width:14, height:14 }}
                             />
                           </td>
-                          <td>{row.origin}</td>
-                          <td>{row.destination}</td>
+                          <td>{row.origin}</td><td>{row.destination}</td>
                           <td>₱{row.base_fare.toFixed(2)}</td>
                           <td>₱{(row.base_fare*.8).toFixed(2)}</td>
                           <td>₱{(row.base_fare*1.15).toFixed(2)}</td>
@@ -593,19 +618,17 @@ function Fare({ notify }) {
                   </tbody>
                 </table>
               </div>
-
-              {/* Yellow row legend */}
               {data.some(d => fileRows.some(r =>
                 r.origin.toLowerCase() === d.origin.toLowerCase() &&
                 r.destination.toLowerCase() === d.destination.toLowerCase()
               )) && (
                 <div style={{ display:'flex', alignItems:'center', gap:8, background:'#fff8e1', border:'1px solid #f59e0b', borderRadius:8, padding:'8px 12px', marginBottom:12, fontSize:'.8rem', color:'#92400e' }}>
-                  <span>⚠️</span><span><strong>Yellow rows</strong> already exist and will be updated.</span>
+                  <FontAwesomeIcon icon={faTriangleExclamation} style={{ fontSize:12 }} />
+                  <span><strong>Yellow rows</strong> already exist and will be updated.</span>
                 </div>
               )}
             </>
           )}
-
           <div className="modal-footer">
             <button className="btn btn-ghost" onClick={() => { setUploadOpen(false); setFileRows([]); setFileError(''); setFileName(''); setExcludedRows(new Set()); }}>Cancel</button>
             <button className="btn btn-green" onClick={handleUploadClick} disabled={uploading || activeFileRows.length === 0}>
@@ -617,13 +640,16 @@ function Fare({ notify }) {
 
       {/* ── OVERWRITE CONFIRMATION ── */}
       {confirmOpen && (
-        <Modal title="⚠️ Confirm Price Update" onClose={() => setConfirmOpen(false)}>
+        <Modal title="Confirm Price Update" onClose={() => setConfirmOpen(false)}>
           <div style={{ background:'#fff8e1', border:'1px solid #f59e0b', borderRadius:10, padding:'14px 16px', marginBottom:16, fontSize:'.88rem', color:'#78350f', lineHeight:1.6 }}>
             <strong>{overwriteRows.length} existing route(s)</strong> will have their prices updated. This cannot be undone.
           </div>
           {overwriteRows.length > 0 && (
             <>
-              <div style={{ fontWeight:600, fontSize:'.82rem', color:'#d97706', marginBottom:6 }}>🔄 Routes to be updated ({overwriteRows.length}):</div>
+              <div style={{ fontWeight:600, fontSize:'.82rem', color:'#d97706', marginBottom:6, display:'flex', alignItems:'center', gap:6 }}>
+                <FontAwesomeIcon icon={faRotate} style={{ fontSize:12 }} />
+                Routes to be updated ({overwriteRows.length}):
+              </div>
               <div className="tbl-wrap" style={{ maxHeight:160, overflowY:'auto', border:'1px solid #fde68a', borderRadius:7, marginBottom:14 }}>
                 <table>
                   <thead><tr><th>Origin</th><th>Destination</th><th>Old Price</th><th>New Price</th></tr></thead>
@@ -645,7 +671,10 @@ function Fare({ notify }) {
           )}
           {newRows.length > 0 && (
             <>
-              <div style={{ fontWeight:600, fontSize:'.82rem', color:'var(--green)', marginBottom:6 }}>✅ New routes to be added ({newRows.length}):</div>
+              <div style={{ fontWeight:600, fontSize:'.82rem', color:'var(--green)', marginBottom:6, display:'flex', alignItems:'center', gap:6 }}>
+                <FontAwesomeIcon icon={faCircleCheck} style={{ fontSize:12 }} />
+                New routes to be added ({newRows.length}):
+              </div>
               <div className="tbl-wrap" style={{ maxHeight:130, overflowY:'auto', border:'1px solid #bbf7d0', borderRadius:7, marginBottom:14 }}>
                 <table>
                   <thead><tr><th>Origin</th><th>Destination</th><th>Base Fare</th></tr></thead>

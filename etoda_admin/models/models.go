@@ -32,15 +32,19 @@ type AdminDriver struct {
 	LicenseNo   string `json:"license_no"`
 	Association string `json:"association"`
 	Status      string `json:"status"`
+	Username    string `json:"username"`
 	QRId        string `json:"qr_id"`
+	QRStatus    string `json:"qr_status"`
 	CreatedAt   string `json:"created_at"`
+	HasPassword bool   `json:"has_password"`
 }
 
 type Passenger struct {
 	ID           int    `json:"id"`
-	Code         string `json:"passenger_code"`
+	Username     string `json:"username"`
 	Name         string `json:"name"`
 	Email        string `json:"email"`
+	Contact      string `json:"contact"`
 	SessionType  string `json:"session_type"`
 	Status       string `json:"status"`
 	RegisteredAt string `json:"registered_at"`
