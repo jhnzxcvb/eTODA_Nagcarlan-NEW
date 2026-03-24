@@ -25,12 +25,15 @@ type Admin struct {
 type AdminDriver struct {
 	ID          int    `json:"id"`
 	Code        string `json:"driver_code"`
-	Name        string `json:"name"`
+	FirstName   string `json:"first_name"`
+	MiddleName  string `json:"middle_name"`
+	LastName    string `json:"last_name"`
 	Franchise   string `json:"franchise"`
 	BodyNo      string `json:"body_no"`
 	Contact     string `json:"contact"`
 	LicenseNo   string `json:"license_no"`
 	Association string `json:"association"`
+	PlateNumber string `json:"plate_number"`
 	Status      string `json:"status"`
 	Username    string `json:"username"`
 	QRId        string `json:"qr_id"`

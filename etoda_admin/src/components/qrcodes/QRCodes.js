@@ -2,13 +2,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faPrint,
-  faDownload,
-  faTimes,
-  faQrcode,
-  faSearch,
+  faPrint, faDownload, faTimes, faQrcode, faSearch,
+  faFilter, faChevronLeft, faChevronRight,
 } from "@fortawesome/free-solid-svg-icons";
-
 import { api } from "../../lib/api";
 import Loading from "../ui/Loading";
 import Empty from "../ui/Empty";
@@ -24,11 +20,14 @@ const COL = {
 };
 
 function QRCodes({ notify }) {
-  const [data,     setData]     = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [search,   setSearch]   = useState("");
-  const [selected, setSelected] = useState(null);
-  const [qrDataUrl,setQrDataUrl]= useState("");
+  const [data,        setData]        = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [search,      setSearch]      = useState("");
+  const [statusFilter,setStatusFilter]= useState("All");
+  const [pageSize,    setPageSize]    = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selected,    setSelected]    = useState(null);
+  const [qrDataUrl,   setQrDataUrl]   = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -38,25 +37,33 @@ function QRCodes({ notify }) {
   };
 
   useEffect(() => { load(); }, []);
+  useEffect(() => { setCurrentPage(1); }, [statusFilter, pageSize, search]);
+
+  const activeCount  = data.filter(q => q.status === "Active").length;
+  const revokedCount = data.filter(q => q.status === "Revoked").length;
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return data;
-    const q = search.toLowerCase();
-    return data.filter(r =>
-      r.franchise.toLowerCase().includes(q) ||
-      r.driver_name.toLowerCase().includes(q) ||
-      r.qr_id.toLowerCase().includes(q)
-    );
-  }, [data, search]);
+    let result = statusFilter === "All" ? data : data.filter(q => q.status === statusFilter);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(r =>
+        r.franchise.toLowerCase().includes(q) ||
+        r.driver_name.toLowerCase().includes(q) ||
+        r.qr_id.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [data, search, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated  = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const update = async (id, status, franchise) => {
     const r = await api(`/api/qrcodes/${id}`, "PATCH", { status });
     if (r.success) {
       load();
       notify(
-        status === "Active"
-          ? `QR Code restored for ${franchise}`
-          : `QR Code revoked for ${franchise}`,
+        status === "Active" ? `QR Code restored for ${franchise}` : `QR Code revoked for ${franchise}`,
         status === "Active" ? "success" : "warn",
       );
     }
@@ -108,10 +115,6 @@ function QRCodes({ notify }) {
           .sticker-footer { background:#f5f5f5 !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; padding:8px 12px; font-size:10px; color:#888 !important; border-top:1px solid #e0e0e0; }
           @media print {
             * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
-            .sticker-header { background:#2d5a1b !important; }
-            .sticker-header h1, .sticker-header p { color:#ffffff !important; }
-            .badge { background:#e8f5e9 !important; color:#2d5a1b !important; }
-            .sticker-footer { background:#f5f5f5 !important; color:#888 !important; }
           }
         </style>
       </head>
@@ -136,6 +139,7 @@ function QRCodes({ notify }) {
   return (
     <div>
       <div className="card">
+        {/* ── CARD HEAD ── */}
         <div className="card-head">
           <div className="card-title">
             <FontAwesomeIcon icon={faQrcode} style={{ marginRight: 8, color: "var(--gold)" }} />
@@ -152,84 +156,150 @@ function QRCodes({ notify }) {
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={load}>
-              ↻ Refresh
-            </button>
+            <button className="btn btn-ghost btn-sm" onClick={load}>↻ Refresh</button>
           </div>
         </div>
 
-        {loading ? (
-          <Loading />
-        ) : data.length === 0 ? (
-          <Empty />
-        ) : (
-          <div className="tbl-wrap">
-            <table style={{ tableLayout: "fixed", width: "100%", borderCollapse: "collapse" }}>
-              <colgroup>
-                <col style={{ width: "110px" }} />
-                <col style={{ width: "160px" }} />
-                <col style={{ width: "230px" }} />
-                <col style={{ width: "90px" }} />
-                <col style={{ width: "110px" }} />
-                <col style={{ width: "210px" }} />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th style={COL.franchise}>Franchise</th>
-                  <th style={COL.driver}>Driver</th>
-                  <th style={COL.qrid}>QR Code ID</th>
-                  <th style={COL.status}>Status</th>
-                  <th style={COL.issued}>Issued</th>
-                  <th style={COL.actions}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={6} style={{ textAlign: "center", padding: "24px", color: "var(--gray)" }}>No results for "{search}"</td></tr>
-                ) : filtered.map((q) => (
-                  <tr key={q.id}>
-                    <td style={COL.franchise}><strong>{q.franchise}</strong></td>
-                    <td style={COL.driver}>{q.driver_name}</td>
-                    <td style={COL.qrid}>{q.qr_id}</td>
-                    <td style={COL.status}>
-                      <span className={`badge ${q.status === "Active" ? "badge-active" : "badge-inactive"}`}>
-                        {q.status}
-                      </span>
-                    </td>
-                    <td style={COL.issued}>{q.issued_at}</td>
-                    <td style={COL.actions}>
-                      <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                        {q.status === "Active" ? (
-                          <button className="ib ib-edit" onClick={() => openModal(q)}
-                            style={{ background: "#e8f5e9", color: "#2d5a1b", borderColor: "#2d5a1b" }}>
-                            <FontAwesomeIcon icon={faQrcode} style={{ marginRight: "4px" }} />View QR
-                          </button>
-                        ) : (
-                          <button className="ib ib-del" disabled
-                            style={{ background: "#fee2e2", color: "#dc2626", borderColor: "#fca5a5", opacity: 1, cursor: "default" }}>
-                            <FontAwesomeIcon icon={faQrcode} style={{ marginRight: "4px" }} />Revoked
-                          </button>
-                        )}
-                        {q.status === "Active" ? (
-                          <button className="ib ib-del" onClick={() => update(q.id, "Revoked", q.franchise)} style={{ width: "68px" }}>
-                            Revoke
-                          </button>
-                        ) : (
-                          <button className="ib ib-edit" onClick={() => update(q.id, "Active", q.franchise)} style={{ width: "68px" }}>
-                            Restore
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* ── FILTER + PAGE SIZE BAR ── */}
+        <div style={{ padding: "10px 18px 0", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <FontAwesomeIcon icon={faFilter} style={{ color: "var(--gray)", fontSize: 12 }} />
+          <span style={{ fontSize: ".8rem", color: "var(--gray)", marginRight: 4 }}>Filter:</span>
+          {[
+            { label: `All (${data.length})`,      value: "All"     },
+            { label: `Active (${activeCount})`,    value: "Active"  },
+            { label: `Revoked (${revokedCount})`,  value: "Revoked" },
+          ].map(({ label, value }) => (
+            <button key={value} onClick={() => setStatusFilter(value)}
+              style={{
+                padding: "4px 12px", borderRadius: 20, fontSize: ".78rem", cursor: "pointer", transition: "all 0.15s",
+                border:      statusFilter === value ? "1.5px solid var(--green)" : "1.5px solid var(--gray2)",
+                background:  statusFilter === value ? "var(--green)" : "transparent",
+                color:       statusFilter === value ? "#fff" : "var(--gray)",
+                fontWeight:  statusFilter === value ? 700 : 400,
+              }}>
+              {label}
+            </button>
+          ))}
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: ".78rem", color: "var(--gray)" }}>Show</span>
+            {[10, 25, 50].map(n => (
+              <button key={n} onClick={() => setPageSize(n)}
+                style={{
+                  padding: "3px 10px", borderRadius: 6, fontSize: ".78rem", cursor: "pointer", transition: "all 0.15s",
+                  border:     pageSize === n ? "1.5px solid var(--green)" : "1.5px solid var(--gray2)",
+                  background: pageSize === n ? "var(--green)" : "transparent",
+                  color:      pageSize === n ? "#fff" : "var(--gray)",
+                  fontWeight: pageSize === n ? 700 : 400,
+                }}>
+                {n}
+              </button>
+            ))}
           </div>
+        </div>
+
+        {/* ── TABLE ── */}
+        {loading ? <Loading /> : data.length === 0 ? <Empty /> : (
+          <>
+            <div className="tbl-wrap">
+              <table style={{ tableLayout: "fixed", width: "100%", borderCollapse: "collapse" }}>
+                <colgroup>
+                  <col style={{ width: "110px" }} />
+                  <col style={{ width: "160px" }} />
+                  <col style={{ width: "230px" }} />
+                  <col style={{ width: "90px" }} />
+                  <col style={{ width: "110px" }} />
+                  <col style={{ width: "210px" }} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th style={COL.franchise}>Franchise</th>
+                    <th style={COL.driver}>Driver</th>
+                    <th style={COL.qrid}>QR Code ID</th>
+                    <th style={COL.status}>Status</th>
+                    <th style={COL.issued}>Issued</th>
+                    <th style={COL.actions}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginated.length === 0 ? (
+                    <tr><td colSpan={6} style={{ textAlign: "center", padding: "24px", color: "var(--gray)" }}>
+                      No {statusFilter !== "All" ? statusFilter.toLowerCase() : ""} QR codes found{search ? ` for "${search}"` : ""}.
+                    </td></tr>
+                  ) : paginated.map((q) => (
+                    <tr key={q.id} style={{ opacity: q.status === "Revoked" ? 0.6 : 1, transition: "opacity 0.2s" }}>
+                      <td style={COL.franchise}><strong>{q.franchise}</strong></td>
+                      <td style={COL.driver}>{q.driver_name}</td>
+                      <td style={COL.qrid}>{q.qr_id}</td>
+                      <td style={COL.status}>
+                        <span className={`badge ${q.status === "Active" ? "badge-active" : "badge-inactive"}`}>
+                          {q.status}
+                        </span>
+                      </td>
+                      <td style={COL.issued}>{q.issued_at}</td>
+                      <td style={COL.actions}>
+                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                          {q.status === "Active" ? (
+                            <button className="ib ib-edit" onClick={() => openModal(q)}
+                              style={{ background: "#e8f5e9", color: "#2d5a1b", borderColor: "#2d5a1b" }}>
+                              <FontAwesomeIcon icon={faQrcode} style={{ marginRight: "4px" }} />View QR
+                            </button>
+                          ) : (
+                            <button className="ib ib-del" disabled
+                              style={{ background: "#fee2e2", color: "#dc2626", borderColor: "#fca5a5", opacity: 1, cursor: "default" }}>
+                              <FontAwesomeIcon icon={faQrcode} style={{ marginRight: "4px" }} />Revoked
+                            </button>
+                          )}
+                          {q.status === "Active" ? (
+                            <button className="ib ib-del" onClick={() => update(q.id, "Revoked", q.franchise)} style={{ width: "68px" }}>
+                              Revoke
+                            </button>
+                          ) : (
+                            <button className="ib ib-edit" onClick={() => update(q.id, "Active", q.franchise)} style={{ width: "68px" }}>
+                              Restore
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ── PAGINATION ── */}
+            {filtered.length > pageSize && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderTop: "1px solid var(--gray2)" }}>
+                <span style={{ fontSize: ".8rem", color: "var(--gray)" }}>
+                  Showing {Math.min((currentPage - 1) * pageSize + 1, filtered.length)}–{Math.min(currentPage * pageSize, filtered.length)} of {filtered.length} QR codes
+                </span>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+                    style={{ background: "none", border: "1px solid var(--gray2)", borderRadius: 6, padding: "4px 10px", cursor: currentPage === 1 ? "not-allowed" : "pointer", opacity: currentPage === 1 ? 0.4 : 1 }}>
+                    <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize: 11 }} />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                    <button key={p} onClick={() => setCurrentPage(p)}
+                      style={{ padding: "4px 10px", borderRadius: 6, fontSize: ".8rem", cursor: "pointer",
+                        fontWeight: p === currentPage ? 700 : 400,
+                        border:     p === currentPage ? "1.5px solid var(--green)" : "1px solid var(--gray2)",
+                        background: p === currentPage ? "var(--green)" : "none",
+                        color:      p === currentPage ? "#fff" : "var(--gray)",
+                      }}>
+                      {p}
+                    </button>
+                  ))}
+                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+                    style={{ background: "none", border: "1px solid var(--gray2)", borderRadius: 6, padding: "4px 10px", cursor: currentPage === totalPages ? "not-allowed" : "pointer", opacity: currentPage === totalPages ? 0.4 : 1 }}>
+                    <FontAwesomeIcon icon={faChevronRight} style={{ fontSize: 11 }} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* ── QR Modal ── */}
+      {/* ── QR MODAL ── */}
       {selected && (
         <div onClick={closeModal} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "24px" }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: "20px", width: "320px", overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,0.2)" }}>
@@ -243,9 +313,7 @@ function QRCodes({ notify }) {
                   <img src={qrDataUrl} alt="QR Code" style={{ display: "block", width: "160px", height: "160px" }} />
                 </div>
               ) : (
-                <div style={{ width: "160px", height: "160px", margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center", color: "#aaa", fontSize: "13px" }}>
-                  Generating...
-                </div>
+                <div style={{ width: "160px", height: "160px", margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center", color: "#aaa", fontSize: "13px" }}>Generating...</div>
               )}
               <div style={{ fontSize: "16px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "4px" }}>{selected.driver_name}</div>
               <div style={{ fontSize: "13px", color: "#555", marginBottom: "4px" }}>Franchise: {selected.franchise}</div>

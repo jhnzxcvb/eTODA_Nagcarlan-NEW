@@ -103,10 +103,6 @@ function Complaints({ notify }) {
     return 'badge-inactive';
   };
 
-  const openCount       = data.filter(c => c.status === 'Open').length;
-  const inProgressCount = data.filter(c => c.status === 'In Progress').length;
-  const resolvedCount   = data.filter(c => c.status === 'Resolved').length;
-
   // ── Context-aware row action buttons ──
   const actionButtons = (c) => {
     if (c.status === 'Open') return (
@@ -165,28 +161,6 @@ function Complaints({ notify }) {
 
   return (
     <div>
-      {/* ── Summary cards ── */}
-      <div className="status-row">
-        {[
-          [openCount,       'Open',        'var(--red)',   'Open'       ],
-          [inProgressCount, 'In Progress', 'var(--blue)',  'In Progress'],
-          [resolvedCount,   'Resolved',    'var(--green)', 'Resolved'   ],
-          [data.length,     'Total',       'var(--dark)',  null         ],
-        ].map(([v, l, c, filterVal]) => (
-          <div key={l} className="status-card"
-            onClick={() => filterVal && setStatusFilter(statusFilter === filterVal ? 'All' : filterVal)}
-            style={{
-              cursor: filterVal ? 'pointer' : 'default',
-              outline: statusFilter === filterVal ? `2px solid ${c}` : 'none',
-              outlineOffset: 2, borderRadius: 10, transition: 'outline 0.15s',
-            }}
-          >
-            <div className="status-val" style={{ color: c }}>{v}</div>
-            <div className="status-lbl">{l}</div>
-          </div>
-        ))}
-      </div>
-
       <div className="card">
         <div className="card-head">
           <div className="card-title">
