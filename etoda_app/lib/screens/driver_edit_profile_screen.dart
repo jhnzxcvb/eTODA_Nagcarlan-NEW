@@ -21,7 +21,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
   final TextEditingController _middleNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _contactController = TextEditingController();
-  final TextEditingController _plateController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
 
   final TextEditingController _currentPasswordController = TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
@@ -79,7 +79,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
           _middleNameController.text = data['middle_name'] ?? '';
           _lastNameController.text = data['last_name'] ?? '';
           _contactController.text = data['phone_number'] ?? '';
-          _plateController.text = data['plate_number'] ?? '';
+          _emailController.text = data['email'] ?? '';
           _avatarUrl = data['avatar_url'];
           _isLoading = false;
         });
@@ -198,7 +198,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
       request.fields['middle_name'] = _middleNameController.text.trim();
       request.fields['last_name'] = _lastNameController.text.trim();
       request.fields['phone_number'] = _contactController.text.trim();
-      request.fields['plate_number'] = _plateController.text.trim();
+      request.fields['email'] = _emailController.text.trim();
       
       if (_currentPasswordController.text.isNotEmpty) {
         request.fields['current_password'] = _currentPasswordController.text;
@@ -269,7 +269,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
     _middleNameController.dispose();
     _lastNameController.dispose();
     _contactController.dispose();
-    _plateController.dispose();
+    _emailController.dispose();
     _currentPasswordController.removeListener(_onPasswordFieldsChanged);
     _currentPasswordController.dispose();
     _newPasswordController.removeListener(_onPasswordFieldsChanged);
@@ -317,7 +317,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
                               const SizedBox(height: 16),
                               _buildTextField(label: "Contact Number", controller: _contactController, icon: Icons.phone_android_outlined, keyboardType: TextInputType.phone),
                               const SizedBox(height: 16),
-                              _buildTextField(label: "Plate Number", controller: _plateController, icon: Icons.directions_car_outlined),
+                              _buildTextField(label: "Email Address", controller: _emailController, icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
                               
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 24.0),
@@ -466,6 +466,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
       ),
       validator: (v) {
         if (!isOptional && (v == null || v.trim().isEmpty)) return "This field is required";
+        if (keyboardType == TextInputType.emailAddress && v != null && v.isNotEmpty && !v.contains('@')) return "Enter a valid email address";
         return null;
       },
     );

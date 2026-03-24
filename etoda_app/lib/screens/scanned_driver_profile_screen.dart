@@ -1,4 +1,3 @@
-
 import 'package:etoda_nagcarlan/widgets/passenger_profile_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:etoda_nagcarlan/main.dart';
@@ -9,7 +8,7 @@ import 'package:etoda_nagcarlan/widgets/fare_calculator_dialog.dart';
 class ScannedDriverProfileScreen extends StatelessWidget {
   const ScannedDriverProfileScreen({super.key});
 
-  void _showFareCalculator(BuildContext context) {
+  void _showFareCalculator(BuildContext context, Map<String, dynamic> driverData) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -20,9 +19,15 @@ class ScannedDriverProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get the driver data passed from the scanner
+    final Map<String, dynamic> driverData = 
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Driver Details"),
+        backgroundColor: nagcarlanGreen,
+        foregroundColor: Colors.white,
         actions: const [
           PassengerProfileMenu(),
         ],
@@ -55,9 +60,10 @@ class ScannedDriverProfileScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              const Text(
-                "JUAN A. DELA CRUZ",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: nagcarlanGreen),
+              Text(
+                (driverData['full_name'] ?? 'DRIVER NAME').toUpperCase(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: nagcarlanGreen),
               ),
               const SizedBox(height: 4),
               const Row(
@@ -69,30 +75,30 @@ class ScannedDriverProfileScreen extends StatelessWidget {
                    SizedBox(width: 16),
                    Icon(Icons.history_toggle_off_rounded, color: nagcarlanGreen, size: 18),
                    SizedBox(width: 4),
-                   Text("5k+ Trips", style: TextStyle(fontWeight: FontWeight.bold, color: nagcarlanGreen, fontSize: 15)),
+                   Text("New Driver", style: TextStyle(fontWeight: FontWeight.bold, color: nagcarlanGreen, fontSize: 15)),
                 ],
               ),
               const SizedBox(height: 24),
               // --- Updated Vehicle Details ---
-              const InfoSectionCard(
+              InfoSectionCard(
                 title: "VEHICLE DETAILS",
                 icon: Icons.directions_car_outlined,
                 items: {
-                  "Body Number": "01",
-                  "Plate Number": "NA 12345",
-                  "Model": "Kawasaki Barako 175", // Added for easier identification
+                  "Body Number": driverData['body_number'] ?? 'N/A',
+                  "Plate Number": driverData['plate_number'] ?? 'N/A',
+                  "Franchise": driverData['franchise'] ?? 'Nagcarlan TODA',
                 },
               ),
               const SizedBox(height: 12),
               // --- Updated Trust & Safety Details ---
-              const InfoSectionCard(
+              InfoSectionCard(
                 title: "TRUST & SAFETY",
                 icon: Icons.shield_outlined,
                 items: {
-                  "Member Since": "June 2023",
-                  "Franchise Status": "Verified & Active",
-                  "Health Status": "Fully Vaccinated", // Added for passenger confidence
-                  "Languages": "Tagalog, English",   // Added for communication clarity
+                  "Member Since": driverData['member_since'] ?? '2024',
+                  "TODA Association": driverData['association'] ?? 'Nagcarlan TODA',
+                  "Verification": driverData['status'] ?? 'Verified & Active',
+                  "License": "VALID",
                 },
               ),
               const SizedBox(height: 24),
@@ -106,7 +112,7 @@ class ScannedDriverProfileScreen extends StatelessWidget {
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  onPressed: () => _showFareCalculator(context),
+                  onPressed: () => _showFareCalculator(context, driverData),
                   label: const Text(
                     "START TRIP NOW",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
