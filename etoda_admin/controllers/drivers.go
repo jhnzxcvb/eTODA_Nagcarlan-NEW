@@ -9,8 +9,12 @@ import (
 	"etoda_admin/utils"
 )
 
+// driverSelect handles the concatenation of names so your Go struct 
+// still receives a single "Name" string for the UI.
 const driverSelect = `
-	SELECT d.id, d.driver_code, d.name, d.franchise,
+	SELECT d.id, d.driver_code, 
+	       TRIM(COALESCE(d.first_name, '') || ' ' || COALESCE(d.middle_name, '') || ' ' || COALESCE(d.last_name, '')) AS name, 
+	       d.franchise,
 	       COALESCE(d.body_no,''), COALESCE(d.contact,''),
 	       COALESCE(d.license_no,''), COALESCE(d.association,''),
 	       d.status,
@@ -37,7 +41,7 @@ func fetchDrivers(search string) ([]models.AdminDriver, error) {
 	args := []interface{}{}
 	if search != "" {
 		args = append(args, "%"+search+"%")
-		q += ` AND (d.name ILIKE $1 OR d.franchise ILIKE $1 OR d.driver_code ILIKE $1)`
+		q += ` AND (d.first_name ILIKE $1 OR d.last_name ILIKE $1 OR d.franchise ILIKE $1 OR d.driver_code ILIKE $1)`
 	}
 	q += " ORDER BY d.id"
 	rows, err := DB.Query(q, args...)
@@ -95,11 +99,25 @@ func Drivers(w http.ResponseWriter, r *http.Request) {
 		DB.QueryRow("SELECT COUNT(*) FROM drivers").Scan(&cnt)
 		code := fmt.Sprintf("D-%03d", cnt+1)
 
+		// Split name for the database schema
+		parts := strings.Fields(b.Name)
+		firstName, middleName, lastName := "", "", ""
+		if len(parts) == 1 {
+			firstName = parts[0]
+		} else if len(parts) == 2 {
+			firstName = parts[0]
+			lastName = parts[1]
+		} else if len(parts) > 2 {
+			firstName = parts[0]
+			lastName = parts[len(parts)-1]
+			middleName = strings.Join(parts[1:len(parts)-1], " ")
+		}
+
 		var dID int
 		err := DB.QueryRow(
-			`INSERT INTO drivers(driver_code,name,franchise,body_no,contact,license_no,association,status)
-			 VALUES($1,$2,$3,$4,$5,$6,$7,'Active') RETURNING id`,
-			code, b.Name, b.Franchise, b.BodyNo, b.Contact, b.LicenseNo, b.Association,
+			`INSERT INTO drivers(driver_code,first_name,middle_name,last_name,franchise,body_no,contact,license_no,association,status)
+			 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'Active') RETURNING id`,
+			code, firstName, middleName, lastName, b.Franchise, b.BodyNo, b.Contact, b.LicenseNo, b.Association,
 		).Scan(&dID)
 		if err != nil {
 			utils.JSONErr(w, err.Error(), 500)
@@ -144,12 +162,29 @@ func DriverByID(w http.ResponseWriter, r *http.Request) {
 
 		for _, f := range []string{"username", "name", "franchise", "body_no", "contact", "license_no", "association", "status"} {
 			if v, ok := b[f]; ok {
-				args = append(args, v)
-				sets = append(sets, fmt.Sprintf("%s=$%d", f, len(args)))
+				if f == "name" {
+					nameStr, _ := v.(string)
+					parts := strings.Fields(nameStr)
+					firstName, middleName, lastName := "", "", ""
+					if len(parts) == 1 {
+						firstName = parts[0]
+					} else if len(parts) == 2 {
+						firstName = parts[0]
+						lastName = parts[1]
+					} else if len(parts) > 2 {
+						firstName = parts[0]
+						lastName = parts[len(parts)-1]
+						middleName = strings.Join(parts[1:len(parts)-1], " ")
+					}
+					args = append(args, firstName, middleName, lastName)
+					sets = append(sets, fmt.Sprintf("first_name=$%d, middle_name=$%d, last_name=$%d", len(args)-2, len(args)-1, len(args)))
+				} else {
+					args = append(args, v)
+					sets = append(sets, fmt.Sprintf("%s=$%d", f, len(args)))
+				}
 			}
 		}
 
-		// Only update password if non-empty, stored as plaintext for now
 		if pw, ok := b["password"].(string); ok && strings.TrimSpace(pw) != "" {
 			args = append(args, pw)
 			sets = append(sets, fmt.Sprintf("password_hash=$%d", len(args)))
@@ -169,11 +204,11 @@ func DriverByID(w http.ResponseWriter, r *http.Request) {
 		utils.JSONOK(w, map[string]string{"message": "Updated"})
 
 	case "DELETE":
-		var name, code string
-		DB.QueryRow("SELECT name,driver_code FROM drivers WHERE id=$1", id).Scan(&name, &code)
+		var fName, lName, code string
+		DB.QueryRow("SELECT COALESCE(first_name,''), COALESCE(last_name,''), driver_code FROM drivers WHERE id=$1", id).Scan(&fName, &lName, &code)
 		DB.Exec("DELETE FROM drivers WHERE id=$1", id)
-		utils.LogAudit(DB, "DELETE", "Driver", code, fmt.Sprintf("Removed driver %s", name))
-		utils.JSONOK(w, map[string]string{"message": name + " removed"})
+		utils.LogAudit(DB, "DELETE", "Driver", code, fmt.Sprintf("Removed driver %s %s", fName, lName))
+		utils.JSONOK(w, map[string]string{"message": fName + " removed"})
 
 	default:
 		utils.JSONErr(w, "Method not allowed", 405)

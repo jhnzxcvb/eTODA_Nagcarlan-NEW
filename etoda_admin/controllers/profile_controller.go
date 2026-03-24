@@ -2,10 +2,14 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
-
-	"etoda_admin/models"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 // GetProfile fetches the details of a user or driver based on their ID and Role
@@ -22,13 +26,22 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if role == "passenger" {
-		var u models.User
+		var u struct {
+			UserID      int    `json:"user_id"`
+			Username    string `json:"username"`
+			FirstName   string `json:"first_name"`
+			MiddleName  string `json:"middle_name"`
+			LastName    string `json:"last_name"`
+			PhoneNumber string `json:"phone_number"`
+			Email       string `json:"email"`
+			ProfilePic  string `json:"profile_pic"`
+		}
 		query := `SELECT user_id, username, first_name, COALESCE(middle_name, ''), last_name,
-                         COALESCE(phone_number, ''), COALESCE(email, '')
+                         COALESCE(phone_number, ''), COALESCE(email, ''), COALESCE(profile_pic, '')
                   FROM users WHERE user_id = $1`
 
 		err := DB.QueryRow(query, id).Scan(
-			&u.UserID, &u.Username, &u.FirstName, &u.MiddleName, &u.LastName, &u.PhoneNumber, &u.Email,
+			&u.UserID, &u.Username, &u.FirstName, &u.MiddleName, &u.LastName, &u.PhoneNumber, &u.Email, &u.ProfilePic,
 		)
 		if err != nil {
 			log.Printf("❌ Passenger profile fetch error (ID: %s): %v", id, err)
@@ -38,16 +51,30 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(u)
 
 	} else if role == "driver" {
-		var d models.UserDriver
-		// Ensure all fields match models.UserDriver JSON tags
-		query := `SELECT id, username, COALESCE(first_name, ''), COALESCE(middle_name, ''), COALESCE(last_name, ''),
-                         COALESCE(phone_number, ''), COALESCE(plate_number, ''), COALESCE(body_number, ''),
-                         COALESCE(license_no, '')
+		var d struct {
+			DriverID      int    `json:"driver_id"`
+			Username      string `json:"username"`
+			FirstName     string `json:"first_name"`
+			MiddleName    string `json:"middle_name"`
+			LastName      string `json:"last_name"`
+			PhoneNumber   string `json:"phone_number"`
+			Email         string `json:"email"`
+			LicenseNumber string `json:"license_number"`
+			BodyNumber    string `json:"body_number"`
+			PlateNumber   string `json:"plate_number"`
+			Franchise     string `json:"franchise"`
+			Association   string `json:"association"`
+		}
+		// Map the actual 'drivers' table schema to the struct
+		query := `SELECT id, COALESCE(username, ''), COALESCE(first_name, ''), COALESCE(middle_name, ''), COALESCE(last_name, ''),
+                         COALESCE(contact, ''), COALESCE(email, ''), COALESCE(license_no, ''), COALESCE(body_no, ''), COALESCE(plate_number, ''),
+                         COALESCE(franchise, ''), COALESCE(association, '')
                   FROM drivers WHERE id = $1`
 
 		err := DB.QueryRow(query, id).Scan(
 			&d.DriverID, &d.Username, &d.FirstName, &d.MiddleName, &d.LastName,
-			&d.PhoneNumber, &d.PlateNumber, &d.BodyNumber, &d.LicenseNumber,
+			&d.PhoneNumber, &d.Email, &d.LicenseNumber, &d.BodyNumber, &d.PlateNumber,
+			&d.Franchise, &d.Association,
 		)
 		if err != nil {
 			log.Printf("❌ Driver profile fetch error (ID: %s): %v", id, err)
@@ -55,16 +82,21 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// If names are empty, try fallback to the 'name' column
-		if d.FirstName == "" && d.LastName == "" {
-			var dbName string
-			DB.QueryRow("SELECT COALESCE(name, '') FROM drivers WHERE id=$1", d.DriverID).Scan(&dbName)
-			if dbName != "" {
-				d.FirstName = dbName // Just put it in first name for the UI
-			}
-		}
-
-		json.NewEncoder(w).Encode(d)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"driver_id":      d.DriverID,
+			"username":       d.Username,
+			"first_name":     d.FirstName,
+			"middle_name":    d.MiddleName,
+			"last_name":      d.LastName,
+			"full_name":      strings.TrimSpace(d.FirstName + " " + d.MiddleName + " " + d.LastName),
+			"phone_number":   d.PhoneNumber,
+			"email":          d.Email,
+			"license_number": d.LicenseNumber,
+			"plate_number":   d.PlateNumber,
+			"body_number":    d.BodyNumber,
+			"franchise":      d.Franchise,
+			"association":    d.Association,
+		})
 
 	} else {
 		http.Error(w, "Invalid role. Use 'passenger' or 'driver'", http.StatusBadRequest)
@@ -73,30 +105,50 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 
 // UpdatePassengerProfile handles the POST request from the Passenger Edit Profile screen
 func UpdatePassengerProfile(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		UserID          int    `json:"user_id"`
-		FirstName       string `json:"first_name"`
-		MiddleName      string `json:"middle_name"`
-		LastName        string `json:"last_name"`
-		PhoneNumber     string `json:"phone_number"`
-		CurrentPassword string `json:"current_password"`
-		NewPassword     string `json:"new_password"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	// Parse multipart form to handle file uploads and form-data from Flutter
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		log.Printf("❌ Passenger update form error: %v", err)
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
 		return
 	}
 
+	userIDStr := r.FormValue("user_id")
+	firstName := r.FormValue("first_name")
+	middleName := r.FormValue("middle_name")
+	lastName := r.FormValue("last_name")
+	phoneNumber := r.FormValue("phone_number")
+	currentPassword := r.FormValue("current_password")
+	newPassword := r.FormValue("new_password")
+
+	userID, _ := strconv.Atoi(userIDStr)
+	if userID == 0 {
+		http.Error(w, "Missing or invalid user_id", http.StatusBadRequest)
+		return
+	}
+
+	var profilePic string
+	file, header, err := r.FormFile("avatar")
+	if err == nil {
+		defer file.Close()
+		os.MkdirAll("uploads", os.ModePerm)
+		filename := strings.ReplaceAll(header.Filename, " ", "_")
+		profilePic = fmt.Sprintf("pass_%d_%s", userID, filename)
+		out, err := os.Create(filepath.Join("uploads", profilePic))
+		if err == nil {
+			defer out.Close()
+			io.Copy(out, file)
+		}
+	}
+
 	// optional password change
-	if req.CurrentPassword != "" || req.NewPassword != "" {
+	if currentPassword != "" || newPassword != "" {
 		var storedPassword string
-		err := DB.QueryRow("SELECT password_hash FROM users WHERE user_id = $1", req.UserID).Scan(&storedPassword)
+		err := DB.QueryRow("SELECT password_hash FROM users WHERE user_id = $1", userID).Scan(&storedPassword)
 		if err != nil {
 			http.Error(w, "User not found", http.StatusNotFound)
 			return
 		}
-		if storedPassword != req.CurrentPassword {
+		if storedPassword != currentPassword {
 			http.Error(w, "Incorrect current password", http.StatusUnauthorized)
 			return
 		}
@@ -104,15 +156,22 @@ func UpdatePassengerProfile(w http.ResponseWriter, r *http.Request) {
 
 	var query string
 	var params []interface{}
-	if req.NewPassword != "" {
-		query = `UPDATE users SET first_name=$1, middle_name=$2, last_name=$3, phone_number=$4, password_hash=$5 
-                 WHERE user_id=$6`
-		params = []interface{}{req.FirstName, req.MiddleName, req.LastName, req.PhoneNumber, req.NewPassword, req.UserID}
-	} else {
-		query = `UPDATE users SET first_name=$1, middle_name=$2, last_name=$3, phone_number=$4 
-                 WHERE user_id=$5`
-		params = []interface{}{req.FirstName, req.MiddleName, req.LastName, req.PhoneNumber, req.UserID}
+	fields := []string{"first_name=$1", "middle_name=$2", "last_name=$3", "phone_number=$4"}
+	params = []interface{}{firstName, middleName, lastName, phoneNumber}
+	paramIdx := 5
+
+	if newPassword != "" {
+		fields = append(fields, fmt.Sprintf("password_hash=$%d", paramIdx))
+		params = append(params, newPassword)
+		paramIdx++
 	}
+	if profilePic != "" {
+		fields = append(fields, fmt.Sprintf("profile_pic=$%d", paramIdx))
+		params = append(params, profilePic)
+		paramIdx++
+	}
+	query = fmt.Sprintf(`UPDATE users SET %s WHERE user_id=$%d`, strings.Join(fields, ", "), paramIdx)
+	params = append(params, userID)
 
 	if _, err := DB.Exec(query, params...); err != nil {
 		log.Printf("❌ Passenger update error: %v", err)
@@ -126,30 +185,43 @@ func UpdatePassengerProfile(w http.ResponseWriter, r *http.Request) {
 
 // UpdateDriverProfile handles the POST request from the Driver Edit Profile screen
 func UpdateDriverProfile(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		DriverID        int    `json:"driver_id"`
-		FirstName       string `json:"first_name"`
-		MiddleName      string `json:"middle_name"`
-		LastName        string `json:"last_name"`
-		PhoneNumber     string `json:"phone_number"`
-		PlateNumber     string `json:"plate_number"`
-		CurrentPassword string `json:"current_password"`
-		NewPassword     string `json:"new_password"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	// Parse multipart form to handle file uploads and form-data from Flutter
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		log.Printf("❌ Driver update form error: %v", err)
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
 		return
 	}
 
-	if req.CurrentPassword != "" || req.NewPassword != "" {
+	driverIDStr := r.FormValue("driver_id")
+	firstName := r.FormValue("first_name")
+	middleName := r.FormValue("middle_name")
+	lastName := r.FormValue("last_name")
+	phoneNumber := r.FormValue("phone_number")
+	plateNumber := r.FormValue("plate_number")
+	licenseNumber := r.FormValue("license_number")
+
+	// Fallback in case the Flutter form sends the database column name instead of the JSON key
+	if licenseNumber == "" {
+		licenseNumber = r.FormValue("license_no")
+	}
+
+	currentPassword := r.FormValue("current_password")
+	newPassword := r.FormValue("new_password")
+
+	driverID, _ := strconv.Atoi(driverIDStr)
+	if driverID == 0 {
+		http.Error(w, "Missing or invalid driver_id", http.StatusBadRequest)
+		return
+	}
+
+	if currentPassword != "" || newPassword != "" {
 		var storedPassword string
-		err := DB.QueryRow("SELECT password_hash FROM drivers WHERE id = $1", req.DriverID).Scan(&storedPassword)
+		err := DB.QueryRow("SELECT password_hash FROM drivers WHERE id = $1", driverID).Scan(&storedPassword)
 		if err != nil {
 			http.Error(w, "Driver not found", http.StatusNotFound)
 			return
 		}
-		if storedPassword != req.CurrentPassword {
+		if storedPassword != currentPassword {
 			http.Error(w, "Incorrect current password", http.StatusUnauthorized)
 			return
 		}
@@ -157,14 +229,15 @@ func UpdateDriverProfile(w http.ResponseWriter, r *http.Request) {
 
 	var query string
 	var params []interface{}
-	if req.NewPassword != "" {
-		query = `UPDATE drivers SET first_name=$1, middle_name=$2, last_name=$3, phone_number=$4, plate_number=$5, password_hash=$6 
-                 WHERE id=$7`
-		params = []interface{}{req.FirstName, req.MiddleName, req.LastName, req.PhoneNumber, req.PlateNumber, req.NewPassword, req.DriverID}
+
+	if newPassword != "" {
+		query = `UPDATE drivers SET first_name=$1, middle_name=$2, last_name=$3, contact=$4, license_no=$5, plate_number=$6, password_hash=$7 
+                 WHERE id=$8`
+		params = []interface{}{firstName, middleName, lastName, phoneNumber, licenseNumber, plateNumber, newPassword, driverID}
 	} else {
-		query = `UPDATE drivers SET first_name=$1, middle_name=$2, last_name=$3, phone_number=$4, plate_number=$5 
-                 WHERE id=$6`
-		params = []interface{}{req.FirstName, req.MiddleName, req.LastName, req.PhoneNumber, req.PlateNumber, req.DriverID}
+		query = `UPDATE drivers SET first_name=$1, middle_name=$2, last_name=$3, contact=$4, license_no=$5, plate_number=$6 
+                 WHERE id=$7`
+		params = []interface{}{firstName, middleName, lastName, phoneNumber, licenseNumber, plateNumber, driverID}
 	}
 
 	if _, err := DB.Exec(query, params...); err != nil {

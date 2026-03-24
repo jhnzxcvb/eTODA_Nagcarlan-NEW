@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"etoda_admin/models"
 )
@@ -128,13 +128,22 @@ func UnifiedLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// --- 2. ATTEMPT PASSENGER LOGIN ---
-	var u models.User
+	var u struct {
+		UserID      int
+		Username    string
+		FirstName   string
+		MiddleName  string
+		LastName    string
+		PhoneNumber string
+		Email       string
+		ProfilePic  string
+	}
 	var userPass string
 	userQuery := `SELECT user_id, username, first_name, COALESCE(middle_name, ''), last_name,
-                         COALESCE(phone_number, ''), COALESCE(email, ''), password_hash
+                         COALESCE(phone_number, ''), COALESCE(email, ''), COALESCE(profile_pic, ''), password_hash
                   FROM users WHERE username=$1`
 	err = DB.QueryRow(userQuery, creds.Username).Scan(
-		&u.UserID, &u.Username, &u.FirstName, &u.MiddleName, &u.LastName, &u.PhoneNumber, &u.Email, &userPass,
+		&u.UserID, &u.Username, &u.FirstName, &u.MiddleName, &u.LastName, &u.PhoneNumber, &u.Email, &u.ProfilePic, &userPass,
 	)
 
 	if err == nil && userPass == creds.Password {
@@ -148,50 +157,57 @@ func UnifiedLogin(w http.ResponseWriter, r *http.Request) {
 			"last_name":    u.LastName,
 			"phone_number": u.PhoneNumber,
 			"email":        u.Email,
+			"profile_pic":  u.ProfilePic,
 			"message":      "Passenger login successful",
 		})
 		return
 	}
 
 	// --- 3. ATTEMPT DRIVER LOGIN ---
-	var d models.UserDriver
+	var d struct {
+		DriverID      int
+		Username      string
+		FirstName     string
+		MiddleName    string
+		LastName      string
+		PhoneNumber   string
+		BodyNumber    string
+		LicenseNumber string
+		PlateNumber   string
+	}
 	var driverPass string
-	// Fetch necessary fields and handle potential NULLs using COALESCE
-	driverQuery := `SELECT id, username, COALESCE(first_name, ''), COALESCE(middle_name, ''), COALESCE(last_name, ''),
-                           COALESCE(phone_number, ''), COALESCE(email, ''), COALESCE(body_number, ''),
-                           COALESCE(plate_number, ''), password_hash
+	var email, franchise, association string
+
+	// Fetch necessary fields using the actual 'drivers' table schema
+	driverQuery := `SELECT id, COALESCE(username, ''), COALESCE(first_name, ''), COALESCE(middle_name, ''), COALESCE(last_name, ''),
+                           COALESCE(contact, ''), COALESCE(body_no, ''),
+                           COALESCE(license_no, ''), COALESCE(plate_number, ''), 
+                           COALESCE(email, ''), COALESCE(franchise, ''), COALESCE(association, ''), COALESCE(password_hash, '')
                     FROM drivers WHERE username=$1`
 	err = DB.QueryRow(driverQuery, creds.Username).Scan(
 		&d.DriverID, &d.Username, &d.FirstName, &d.MiddleName, &d.LastName,
-		&d.PhoneNumber, &d.Email, &d.BodyNumber, &d.PlateNumber, &driverPass,
+		&d.PhoneNumber, &d.BodyNumber, &d.LicenseNumber, &d.PlateNumber, &email, &franchise, &association, &driverPass,
 	)
 
 	if err == nil && driverPass == creds.Password {
-		fullName := fmt.Sprintf("%s %s %s", d.FirstName, d.MiddleName, d.LastName)
-
-		// Fallback for drivers where specific name fields are empty but the 'name' column is populated
-		if d.FirstName == "" && d.LastName == "" {
-			var dbName string
-			DB.QueryRow("SELECT name FROM drivers WHERE id=$1", d.DriverID).Scan(&dbName)
-			if dbName != "" {
-				fullName = dbName
-			}
-		}
 
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success":      true,
-			"role":         "driver",
-			"driver_id":    d.DriverID,
-			"username":     d.Username,
-			"first_name":   d.FirstName,
-			"middle_name":  d.MiddleName,
-			"last_name":    d.LastName,
-			"full_name":    fullName,
-			"phone_number": d.PhoneNumber,
-			"email":        d.Email,
-			"body_number":  d.BodyNumber,
-			"plate_number": d.PlateNumber,
-			"message":      "Driver login successful",
+			"success":        true,
+			"role":           "driver",
+			"driver_id":      d.DriverID,
+			"username":       d.Username,
+			"first_name":     d.FirstName,
+			"middle_name":    d.MiddleName,
+			"last_name":      d.LastName,
+			"full_name":      strings.TrimSpace(d.FirstName + " " + d.MiddleName + " " + d.LastName),
+			"phone_number":   d.PhoneNumber,
+			"email":          email,
+			"body_number":    d.BodyNumber,
+			"plate_number":   d.PlateNumber,
+			"license_number": d.LicenseNumber,
+			"franchise":      franchise,
+			"association":    association,
+			"message":        "Driver login successful",
 		})
 		return
 	}
@@ -233,7 +249,7 @@ func FindUserForReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	driverQuery := "SELECT id, phone_number FROM drivers WHERE username = $1"
+	driverQuery := "SELECT id, contact FROM drivers WHERE username = $1"
 	err = DB.QueryRow(driverQuery, req.Username).Scan(&userID, &phone)
 	if err == nil {
 		json.NewEncoder(w).Encode(map[string]interface{}{
