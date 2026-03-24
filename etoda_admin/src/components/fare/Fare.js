@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faSearch, faSort, faSortUp, faSortDown, faFileExport, faFileImport,
+  faSearch, faSort, faSortUp, faSortDown, faFileExport, faFileImport, faFilter,
   faPencil, faTrash, faMoneyBillWave, faCircleCheck, faTriangleExclamation,
   faRotate, faPlus, faChevronLeft, faChevronRight,
 } from '@fortawesome/free-solid-svg-icons';
@@ -10,6 +10,8 @@ import { api } from '../../lib/api';
 import Loading from '../ui/Loading';
 import Empty from '../ui/Empty';
 import Modal from '../ui/Modal';
+
+const STATIONS = ["Nagcarlan TODA", "Oobi TODA", "Talangan TODA", "San Antonio TODA"];
 
 function Fare({ notify }) {
   const [data,        setData]        = useState([]);
@@ -28,6 +30,7 @@ function Fare({ notify }) {
   const [fileError,   setFileError]   = useState('');
   const [fileName,    setFileName]    = useState('');
   const [search,      setSearch]      = useState('');
+  const [stationFilter, setStationFilter] = useState('All');
   const [sortKey,     setSortKey]     = useState('origin');
   const [sortDir,     setSortDir]     = useState('asc');
   const [selected,    setSelected]    = useState(new Set());
@@ -52,8 +55,13 @@ function Fare({ notify }) {
   };
   useEffect(() => { load(); }, []);
 
+  const stations = ['All', ...STATIONS];
+
   const filtered = useMemo(() => {
     let rows = [...data];
+    if (stationFilter !== 'All') {
+      rows = rows.filter(f => f.origin === stationFilter);
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       rows = rows.filter(f =>
@@ -70,7 +78,7 @@ function Fare({ notify }) {
       return 0;
     });
     return rows;
-  }, [data, search, sortKey, sortDir]);
+  }, [data, search, sortKey, sortDir, stationFilter]);
 
   const handleSort = key => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -304,7 +312,19 @@ function Fare({ notify }) {
           </div>
         </div>
 
-        <div style={{ padding: '12px 18px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ padding: '12px 18px 0', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative' }}>
+            <FontAwesomeIcon icon={faFilter} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray)', fontSize: 12, pointerEvents: 'none' }} />
+            <select
+              value={stationFilter}
+              onChange={e => { setStationFilter(e.target.value); setCurrentPage(1); }}
+              style={{ padding: '7px 32px 7px 30px', border: '1.5px solid var(--gray2)', borderRadius: 8, fontSize: '.85rem', outline: 'none', background: '#fff', cursor: 'pointer', minWidth: 160, appearance: 'auto' }}
+            >
+              <option value="All">All Stations</option>
+              {stations.filter(s => s !== 'All').map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+
           <div style={{ position: 'relative', flex: 1, maxWidth: 320 }}>
             <FontAwesomeIcon icon={faSearch} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#aaa', fontSize: 12 }} />
             <input

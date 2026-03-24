@@ -101,28 +101,6 @@ function Passengers({ notify }) {
 
   return (
     <div>
-      {/* ── Summary cards ── */}
-      <div className="status-row">
-        {[
-          [data.length,    'Total',          'var(--dark)',  null        ],
-          [activeCount,    'Active',         'var(--green)', 'Active'    ],
-          [suspendedCount, 'Suspended',      'var(--red)',   'Suspended' ],
-          [newThisMonth,   'New This Month', 'var(--blue)',  null        ],
-        ].map(([v, l, c, filterVal]) => (
-          <div key={l} className="status-card"
-            onClick={() => filterVal && setStatusFilter(statusFilter === filterVal ? 'All' : filterVal)}
-            style={{
-              cursor: filterVal ? 'pointer' : 'default',
-              outline: statusFilter === filterVal ? `2px solid ${c}` : 'none',
-              outlineOffset: 2, borderRadius: 10, transition: 'outline 0.15s',
-            }}
-          >
-            <div className="status-val" style={{ color: c }}>{v}</div>
-            <div className="status-lbl">{l}</div>
-          </div>
-        ))}
-      </div>
-
       <div className="card">
         <div className="card-head">
           <div className="card-title">

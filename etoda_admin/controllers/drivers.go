@@ -9,27 +9,30 @@ import (
 	"etoda_admin/utils"
 )
 
-// driverSelect handles the concatenation of names so your Go struct 
-// still receives a single "Name" string for the UI.
+// driverSelect selects individual name components to match your scanDriver function
 const driverSelect = `
-	SELECT d.id, d.driver_code, 
-	       TRIM(COALESCE(d.first_name, '') || ' ' || COALESCE(d.middle_name, '') || ' ' || COALESCE(d.last_name, '')) AS name, 
-	       d.franchise,
-	       COALESCE(d.body_no,''), COALESCE(d.contact,''),
-	       COALESCE(d.license_no,''), COALESCE(d.association,''),
-	       d.status,
-	       COALESCE(d.username,''),
-	       COALESCE(qr.qr_id,''),
-	       COALESCE(qr.status,''),
-	       to_char(d.created_at,'YYYY-MM-DD'),
-	       (d.password_hash IS NOT NULL AND d.password_hash != '') AS has_password
-	FROM drivers d
-	LEFT JOIN qr_codes qr ON d.id = qr.driver_id`
+    SELECT d.id, d.driver_code, 
+           COALESCE(d.first_name, ''), COALESCE(d.middle_name, ''), COALESCE(d.last_name, ''),
+           d.franchise,
+           COALESCE(d.body_no,''), COALESCE(d.contact,''),
+           COALESCE(d.license_no,''), COALESCE(d.association,''),
+           COALESCE(d.plate_number,''), -- Keep this COALESCE!
+           d.status,
+           COALESCE(d.username,''),
+           COALESCE(qr.qr_id,''),
+           COALESCE(qr.status,''),
+           to_char(d.created_at,'YYYY-MM-DD'),
+           (d.password_hash IS NOT NULL AND d.password_hash != '') AS has_password
+    FROM drivers d
+    LEFT JOIN qr_codes qr ON d.id = qr.driver_id`
 
 func scanDriver(row interface{ Scan(...interface{}) error }, d *models.AdminDriver) error {
 	return row.Scan(
-		&d.ID, &d.Code, &d.Name, &d.Franchise,
+		&d.ID, &d.Code,
+		&d.FirstName, &d.MiddleName, &d.LastName,
+		&d.Franchise,
 		&d.BodyNo, &d.Contact, &d.LicenseNo, &d.Association,
+		&d.PlateNumber,
 		&d.Status, &d.Username,
 		&d.QRId, &d.QRStatus, &d.CreatedAt,
 		&d.HasPassword,
@@ -52,7 +55,9 @@ func fetchDrivers(search string) ([]models.AdminDriver, error) {
 	list := []models.AdminDriver{}
 	for rows.Next() {
 		var d models.AdminDriver
-		scanDriver(rows, &d)
+		if err := scanDriver(rows, &d); err != nil {
+			return nil, err
+		}
 		list = append(list, d)
 	}
 	return list, nil
@@ -76,21 +81,25 @@ func Drivers(w http.ResponseWriter, r *http.Request) {
 		var b struct {
 			Username    string `json:"username"`
 			Password    string `json:"password"`
-			Name        string `json:"name"`
+			FirstName   string `json:"first_name"`
+			MiddleName  string `json:"middle_name"`
+			LastName    string `json:"last_name"`
 			Franchise   string `json:"franchise"`
 			BodyNo      string `json:"body_no"`
 			Contact     string `json:"contact"`
 			LicenseNo   string `json:"license_no"`
 			Association string `json:"association"`
+			PlateNumber string `json:"plate_number"`
 		}
 		if err := utils.Decode(r, &b); err != nil {
 			utils.JSONErr(w, "Invalid JSON", 400)
 			return
 		}
-		if strings.TrimSpace(b.Name) == "" || strings.TrimSpace(b.Franchise) == "" {
-			utils.JSONErr(w, "Name and Franchise are required", 400)
+		if strings.TrimSpace(b.FirstName) == "" || strings.TrimSpace(b.LastName) == "" {
+			utils.JSONErr(w, "First Name and Last Name are required", 400)
 			return
 		}
+
 		if b.Association == "" {
 			b.Association = "Nagcarlan TODA"
 		}
@@ -99,25 +108,12 @@ func Drivers(w http.ResponseWriter, r *http.Request) {
 		DB.QueryRow("SELECT COUNT(*) FROM drivers").Scan(&cnt)
 		code := fmt.Sprintf("D-%03d", cnt+1)
 
-		// Split name for the database schema
-		parts := strings.Fields(b.Name)
-		firstName, middleName, lastName := "", "", ""
-		if len(parts) == 1 {
-			firstName = parts[0]
-		} else if len(parts) == 2 {
-			firstName = parts[0]
-			lastName = parts[1]
-		} else if len(parts) > 2 {
-			firstName = parts[0]
-			lastName = parts[len(parts)-1]
-			middleName = strings.Join(parts[1:len(parts)-1], " ")
-		}
-
 		var dID int
+		// FIXED: Changed 'name' column to 'first_name, middle_name, last_name'
 		err := DB.QueryRow(
-			`INSERT INTO drivers(driver_code,first_name,middle_name,last_name,franchise,body_no,contact,license_no,association,status)
-			 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'Active') RETURNING id`,
-			code, firstName, middleName, lastName, b.Franchise, b.BodyNo, b.Contact, b.LicenseNo, b.Association,
+			`INSERT INTO drivers(driver_code, first_name, middle_name, last_name, franchise, body_no, contact, license_no, association, plate_number, status)
+			 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'Active') RETURNING id`,
+			code, b.FirstName, b.MiddleName, b.LastName, b.Franchise, b.BodyNo, b.Contact, b.LicenseNo, b.Association, b.PlateNumber,
 		).Scan(&dID)
 		if err != nil {
 			utils.JSONErr(w, err.Error(), 500)
@@ -131,12 +127,9 @@ func Drivers(w http.ResponseWriter, r *http.Request) {
 			DB.Exec(`UPDATE drivers SET username=$1, password_hash=$2 WHERE id=$3`, b.Username, b.Password, dID)
 		}
 
-		utils.LogAudit(DB, "ENROLL", "Driver", code, fmt.Sprintf("Enrolled %s (%s)", b.Name, b.Franchise))
-		InsertNotification(
-			"New Driver Registered",
-			fmt.Sprintf("%s (%s) has been enrolled as a driver.", b.Name, b.Franchise),
-			"driver",
-		)
+		fullName := strings.TrimSpace(b.FirstName + " " + b.MiddleName + " " + b.LastName)
+		utils.LogAudit(DB, "ENROLL", "Driver", code, fmt.Sprintf("Enrolled %s (%s)", fullName, b.Franchise))
+		InsertNotification("New Driver Registered", fmt.Sprintf("%s has been enrolled.", fullName), "driver")
 
 		var d models.AdminDriver
 		row := DB.QueryRow(driverSelect+" WHERE d.id=$1", dID)
@@ -160,28 +153,13 @@ func DriverByID(w http.ResponseWriter, r *http.Request) {
 
 		sets, args := []string{}, []interface{}{}
 
-		for _, f := range []string{"username", "name", "franchise", "body_no", "contact", "license_no", "association", "status"} {
+		// Removed the weird "name" splitting logic since the JSON now uses first_name, last_name etc.
+		fields := []string{"username", "first_name", "middle_name", "last_name", "franchise", "body_no", "contact", "license_no", "association", "plate_number", "status"}
+
+		for _, f := range fields {
 			if v, ok := b[f]; ok {
-				if f == "name" {
-					nameStr, _ := v.(string)
-					parts := strings.Fields(nameStr)
-					firstName, middleName, lastName := "", "", ""
-					if len(parts) == 1 {
-						firstName = parts[0]
-					} else if len(parts) == 2 {
-						firstName = parts[0]
-						lastName = parts[1]
-					} else if len(parts) > 2 {
-						firstName = parts[0]
-						lastName = parts[len(parts)-1]
-						middleName = strings.Join(parts[1:len(parts)-1], " ")
-					}
-					args = append(args, firstName, middleName, lastName)
-					sets = append(sets, fmt.Sprintf("first_name=$%d, middle_name=$%d, last_name=$%d", len(args)-2, len(args)-1, len(args)))
-				} else {
-					args = append(args, v)
-					sets = append(sets, fmt.Sprintf("%s=$%d", f, len(args)))
-				}
+				args = append(args, v)
+				sets = append(sets, fmt.Sprintf("%s=$%d", f, len(args)))
 			}
 		}
 
@@ -196,19 +174,22 @@ func DriverByID(w http.ResponseWriter, r *http.Request) {
 		}
 
 		args = append(args, id)
-		DB.Exec(
-			fmt.Sprintf("UPDATE drivers SET %s WHERE id=$%d", strings.Join(sets, ","), len(args)),
-			args...,
-		)
-		utils.LogAudit(DB, "UPDATE", "Driver", id, fmt.Sprintf("Updated fields: %s", strings.Join(sets, ", ")))
+		query := fmt.Sprintf("UPDATE drivers SET %s WHERE id=$%d", strings.Join(sets, ","), len(args))
+		_, err := DB.Exec(query, args...)
+		if err != nil {
+			utils.JSONErr(w, err.Error(), 500)
+			return
+		}
+
+		utils.LogAudit(DB, "UPDATE", "Driver", id, "Updated driver details")
 		utils.JSONOK(w, map[string]string{"message": "Updated"})
 
 	case "DELETE":
 		var fName, lName, code string
-		DB.QueryRow("SELECT COALESCE(first_name,''), COALESCE(last_name,''), driver_code FROM drivers WHERE id=$1", id).Scan(&fName, &lName, &code)
+		DB.QueryRow("SELECT first_name, last_name, driver_code FROM drivers WHERE id=$1", id).Scan(&fName, &lName, &code)
 		DB.Exec("DELETE FROM drivers WHERE id=$1", id)
 		utils.LogAudit(DB, "DELETE", "Driver", code, fmt.Sprintf("Removed driver %s %s", fName, lName))
-		utils.JSONOK(w, map[string]string{"message": fName + " removed"})
+		utils.JSONOK(w, map[string]string{"message": "Driver removed"})
 
 	default:
 		utils.JSONErr(w, "Method not allowed", 405)

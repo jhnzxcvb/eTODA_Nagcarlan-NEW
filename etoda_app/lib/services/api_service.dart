@@ -14,7 +14,7 @@ class ApiService {
   // use a mutable field so tests or higher‑level code can re‑configure
   static String baseUrl = const String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://10.0.2.2:8080',
+    defaultValue: 'http://192.168.88.1:8080',
   );
 
   /// Override the base URL at runtime (e.g. after determining the device's
