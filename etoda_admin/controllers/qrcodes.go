@@ -16,10 +16,10 @@ func QRCodes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, _ := DB.Query(`
-        SELECT q.id, q.franchise, COALESCE(NULLIF(TRIM(d.first_name || ' ' || d.last_name), ''), '—'), q.qr_id, q.status,
-        to_char(q.issued_at,'YYYY-MM-DD')
-        FROM qr_codes q LEFT JOIN drivers d ON q.driver_id=d.id
-        ORDER BY q.id`)
+		SELECT q.id, q.franchise, COALESCE(NULLIF(TRIM(d.first_name || ' ' || d.last_name), ''), '—'), q.qr_id, q.status,
+		to_char(q.issued_at,'YYYY-MM-DD')
+		FROM qr_codes q LEFT JOIN drivers d ON q.driver_id=d.id
+		ORDER BY q.id`)
 	defer rows.Close()
 	list := []models.QRCode{}
 	for rows.Next() {

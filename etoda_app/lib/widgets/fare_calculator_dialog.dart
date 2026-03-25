@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'package:etoda_nagcarlan/widgets/payment_method_dialog.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +5,13 @@ import 'package:etoda_nagcarlan/main.dart';
 
 class FareCalculatorDialog extends StatefulWidget {
   final bool isFullScreen;
-  const FareCalculatorDialog({super.key, this.isFullScreen = false});
+  final Map<String, dynamic> driverData; // ADDED THIS
+
+  const FareCalculatorDialog({
+    super.key, 
+    this.isFullScreen = false, 
+    required this.driverData, // ADDED THIS
+  });
 
   @override
   State<FareCalculatorDialog> createState() => _FareCalculatorDialogState();
@@ -52,19 +57,25 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
   }
 
   void _showPaymentDialog() {
-    // We are inside a dialog, so we get the navigator from the parent context
     final parentNavigator = Navigator.of(context, rootNavigator: true);
 
-    // Dismiss the current dialog (fare calculator)
     Navigator.of(context).pop();
 
     showDialog(
-      context: parentNavigator.context, // Use the parent context to show the new dialog
+      context: parentNavigator.context,
       barrierDismissible: false,
       builder: (context) => PaymentMethodDialog(
         onPaymentConfirmed: () {
-          // This is now called with the correct context after PaymentMethodDialog dismisses itself
-          parentNavigator.pushReplacementNamed('/trip_started');
+          // Pass the driver and passenger ID to the next screen
+          parentNavigator.pushReplacementNamed(
+            '/trip_started',
+            arguments: {
+              'driver_id': widget.driverData['driver_id'],
+              'passenger_id': widget.driverData['passenger_id'],
+              'fare': fare,
+              'driver_name': widget.driverData['full_name'],
+            },
+          );
         },
       ),
     );
@@ -80,10 +91,11 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
           if(widget.isFullScreen)
             const SizedBox(height: 20),
           if(!widget.isFullScreen) ...[
-             const Text("Calculate Fare First", style: TextStyle(fontWeight: FontWeight.bold, color: nagcarlanGreen, fontSize: 22)),
-             const SizedBox(height: 8),
-             Text("Select your route to estimate the cost.", style: TextStyle(color: Colors.grey[600])),
-             const SizedBox(height: 24),
+              const Text("Confirm Trip Details", style: TextStyle(fontWeight: FontWeight.bold, color: nagcarlanGreen, fontSize: 22)),
+              const SizedBox(height: 4),
+              // Shows the actual driver being paid
+              Text("Driver: ${widget.driverData['full_name'] ?? 'N/A'}", style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w500)),
+              const SizedBox(height: 16),
           ],
           _buildDropdown("From:", locations, fromLocation, (val) => setState(() { fromLocation = val!; _calculateFare();})),
           const SizedBox(height: 12),

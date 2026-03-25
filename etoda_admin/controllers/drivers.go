@@ -44,7 +44,7 @@ func fetchDrivers(search string) ([]models.AdminDriver, error) {
 	args := []interface{}{}
 	if search != "" {
 		args = append(args, "%"+search+"%")
-		q += ` AND (d.first_name ILIKE $1 OR d.last_name ILIKE $1 OR d.franchise ILIKE $1 OR d.driver_code ILIKE $1)`
+		q += ` AND (d.first_name ILIKE $1 OR d.last_name ILIKE $1 OR d.franchise ILIKE $1 OR d.driver_code ILIKE $1 OR qr.qr_id ILIKE $1)`
 	}
 	q += " ORDER BY d.id"
 	rows, err := DB.Query(q, args...)
