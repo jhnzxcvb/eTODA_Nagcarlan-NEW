@@ -40,7 +40,7 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
 
   String? fromLocation;
   String? toLocation;
-  String? activeStationFilter; // Track clicked station for filtering
+  String? activeStationFilter; 
   String passengerType = "Regular";
   String tripType = "Regular";
   String fare = "₱0.00";
@@ -71,6 +71,7 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
 
   Future<void> _fetchData() async {
     try {
+      // FIX: Tinatawag ang mga methods mula sa ApiService
       final stationData = await _apiService.fetchStations();
       final fareData = await _apiService.fetchFares();
       
@@ -104,7 +105,6 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
     _allLocations = locs.toList()..sort();
   }
 
-  // Helper to dynamically find which Terminal/Association a location belongs to
   String? getStationForLocation(String location) {
     for (var fare in _fares) {
       if (fare['origin'] == location || fare['destination'] == location) {
@@ -117,8 +117,6 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
   void _onStationTapped(String stationName) {
     setState(() {
       activeStationFilter = (activeStationFilter == stationName) ? null : stationName;
-
-      // Clear selections if they are no longer valid for this station filter
       if (activeStationFilter != null) {
         final validLocs = _filteredLocations;
         if (fromLocation != null && !validLocs.contains(fromLocation)) {
@@ -135,9 +133,7 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
 
   Color _parseHexColor(String hexColor) {
     hexColor = hexColor.toUpperCase().replaceAll("#", "");
-    if (hexColor.length == 6) {
-      hexColor = "FF$hexColor";
-    }
+    if (hexColor.length == 6) hexColor = "FF$hexColor";
     return Color(int.tryParse(hexColor, radix: 16) ?? 0xFF16A34A);
   }
 
@@ -149,21 +145,13 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
         final double lng = double.tryParse(station['lng'].toString()) ?? 121.4116;
         final String logoUrl = station['logo'] ?? '';
         final String dbColorHex = station['color'] ?? '';
-
         final Color dbColor = dbColorHex.isNotEmpty ? _parseHexColor(dbColorHex) : Colors.green;
-
         final String fullLogoUrl = logoUrl.isNotEmpty ? (logoUrl.startsWith('http') ? logoUrl : '${ApiService.baseUrl}/uploads/$logoUrl') : '';
-
         bool isHighlighted = name == activeStationFilter;
 
-        // Fallback to existing terminal branding if matched, else use default green
         final branding = terminalBranding.containsKey(name)
             ? terminalBranding[name]!
-            : {
-                "color": dbColor,
-                "logo": Icons.storefront_rounded,
-                "range": "TODA",
-              };
+            : {"color": dbColor, "logo": Icons.storefront_rounded, "range": "TODA"};
 
         final Color baseColor = terminalBranding.containsKey(name) ? branding['color'] : dbColor;
 
@@ -177,7 +165,7 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
             child: AnimatedScale(
               scale: isHighlighted ? 1.3 : 1.0,
               duration: const Duration(milliseconds: 400),
-              curve: Curves.easeOutBack, // Fixed: changed from backOut to easeOutBack
+              curve: Curves.easeOutBack, 
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -192,7 +180,6 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
                         BoxShadow(
                           color: isHighlighted ? Colors.orange.withOpacity(0.3) : Colors.black12, 
                           blurRadius: isHighlighted ? 12 : 6,
-                          spreadRadius: isHighlighted ? 2 : 0,
                           offset: const Offset(0, 3)
                         )
                       ],
@@ -200,11 +187,7 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
                     ),
                     child: Text(
                       branding['range'] == "TODA" ? name : "${branding['range']}",
-                      style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: isHighlighted ? Colors.white : baseColor
-                      ),
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isHighlighted ? Colors.white : baseColor),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
@@ -213,31 +196,20 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
                   Stack(
                     alignment: Alignment.center,
                     children: [
-                      Icon(
-                        Icons.location_on,
-                        size: isHighlighted ? 85 : 60,
-                        color: isHighlighted ? Colors.orange : baseColor,
-                      ),
+                      Icon(Icons.location_on, size: isHighlighted ? 85 : 60, color: isHighlighted ? Colors.orange : baseColor),
                       Positioned(
                         top: isHighlighted ? 15 : 12,
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           padding: EdgeInsets.all(isHighlighted ? 7 : 5),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
+                          decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
                           child: fullLogoUrl.isNotEmpty
                               ? CircleAvatar(
                                   radius: isHighlighted ? 15 : 10,
                                   backgroundImage: NetworkImage(fullLogoUrl),
                                   backgroundColor: Colors.transparent,
                                 )
-                              : Icon(
-                                  branding['logo'],
-                                  size: isHighlighted ? 30 : 20,
-                                  color: isHighlighted ? Colors.orange : baseColor,
-                                ),
+                              : Icon(branding['logo'], size: isHighlighted ? 30 : 20, color: isHighlighted ? Colors.orange : baseColor),
                         ),
                       ),
                     ],
@@ -275,11 +247,9 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
     if (tripType == "Special Trip") {
       finalFare = (routeFare['special_fare'] as num).toDouble();
     } else {
-      if (passengerType == "Regular") {
-        finalFare = (routeFare['base_fare'] as num).toDouble();
-      } else {
-        finalFare = (routeFare['discounted_fare'] as num).toDouble();
-      }
+      finalFare = passengerType == "Regular" 
+          ? (routeFare['base_fare'] as num).toDouble() 
+          : (routeFare['discounted_fare'] as num).toDouble();
     }
 
     setState(() => fare = "₱${finalFare.toStringAsFixed(2)}");
@@ -288,11 +258,7 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Fare & Station Finder"),
-        centerTitle: true,
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text("Fare & Station Finder"), centerTitle: true),
       body: Container(
         decoration: nagcarlanGradient,
         child: SingleChildScrollView(
@@ -304,84 +270,17 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
                 icon: Icons.map_rounded,
                 title: "Station Map Explorer",
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 12.0),
-                    child: Text(
-                      "Select a terminal pin to filter nearby locations",
-                      style: TextStyle(fontSize: 12, color: Colors.black54, fontStyle: FontStyle.italic),
-                    ),
-                  ),
                   SizedBox(
                     height: 220,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
-                          )
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: FlutterMap(
+                        mapController: _mapController,
+                        options: const MapOptions(initialCenter: _nagcarlanCenter, initialZoom: 12.5),
+                        children: [
+                          TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+                          MarkerLayer(markers: _markers),
                         ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: Stack(
-                          children: [
-                            FlutterMap(
-                              mapController: _mapController,
-                              options: const MapOptions(
-                                initialCenter: _nagcarlanCenter,
-                                initialZoom: 12.5,
-                                maxZoom: 18,
-                                minZoom: 11,
-                              ),
-                              children: [
-                                TileLayer(
-                                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                  userAgentPackageName: 'com.etoda.nagcarlan',
-                                ),
-                                MarkerLayer(markers: _markers),
-                              ],
-                            ),
-                            Positioned(
-                              right: 12,
-                              bottom: 12,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _buildEnhancedMapButton(
-                                    icon: Icons.add_rounded,
-                                    onPressed: () {
-                                      _mapController.move(
-                                        _mapController.camera.center,
-                                        (_mapController.camera.zoom + 1).clamp(11, 18),
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _buildEnhancedMapButton(
-                                    icon: Icons.remove_rounded,
-                                    onPressed: () {
-                                      _mapController.move(
-                                        _mapController.camera.center,
-                                        (_mapController.camera.zoom - 1).clamp(11, 18),
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _buildEnhancedMapButton(
-                                    icon: Icons.center_focus_strong_rounded,
-                                    onPressed: () {
-                                      _mapController.move(_nagcarlanCenter, 12.5);
-                                    },
-                                    color: Colors.orange,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                   ),
@@ -392,118 +291,21 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
                 icon: Icons.route_rounded,
                 title: "Plan Your Trip",
                 children: [
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: activeStationFilter != null
-                        ? Padding(
-                            key: ValueKey(activeStationFilter),
-                            padding: const EdgeInsets.only(bottom: 16.0),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.orange.withOpacity(0.2),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.filter_alt_rounded, size: 18, color: Colors.orange),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "Terminal Filter Active",
-                                          style: TextStyle(color: Colors.orange.shade800, fontSize: 11, fontWeight: FontWeight.bold),
-                                        ),
-                                        Text(
-                                          activeStationFilter!,
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.cancel_rounded, color: Colors.orange),
-                                    onPressed: () => _onStationTapped(activeStationFilter!),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                  )
-                                ],
-                              ),
-                            ),
-                          )
-                        : const SizedBox.shrink(),
-                  ),
                   _buildSearchableDropdown("Pick-up Point", fromLocation, (val) {
                     setState(() {
                       fromLocation = val;
-                      if (val != null) {
-                        activeStationFilter = getStationForLocation(val);
-                      } else if (toLocation == null) {
-                        activeStationFilter = null;
-                      }
+                      if (val != null) activeStationFilter = getStationForLocation(val);
                     });
-                    _updateMarkers();
-                    _calculateFare();
+                    _updateMarkers(); _calculateFare();
                   }),
                   const SizedBox(height: 16),
                   _buildSearchableDropdown("Drop-off Destination", toLocation, (val) {
                     setState(() {
                       toLocation = val;
-                      if (val != null) {
-                        activeStationFilter = getStationForLocation(val);
-                      } else if (fromLocation == null) {
-                        activeStationFilter = null;
-                      }
+                      if (val != null) activeStationFilter = getStationForLocation(val);
                     });
-                    _updateMarkers();
-                    _calculateFare();
+                    _updateMarkers(); _calculateFare();
                   }),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildSectionCard(
-                icon: Icons.settings_suggest_rounded,
-                title: "Trip Customization",
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildCompactDropdown(
-                          "Passenger",
-                          passengerType,
-                          ["Regular", "Senior", "PWD", "Student"],
-                          (val) {
-                            setState(() => passengerType = val!);
-                            _calculateFare();
-                          },
-                          icon: Icons.person_rounded,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildCompactDropdown(
-                          "Trip Type",
-                          tripType,
-                          ["Regular", "Special Trip"],
-                          (val) {
-                            setState(() => tripType = val!);
-                            _calculateFare();
-                          },
-                          icon: Icons.local_taxi_rounded,
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -517,158 +319,38 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
     );
   }
 
-  Widget _buildCompactDropdown(String label, String value, List<String> items, ValueChanged<String?> onChanged, {required IconData icon}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: nagcarlanGreen)),
-        const SizedBox(height: 6),
-        DropdownButtonFormField<String>(
-          value: value,
-          decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: nagcarlanGreen, size: 20),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            filled: true,
-            fillColor: Colors.white,
-          ),
-          style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500),
-          items: items.map((String category) => DropdownMenuItem(value: category, child: Text(category))).toList(),
-          onChanged: onChanged,
-        ),
-      ],
+  // --- Reusable Widgets ---
+  Widget _buildSectionCard({required IconData icon, required String title, required List<Widget> children}) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(children: [Row(children: [Icon(icon, color: nagcarlanGreen), const SizedBox(width: 10), Text(title)]), const Divider(), ...children]),
+      ),
     );
   }
 
   Widget _buildSearchableDropdown(String label, String? selectedValue, ValueChanged<String?> onChanged) {
     final validLocs = _filteredLocations;
-
     return Autocomplete<String>(
-      key: ValueKey('${label}_$activeStationFilter'),
       initialValue: TextEditingValue(text: selectedValue ?? ''),
-      optionsBuilder: (v) => v.text == '' ? validLocs : validLocs.where((o) => o.toLowerCase().contains(v.text.toLowerCase())),
+      optionsBuilder: (v) => validLocs.where((o) => o.toLowerCase().contains(v.text.toLowerCase())),
       onSelected: onChanged,
-      fieldViewBuilder: (ctx, ctrl, node, onSubmit) {
-        return TextFormField(
-          controller: ctrl,
-          focusNode: node,
-          onChanged: (val) {
-            if (val.isEmpty) onChanged(null);
-          },
-          decoration: InputDecoration(
-            labelText: label,
-            labelStyle: const TextStyle(color: nagcarlanGreen, fontSize: 14),
-            prefixIcon: const Icon(Icons.location_on_rounded, color: nagcarlanGreen),
-            suffixIcon: selectedValue != null
-                ? IconButton(
-                    icon: const Icon(Icons.clear_rounded, color: Colors.grey, size: 20),
-                    onPressed: () {
-                      ctrl.clear();
-                      onChanged(null);
-                    },
-                  )
-                : null,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            filled: true,
-            fillColor: Colors.white,
-            floatingLabelBehavior: FloatingLabelBehavior.auto,
-          ),
-        );
-      },
+      fieldViewBuilder: (ctx, ctrl, node, onSubmit) => TextFormField(
+        controller: ctrl, focusNode: node,
+        decoration: InputDecoration(labelText: label, prefixIcon: const Icon(Icons.location_on, color: nagcarlanGreen)),
+      ),
     );
   }
 
   Widget _buildFareDisplay() {
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: nagcarlanGreen,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: nagcarlanGreen.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          )
-        ],
-        gradient: LinearGradient(
-          colors: [nagcarlanGreen, nagcarlanGreen.withOpacity(0.8)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Column(
-        children: [
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.payments_rounded, color: Colors.white70, size: 16),
-              SizedBox(width: 8),
-              Text("TOTAL ESTIMATED FARE", style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(fare, style: const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.w900, letterSpacing: -1)),
-          const SizedBox(height: 4),
-          const Text("Safe travels in Nagcarlan!", style: TextStyle(color: Colors.white60, fontSize: 11, fontStyle: FontStyle.italic)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionCard({required IconData icon, required String title, required List<Widget> children}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white),
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: nagcarlanGreen.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: nagcarlanGreen, size: 22),
-              ),
-              const SizedBox(width: 12),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: nagcarlanGreen)),
-            ],
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Divider(height: 1, color: Colors.black12),
-          ),
-          ...children
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEnhancedMapButton({required IconData icon, required VoidCallback onPressed, Color? color}) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2))],
-          ),
-          child: Icon(icon, color: color ?? nagcarlanGreen, size: 24),
-        ),
-      ),
+      decoration: BoxDecoration(color: nagcarlanGreen, borderRadius: BorderRadius.circular(24)),
+      child: Column(children: [
+        const Text("TOTAL ESTIMATED FARE", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+        Text(fare, style: const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.bold)),
+      ]),
     );
   }
 }

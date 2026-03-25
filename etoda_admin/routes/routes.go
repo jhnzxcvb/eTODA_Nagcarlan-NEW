@@ -17,10 +17,8 @@ func SetupRoutes(mux *http.ServeMux) {
 	})
 
 	// --- 2. UNIFIED AUTH & SIGNUP (Mobile & Web) ---
-	// Using CORS and JSON middleware to ensure cross-platform compatibility
 	mux.HandleFunc("/api/login", middleware.CORS(middleware.JSONContentTypeMiddleware(controllers.UnifiedLogin)))
 	mux.HandleFunc("/api/signup", middleware.CORS(middleware.JSONContentTypeMiddleware(controllers.PassengerSignup)))
-	// administrative accounts (web portal)
 	mux.HandleFunc("/api/admin/signup", middleware.CORS(middleware.JSONContentTypeMiddleware(controllers.AdminSignup)))
 
 	// Forgot Password Flow
@@ -51,10 +49,15 @@ func SetupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/payments/", middleware.CORS(controllers.PaymentByID))
 
 	// QR Codes & Operations
+	mux.HandleFunc("/api/qrcodes/lookup", middleware.CORS(controllers.QRLookup))
 	mux.HandleFunc("/api/qrcodes", middleware.CORS(controllers.QRCodes))
 	mux.HandleFunc("/api/qrcodes/", middleware.CORS(controllers.QRCodeByID))
+
+	// Complaints Management (FIXED: Duplicates removed)
 	mux.HandleFunc("/api/complaints", middleware.CORS(controllers.Complaints))
 	mux.HandleFunc("/api/complaints/", middleware.CORS(controllers.ComplaintByID))
+
+	// Trips
 	mux.HandleFunc("/api/trips", middleware.CORS(controllers.Trips))
 
 	// TODA Stations Management
@@ -84,11 +87,4 @@ func SetupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/notifications/read", middleware.CORS(controllers.MarkNotificationsRead))
 	mux.HandleFunc("/api/notifications/clear", middleware.CORS(controllers.ClearNotifications))
 	mux.HandleFunc("/api/notifications/", middleware.CORS(controllers.DeleteNotification))
-
-	mux.HandleFunc("/api/qrcodes/lookup", middleware.CORS(controllers.QRLookup))
-
-	// Serve uploaded files (like station logos) statically
-	mux.HandleFunc("/uploads/", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {
-		http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))).ServeHTTP(w, r)
-	}))
 }

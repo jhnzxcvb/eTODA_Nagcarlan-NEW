@@ -13,15 +13,15 @@ import (
 const driverSelect = `
     SELECT d.id, d.driver_code, 
            COALESCE(d.first_name, ''), COALESCE(d.middle_name, ''), COALESCE(d.last_name, ''),
-           d.franchise,
+           COALESCE(d.franchise, ''),
            COALESCE(d.body_no,''), COALESCE(d.contact,''),
            COALESCE(d.license_no,''), COALESCE(d.association,''),
            COALESCE(d.plate_number,''), -- Keep this COALESCE!
-           d.status,
+           COALESCE(d.status, ''),
            COALESCE(d.username,''),
            COALESCE(qr.qr_id,''),
            COALESCE(qr.status,''),
-           to_char(d.created_at,'YYYY-MM-DD'),
+           COALESCE(to_char(d.created_at,'YYYY-MM-DD'), ''),
            (d.password_hash IS NOT NULL AND d.password_hash != '') AS has_password
     FROM drivers d
     LEFT JOIN qr_codes qr ON d.id = qr.driver_id`

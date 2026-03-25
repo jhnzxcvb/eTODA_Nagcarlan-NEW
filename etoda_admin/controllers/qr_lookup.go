@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"database/sql"
 	"net/http"
 
 	"etoda_admin/utils"
@@ -8,7 +9,7 @@ import (
 
 // QRLookup handles GET /api/qrcodes/lookup?qr_id=...
 // Called by the Flutter app after scanning a QR code.
-// Returns full driver info so the ScannedDriverProfileScreen can display it.
+// Returns full driver info wrapped in a 'data' key for the Flutter app.
 func QRLookup(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		utils.JSONErr(w, "Method not allowed", 405)
@@ -25,20 +26,20 @@ func QRLookup(w http.ResponseWriter, r *http.Request) {
 	row := DB.QueryRow(`
 		SELECT
 			qr.qr_id,
-			qr.status                        AS qr_status,
+			COALESCE(qr.status, '')           AS qr_status,
 			d.id,
-			d.driver_code,
+			COALESCE(d.driver_code, '')       AS driver_code,
 			COALESCE(d.first_name, '')        AS first_name,
 			COALESCE(d.middle_name, '')       AS middle_name,
 			COALESCE(d.last_name, '')         AS last_name,
-			d.franchise,
-			COALESCE(d.body_no, '')           AS body_no,
+			COALESCE(d.franchise, '')         AS franchise,
+			COALESCE(CAST(d.body_no AS TEXT), '') AS body_no,
 			COALESCE(d.contact, '')           AS contact,
 			COALESCE(d.license_no, '')        AS license_no,
 			COALESCE(d.plate_number, '')      AS plate_number,
 			COALESCE(d.association, '')       AS association,
-			d.status                          AS status,
-			to_char(d.created_at, 'YYYY-MM-DD') AS created_at
+			COALESCE(d.status, '')            AS status,
+			COALESCE(to_char(d.created_at, 'YYYY-MM-DD'), '') AS created_at
 		FROM qr_codes qr
 		JOIN drivers d ON qr.driver_id = d.id
 		WHERE qr.qr_id = $1
@@ -70,9 +71,14 @@ func QRLookup(w http.ResponseWriter, r *http.Request) {
 		&result.LicenseNo, &result.PlateNumber, &result.Association,
 		&result.Status, &result.CreatedAt,
 	)
+
 	if err != nil {
-		// QR not found
-		utils.JSONErr(w, "QR code not found", 404)
+		if err == sql.ErrNoRows {
+			utils.JSONErr(w, "QR code not found", 404)
+		} else {
+			// Log the actual error for debugging
+			utils.JSONErr(w, "Database error: "+err.Error(), 500)
+		}
 		return
 	}
 
