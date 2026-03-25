@@ -41,7 +41,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () {
-              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); 
               Navigator.pushReplacementNamed(context, '/signup');
             },
             child: const Text("SIGN UP NOW", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -53,14 +53,13 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Get passenger data from arguments passed during login
+    // 1. Extract arguments passed from Login or previous screen
     final Map<String, dynamic>? passengerData =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     
     final bool isGuest = passengerData?['is_guest'] ?? false;
     
-    // For demo purposes, we check if we came back from a trip started screen
-    // In a real app, this would be managed by a global state or database
+    // 2. Determine if a trip is currently active
     final bool tripInProgressArg = passengerData?['trip_in_progress'] ?? false;
     _isTripInProgress = tripInProgressArg;
 
@@ -68,7 +67,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        automaticallyImplyLeading: false, // We control the leading manually
+        automaticallyImplyLeading: false, 
         leading: isGuest 
           ? IconButton(
               icon: const Icon(Icons.arrow_back, color: nagcarlanGreen),
@@ -90,7 +89,6 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
             const Text("eTODA", style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: nagcarlanGreen)),
             const Text("NAGCARLAN", style: TextStyle(fontSize: 16, letterSpacing: 3, fontWeight: FontWeight.bold, color: nagcarlanGreen)),
             
-            // Welcome the passenger by name
             Text(
                 isGuest ? "Logged in as Guest" : "Welcome, ${passengerData?['first_name'] ?? 'Passenger'}",
                 style: const TextStyle(fontSize: 18, color: nagcarlanGreen, fontWeight: FontWeight.w500)
@@ -98,8 +96,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
 
             const Spacer(),
             
+            // 3. Conditional Trip In Progress Card
             if (_isTripInProgress) ...[
-               _buildTripInProgressCard(context),
+               _buildTripInProgressCard(context, passengerData),
                const SizedBox(height: 20),
             ],
 
@@ -113,7 +112,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                 if (isGuest) {
                   _showGuestRestrictionDialog(context);
                 } else {
-                  Navigator.pushNamed(context, '/scan_qr');
+                  Navigator.pushNamed(context, '/scan_qr', arguments: passengerData);
                 }
               },
             ),
@@ -135,14 +134,28 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
     );
   }
 
-  Widget _buildTripInProgressCard(BuildContext context) {
+  // 4. Updated Helper Method to pass IDs to the Trip Screen
+  Widget _buildTripInProgressCard(BuildContext context, Map<String, dynamic>? data) {
     return Card(
       elevation: 8,
       shadowColor: Colors.green.withOpacity(0.4),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.green, width: 2)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20), 
+          side: const BorderSide(color: Colors.green, width: 2)
+      ),
       color: Colors.white,
       child: InkWell(
-        onTap: () => Navigator.pushNamed(context, '/trip_started'),
+        onTap: () {
+          // PASSING DATA TO TRIP STARTED SCREEN
+          Navigator.pushNamed(
+            context, 
+            '/trip_started',
+            arguments: {
+              'passenger_id': data?['id'] ?? 0,
+              'driver_id': data?['last_driver_id'] ?? 0,
+            },
+          );
+        },
         borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -167,8 +180,10 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("TRIP IN PROGRESS", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green)),
-                    Text("Tap to view details or report issues", style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                    const Text("TRIP IN PROGRESS", 
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green)),
+                    Text("Tap to view details or report issues", 
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                   ],
                 ),
               ),

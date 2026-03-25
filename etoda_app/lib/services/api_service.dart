@@ -1,49 +1,39 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-/// Simple service wrapper for calling the Go backend.
-///
-/// The `baseUrl` is now configurable at compile time via the
-/// `--dart-define=BASE_URL=...` flag (see `flutter run` docs) and can also
-/// be overridden at runtime using [setBaseUrl].
-///
-/// The default value (`10.0.2.2`) works with the Android emulator; if you
-/// ever run the app on a physical device you'll want to redefine the host
-/// address (e.g. your machine's LAN IP).
 class ApiService {
-  // use a mutable field so tests or higher‑level code can re‑configure
   static String baseUrl = const String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://10.0.2.2:8080',
+    defaultValue: 'http://10.0.2.2:8080', // Default for Android Emulator
   );
 
-  /// Override the base URL at runtime (e.g. after determining the device's
-  /// network settings).
   static void setBaseUrl(String url) {
     baseUrl = url;
   }
 
-  Future<Map<String, dynamic>> fetchDriverData() async {
-    final response = await http.get(Uri.parse('$baseUrl/api/drivers'));
+  Future<bool> submitComplaint(Map<String, dynamic> data) async {
+    try {
+      print('🚀 Sending Request to: $baseUrl/api/complaints');
+      print('📦 Payload: ${json.encode(data)}');
 
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else {
-      throw Exception('Failed to connect to Go Backend');
-    }
-  }
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/complaints'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(data),
+      );
 
-  Future<Map<String, dynamic>?> getDriverByQr(String qrCode) async {
-    // Uses the backend search endpoint which now supports searching by QR ID
-    final response = await http.get(Uri.parse('$baseUrl/api/drivers?search=$qrCode'));
+      print('📥 Response Status: ${response.statusCode}');
+      print('📥 Response Body: ${response.body}');
 
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      // Return the first match if found, otherwise null
-      if (data.isNotEmpty) return data.first;
-      return null;
-    } else {
-      throw Exception('Failed to connect to Go Backend');
+      // Accept 200 (Go utils.JSONOK) or 201 (Created)
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      print('❌ Connection Error: $e');
+      return false;
     }
   }
 }

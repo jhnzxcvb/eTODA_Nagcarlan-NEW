@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:etoda_nagcarlan/main.dart';
+import 'package:etoda_nagcarlan/main.dart'; // To access nagcarlanGreen
 import 'package:etoda_nagcarlan/widgets/report_dialog.dart';
 
 class TripStartedScreen extends StatefulWidget {
-  const TripStartedScreen({super.key});
+  final int passengerId;
+  final int driverId;
+
+  const TripStartedScreen({
+    super.key,
+    required this.passengerId,
+    required this.driverId,
+  });
 
   @override
   State<TripStartedScreen> createState() => _TripStartedScreenState();
@@ -11,33 +18,9 @@ class TripStartedScreen extends StatefulWidget {
 
 class _TripStartedScreenState extends State<TripStartedScreen> {
   @override
-  void initState() {
-    super.initState();
-    // Show the notification after the screen is built
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.check_circle_outline, color: Colors.white),
-              SizedBox(width: 16),
-              Expanded(child: Text('Payment successful! Your trip is starting.')),
-            ],
-          ),
-          backgroundColor: Colors.green[600],
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          margin: const EdgeInsets.all(10),
-        ),
-      );
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -46,42 +29,81 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      extendBodyBehindAppBar: true,
       body: Container(
         width: double.infinity,
-        height: double.infinity,
-        decoration: nagcarlanGradient,
-        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+        decoration: nagcarlanGradient, // Using your existing yellow/green gradient
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Spacer(flex: 2),
-            const Icon(Icons.check_circle_outline, color: nagcarlanGreen, size: 120),
+            const Spacer(flex: 3),
+            
+            // Large Checkmark Icon
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle,
+                color: nagcarlanGreen,
+                size: 120,
+              ),
+            ),
+            
             const SizedBox(height: 24),
+            
             const Text(
               "Trip Started!",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: nagcarlanGreen),
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: nagcarlanGreen,
+              ),
             ),
+            
             const SizedBox(height: 8),
+            
             Text(
-              "Enjoy your ride. We're here to ensure your safety.",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+              "Have a safe and comfortable ride.",
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.black.withOpacity(0.6),
+              ),
             ),
-            const Spacer(flex: 3),
-            TextButton.icon(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => const ReportDialog(),
-                );
-              },
-              icon: Icon(Icons.support_agent, color: Colors.blue[700]),
-              label: Text("Report or Get Help", style: TextStyle(color: Colors.blue[700], fontWeight: FontWeight.bold)),
+            
+            const Spacer(flex: 2),
+
+            // Refined Report Button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => ReportDialog(
+                      passengerId: widget.passengerId,
+                      driverId: widget.driverId,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.warning_amber_rounded, size: 20),
+                label: const Text(
+                  "Report an Issue",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red[700],
+                  side: BorderSide(color: Colors.red[700]!, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+              ),
             ),
-            const Spacer(flex: 1),
+            
+            const SizedBox(height: 40),
           ],
         ),
       ),

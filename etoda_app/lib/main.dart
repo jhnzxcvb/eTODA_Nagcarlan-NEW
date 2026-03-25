@@ -15,7 +15,7 @@ import 'package:etoda_nagcarlan/screens/passenger_trip_details_screen.dart';
 import 'package:etoda_nagcarlan/screens/passenger_trip_history_screen.dart';
 import 'package:etoda_nagcarlan/screens/trip_ended_screen.dart';
 import 'package:etoda_nagcarlan/screens/driver_trip_ended_screen.dart';
-import 'package:etoda_nagcarlan/screens/driver_trip_history_screen.dart'; // Added
+import 'package:etoda_nagcarlan/screens/driver_trip_history_screen.dart';
 import 'package:etoda_nagcarlan/screens/trip_started_screen.dart';
 import 'package:etoda_nagcarlan/screens/landing_screen.dart';
 import 'package:etoda_nagcarlan/screens/passenger_home.dart';
@@ -96,6 +96,20 @@ class EtodaApp extends StatelessWidget {
         ),
       ),
       initialRoute: '/',
+      onGenerateRoute: (settings) {
+        // Handle Trip Started Screen with Arguments
+        if (settings.name == '/trip_started') {
+          final args = settings.arguments as Map<String, dynamic>?;
+          return MaterialPageRoute(
+            builder: (context) => TripStartedScreen(
+              // Using the underscore keys sent by PassengerHomeScreen
+              passengerId: args?['passenger_id'] ?? 0, 
+              driverId: args?['driver_id'] ?? 0,
+            ),
+          );
+        }
+        return null; 
+      },
       routes: {
         '/': (context) => const LandingScreen(),
         '/login': (context) => const LoginScreen(),
@@ -106,10 +120,9 @@ class EtodaApp extends StatelessWidget {
         '/driver_edit_profile': (context) => const DriverEditProfileScreen(),
         '/scan_qr': (context) => const ScanQRScreen(),
         '/driver_profile_scanned': (context) => const ScannedDriverProfileScreen(),
-        '/trip_started': (context) => const TripStartedScreen(),
         '/trip_ended': (context) => const TripEndedScreen(),
         '/driver_trip_ended': (context) => const DriverTripEndedScreen(),
-        '/driver_trip_history': (context) => const DriverTripHistoryScreen(), // Added
+        '/driver_trip_history': (context) => const DriverTripHistoryScreen(),
         '/fare_matrix': (context) => const FareMatrixScreen(),
         '/passenger_edit_profile': (context) => const PassengerEditProfileScreen(),
         '/passenger_trip_history': (context) => const PassengerTripHistoryScreen(),

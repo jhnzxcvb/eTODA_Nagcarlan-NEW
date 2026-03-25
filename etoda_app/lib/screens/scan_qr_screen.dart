@@ -40,13 +40,13 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
   }
 
   Future<void> _processScannedCode(String qrId) async {
-    // Get passenger data passed from passenger_home
+    // 1. Safely retrieve Passenger ID from navigation arguments
     final Map<String, dynamic>? passengerData =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     
-    final int passengerId = (passengerData?['user_id'] ??
-            passengerData?['id'] ??
-            0) as int;
+    // Use 'as num?' to handle potential double/int mismatches from JSON
+    final int passengerId = (passengerData?['user_id'] as num?)?.toInt() ?? 
+                            (passengerData?['id'] as num?)?.toInt() ?? 0;
 
     debugPrint('🔍 Scanned QR: $qrId');
     debugPrint('🔍 Passenger ID: $passengerId');
@@ -60,51 +60,65 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
 
       if (!mounted) return;
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-
-        // Check if QR is revoked
-        if (data['status'] == 'Revoked') {
-          _showError(
-            "QR Code Revoked",
-            "This driver's QR code has been revoked by the eTODA admin. Please choose another driver.",
-            icon: Icons.block,
-            iconColor: Colors.red,
-          );
-          return;
-        }
-
-        // Add passenger context to the driver data map before passing
-        data['passenger_id'] = passengerId;
-
-        // Navigate to profile and pass the full data map from Go backend
-        Navigator.of(context).pushReplacementNamed(
-          '/driver_profile_scanned',
-          arguments: data, 
-        );
-      } else if (response.statusCode == 404) {
-        _showError(
-          "Invalid QR Code",
-          "This QR code is not registered in the eTODA Nagcarlan system.",
-          icon: Icons.qr_code,
-          iconColor: Colors.orange,
-        );
-      } else {
-        _showError(
-          "Verification Failed",
-          "The server could not verify this QR code. Please try again.",
-        );
+      // 2. Handle specific status codes
+      if (response.statusCode == 404) {
+        _showError("Invalid QR Code",
+            "This QR code is not registered in the eTODA system.",
+            icon: Icons.qr_code, iconColor: Colors.orange);
+        return;
       }
+      
+      if (response.statusCode != 200) {
+        _showError("Verification Failed",
+            "The server could not verify this QR code. Please try again.");
+        return;
+      }
+
+      // 3. Decode and Unwrap Data
+      final Map<String, dynamic> fullResponse = jsonDecode(response.body);
+      debugPrint('✅ QR Lookup Response: $fullResponse');
+
+      // Go backend wraps result in "data". If null, fall back to root.
+      final Map<String, dynamic> data = (fullResponse['data'] is Map<String, dynamic>) 
+          ? fullResponse['data'] 
+          : fullResponse;
+
+      // 4. Validate Driver Status
+      if (data['qr_status'] == 'Revoked') {
+        _showError("QR Code Revoked",
+            "This driver's QR code has been revoked. Please choose another driver.",
+            icon: Icons.block, iconColor: Colors.red);
+        return;
+      }
+
+      if (data['status'] == 'Inactive' || data['status'] == 'Suspended') {
+        _showError("Driver Suspended",
+            "This driver's account is currently inactive.",
+            icon: Icons.person_off, iconColor: Colors.orange);
+        return;
+      }
+
+      // 5. Prepare arguments for the Profile Screen.
+      // We create a clean map with just the driver data and the passenger ID
+      // to avoid confusion with nested 'data' keys.
+      final Map<String, dynamic> profileArgs = Map<String, dynamic>.from(data);
+      profileArgs['passenger_id'] = passengerId;
+      debugPrint('✅ Prepared arguments for Profile: $profileArgs');
+
+      if (!mounted) return;
+
+      Navigator.of(context).pushReplacementNamed(
+        '/driver_profile_scanned',
+        arguments: profileArgs,
+      );
     } on http.ClientException {
       if (!mounted) return;
-      _showError(
-        "Connection Error",
-        "Could not connect to the eTODA server. Please check your internet connection.",
-        icon: Icons.cloud_off,
-        iconColor: Colors.blueGrey,
-      );
+      _showError("Connection Error",
+          "Could not connect to the server. Please check your internet connection.",
+          icon: Icons.cloud_off, iconColor: Colors.blueGrey);
     } catch (e) {
       if (!mounted) return;
+      debugPrint('❌ Error: $e');
       _showError("Error", "Something went wrong. Please try again.");
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -119,6 +133,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
   }) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
@@ -180,6 +195,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
             controller: _controller,
             onDetect: _onDetect,
           ),
+          // Mask overlay
           ColorFiltered(
             colorFilter: ColorFilter.mode(
               Colors.black.withOpacity(0.55),
@@ -206,6 +222,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
               ],
             ),
           ),
+          // Border overlay
           Center(
             child: Container(
               width: 260,
@@ -219,6 +236,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
               ),
             ),
           ),
+          // Corners
           Center(
             child: SizedBox(
               width: 260,
@@ -236,23 +254,18 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
           if (_isLoading)
             Center(
               child: Container(
-                width: 260,
-                height: 260,
-                alignment: Alignment.center,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(color: nagcarlanGreen),
-                      SizedBox(height: 12),
-                      Text("Verifying driver...", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: nagcarlanGreen),
+                    SizedBox(height: 12),
+                    Text("Verifying driver...", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ],
                 ),
               ),
             ),
