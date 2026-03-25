@@ -85,6 +85,7 @@ type QRCode struct {
 	IssuedAt   string `json:"issued_at"`
 }
 
+// Complaint matches your PostgreSQL 'complaints' table
 type Complaint struct {
 	ID            int    `json:"id"`
 	Code          string `json:"report_code"`
@@ -92,7 +93,7 @@ type Complaint struct {
 	DriverName    string `json:"driver_name"`
 	Franchise     string `json:"franchise"`
 	Violation     string `json:"violation_type"`
-	FirebaseID    string `json:"firebase_id"`
+	Details       string `json:"details"`
 	AdminNotes    string `json:"admin_notes"`
 	Status        string `json:"status"`
 	ReportedAt    string `json:"reported_at"`

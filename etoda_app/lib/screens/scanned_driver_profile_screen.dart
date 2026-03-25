@@ -8,41 +8,30 @@ import 'package:etoda_nagcarlan/widgets/fare_calculator_dialog.dart';
 class ScannedDriverProfileScreen extends StatelessWidget {
   const ScannedDriverProfileScreen({super.key});
 
-  void _showFareCalculator(BuildContext context, Map<String, dynamic> driverData) {
+  void _showFareCalculator(BuildContext context, Map<String, dynamic> data) {
     showDialog(
       context: context,
-      builder: (_) => FareCalculatorDialog(driverData: driverData),
+      builder: (_) => FareCalculatorDialog(driverData: data),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // ── Extract args from scanner ──
-    final dynamic args = ModalRoute.of(context)!.settings.arguments;
-    final Map<String, dynamic> d = (args is Map<String, dynamic>) ? args : {};
+    final Map<String, dynamic> d =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>? ?? {};
 
-    debugPrint("!!! DRIVER DATA LOADED: $d");
-
-    // ── Build full name from Go JSON tags: first_name, middle_name, last_name ──
-    final String first  = d['first_name']?.toString().trim()  ?? '';
-    final String middle = d['middle_name']?.toString().trim() ?? '';
-    final String last   = d['last_name']?.toString().trim()   ?? '';
-    final String fullName = [first, middle, last]
-        .where((s) => s.isNotEmpty)
-        .join(' ')
-        .toUpperCase();
-
-    // ── Map Go JSON tags correctly ──
-    final String bodyNo      = d['body_no']?.toString()      ?? 'N/A';   // Go: body_no
-    final String plateNumber = d['plate_number']?.toString() ?? 'N/A';   // Go: plate_number
-    final String franchise   = d['franchise']?.toString()    ?? 'N/A';   // Go: franchise
-    final String licenseNo   = d['license_no']?.toString()   ?? 'N/A';   // Go: license_no
-    final String contact     = d['contact']?.toString()      ?? 'N/A';   // Go: contact
-    final String association = d['association']?.toString()   ?? 'Nagcarlan TODA'; // Go: association
-    final String status      = d['status']?.toString()       ?? 'Unknown'; // Go: status — "Active" or "Inactive"
-    final String qrStatus    = d['qr_status']?.toString()    ?? '';        // Go: qr_status
-
-    final bool isActive = status == 'Active';
+    final int passengerId = (d['passenger_id'] as num?)?.toInt() ?? 0;
+    final int driverId = (d['id'] as num?)?.toInt() ?? 
+                         (d['driver_id'] as num?)?.toInt() ?? 
+                         int.tryParse(d['id']?.toString() ?? '') ?? 0;
+    
+    final String first = d['first_name']?.toString() ?? '';
+    final String last = d['last_name']?.toString() ?? '';
+    final String fullName = "$first $last".trim().toUpperCase();
+    final String dbStatus = d['status']?.toString() ?? 'Inactive';
+    final String qrStat = d['qr_status']?.toString() ?? '';
+    final bool isActive = dbStatus == 'Active' && qrStat != 'Revoked';
+    final bool isVerified = d['license_no']?.toString().isNotEmpty ?? false;
 
     return Scaffold(
       appBar: AppBar(
@@ -50,148 +39,127 @@ class ScannedDriverProfileScreen extends StatelessWidget {
         backgroundColor: nagcarlanGreen,
         foregroundColor: Colors.white,
         actions: const [PassengerProfileMenu()],
+        elevation: 0,
       ),
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: nagcarlanGradient,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 24),
-
-              // ── Avatar + verified badge ──
+              const SizedBox(height: 20),
               Stack(
                 alignment: Alignment.bottomRight,
                 children: [
-                  const CircleAvatar(
-                    radius: 65,
-                    backgroundColor: Colors.white,
-                    child: Icon(Icons.person, size: 80, color: Color(0xFFA5D6A7)),
-                  ),
                   Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                    child: Icon(
-                      isActive ? Icons.verified : Icons.cancel,
-                      color: isActive ? Colors.blue : Colors.red,
-                      size: 32,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 5))],
+                    ),
+                    child: CircleAvatar(
+                      radius: 65,
+                      backgroundColor: Colors.grey[100],
+                      child: Icon(Icons.person, size: 85, color: Colors.green[200]),
                     ),
                   ),
+                  if (isVerified)
+                    Container(
+                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                      child: const Icon(Icons.verified, color: Colors.blue, size: 36),
+                    ),
                 ],
               ),
-              const SizedBox(height: 12),
-
-              // ── Driver name ──
+              const SizedBox(height: 16),
               Text(
-                fullName.isEmpty ? 'UNKNOWN DRIVER' : fullName,
+                fullName.isEmpty ? 'DRIVER NAME' : fullName,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: nagcarlanGreen,
-                ),
+                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: nagcarlanGreen, letterSpacing: 0.8),
               ),
-              const SizedBox(height: 6),
-
-              // ── Active / Suspended pill ──
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isActive ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  isActive ? '✓ Active Driver' : '✗ Suspended',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: isActive ? nagcarlanGreen : Colors.red[700],
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _statusPill(
+                    label: isActive ? "ACTIVE" : "INACTIVE", 
+                    icon: isActive ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                    color: isActive ? Colors.green : Colors.red,
                   ),
-                ),
+                  if (isVerified) ...[
+                    const SizedBox(width: 10),
+                    _statusPill(label: "VERIFIED", icon: Icons.shield_rounded, color: Colors.blue),
+                  ],
+                ],
               ),
-
-              // ── Revoked QR warning ──
-              if (qrStatus == 'Revoked') ...[
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.red[50],
-                    border: Border.all(color: Colors.red.shade200),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.block, color: Colors.red, size: 16),
-                      SizedBox(width: 6),
-                      Text(
-                        'QR Code Revoked',
-                        style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 24),
-
-              // ── Vehicle details ──
+              const SizedBox(height: 30),
               InfoSectionCard(
                 title: "VEHICLE DETAILS",
-                icon: Icons.directions_car_outlined,
+                icon: Icons.directions_car_filled_rounded,
                 items: {
-                  "Body Number":  bodyNo,
-                  "Plate Number": plateNumber,
-                  "Franchise":    franchise,
+                  "Body Number": d['body_no']?.toString() ?? 'N/A',
+                  "Plate Number": d['plate_number']?.toString() ?? 'N/A',
+                  "Franchise": d['franchise']?.toString() ?? 'N/A',
                 },
               ),
-              const SizedBox(height: 12),
-
-              // ── Trust & Safety ──
+              const SizedBox(height: 16),
               InfoSectionCard(
                 title: "TRUST & SAFETY",
-                icon: Icons.shield_outlined,
+                icon: Icons.security_rounded,
                 items: {
-                  "TODA Association": association,
-                  "License No.":      licenseNo,
-                  "Contact":          contact,
-                  "Verification":     isActive ? "Verified & Active" : "Suspended",
+                  "License": d['license_no']?.toString() ?? 'REGISTERED',
+                  "Association": d['association']?.toString() ?? 'Nagcarlan TODA',
+                  "Member Since": d['created_at']?.toString() ?? 'N/A',
                 },
               ),
-              const SizedBox(height: 24),
-
-              // ── Start Trip button — disabled if suspended or revoked ──
+              const SizedBox(height: 35),
               SizedBox(
                 width: double.infinity,
-                height: 56,
+                height: 60,
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.trip_origin_rounded),
+                  icon: const Icon(Icons.play_circle_fill_rounded, size: 28),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: (isActive && qrStatus != 'Revoked')
-                        ? nagcarlanGreen
-                        : Colors.grey,
+                    backgroundColor: isActive ? const Color(0xFF1B5E20) : Colors.grey[600],
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                   ),
-                  onPressed: (isActive && qrStatus != 'Revoked')
-                      ? () => _showFareCalculator(context, d)
+                  onPressed: isActive
+                      ? () => _showFareCalculator(context, {
+                            'passenger_id': passengerId,
+                            'driver_id': driverId,
+                            'full_name': fullName,
+                            'body_no': d['body_no'],
+                          })
                       : null,
-                  label: Text(
-                    (isActive && qrStatus != 'Revoked')
-                        ? "START TRIP NOW"
-                        : "DRIVER UNAVAILABLE",
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+                  label: Text(isActive ? "START TRIP NOW" : "DRIVER UNAVAILABLE", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 25),
               const BrandingFooter(),
-              const SizedBox(height: 24),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _statusPill({required String label, required IconData icon, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.85),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: color.withOpacity(0.5), width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 12)),
+        ],
       ),
     );
   }
