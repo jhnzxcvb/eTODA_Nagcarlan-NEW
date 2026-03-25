@@ -12,6 +12,7 @@ import { api } from "../../lib/api";
 import Loading from "../ui/Loading";
 import Empty from "../ui/Empty";
 import Modal from "../ui/Modal";
+import MaskedUsername from "../ui/MaskedUsername";
 import QRCode from "qrcode";
 
 // ── Helpers ──
@@ -252,7 +253,7 @@ function Drivers({ notify }) {
     const r = await api(`/api/drivers/${delItem.id}`, "DELETE");
     if (r.success) {
       setDelItem(null); load(search);
-      notify(`${capitalizeName(buildFullName(delItem.first_name, delItem.middle_name, delItem.last_name))} deleted`, "warn");
+      notify(`${capitalizeName(buildFullName(delItem.first_name, delItem.middle_name, delItem.last_name))} has been removed successfully.`, "success");
     } else notify(r.error, "error");
   };
 
@@ -362,36 +363,36 @@ function Drivers({ notify }) {
         <span style={{ width: 3, height: 14, background: "var(--green)", borderRadius: 99, display: "inline-block" }} />
         Driver Information
       </div>
-      <div className="form-row">
-        <div className="field">
+      <div className="form-row" style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
+        <div className="field" style={{ flex: "1 1 200px" }}>
           <label>First Name *</label>
           <input value={form.first_name} onChange={e => setForm(p => ({ ...p, first_name: e.target.value }))} onBlur={handleNameBlur} placeholder="Juan" />
         </div>
-        <div className="field">
+        <div className="field" style={{ flex: "1 1 200px" }}>
           <label>Middle Name <span style={{ fontWeight: 400, color: "var(--gray)", fontSize: ".72rem" }}>(optional)</span></label>
           <input value={form.middle_name} onChange={e => setForm(p => ({ ...p, middle_name: e.target.value }))} placeholder="A." />
         </div>
       </div>
-      <div className="form-row">
-        <div className="field">
+      <div className="form-row" style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
+        <div className="field" style={{ flex: "1 1 200px" }}>
           <label>Last Name *</label>
           <input value={form.last_name} onChange={e => setForm(p => ({ ...p, last_name: e.target.value }))} onBlur={handleNameBlur} placeholder="Dela Cruz" />
         </div>
-        <div className="field">
+        <div className="field" style={{ flex: "1 1 200px" }}>
           <label>Franchise # *</label>
           <input value={form.franchise} onChange={e => setForm(p => ({ ...p, franchise: e.target.value }))} placeholder="NVC-006F" />
         </div>
       </div>
-      <div className="form-row">
-        <div className="field"><label>Body #</label><input value={form.body_no} onChange={e => setForm(p => ({ ...p, body_no: e.target.value }))} placeholder="06" /></div>
-        <div className="field"><label>Plate Number</label><input value={form.plate_number} onChange={e => setForm(p => ({ ...p, plate_number: e.target.value }))} placeholder="ABC 1234" /></div>
+      <div className="form-row" style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
+        <div className="field" style={{ flex: "1 1 200px" }}><label>Body #</label><input value={form.body_no} onChange={e => setForm(p => ({ ...p, body_no: e.target.value }))} placeholder="06" /></div>
+        <div className="field" style={{ flex: "1 1 200px" }}><label>Plate Number</label><input value={form.plate_number} onChange={e => setForm(p => ({ ...p, plate_number: e.target.value }))} placeholder="ABC 1234" /></div>
       </div>
-      <div className="form-row">
-        <div className="field"><label>Contact</label><input value={form.contact} onChange={e => setForm(p => ({ ...p, contact: e.target.value }))} placeholder="09XXXXXXXXX" /></div>
-        <div className="field"><label>License No.</label><input value={form.license_no} onChange={e => setForm(p => ({ ...p, license_no: e.target.value }))} placeholder="NAG-XXXXXX" /></div>
+      <div className="form-row" style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
+        <div className="field" style={{ flex: "1 1 200px" }}><label>Contact</label><input value={form.contact} onChange={e => setForm(p => ({ ...p, contact: e.target.value }))} placeholder="09XXXXXXXXX" /></div>
+        <div className="field" style={{ flex: "1 1 200px" }}><label>License No.</label><input value={form.license_no} onChange={e => setForm(p => ({ ...p, license_no: e.target.value }))} placeholder="NAG-XXXXXX" /></div>
       </div>
-      <div className="form-row">
-        <div className="field">
+      <div className="form-row" style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
+        <div className="field" style={{ flex: "1 1 100%" }}>
           <label>Association</label>
           <select value={form.association} onChange={e => setForm(p => ({ ...p, association: e.target.value }))}>
             {ASSOCS.map(a => <option key={a}>{a}</option>)}
@@ -404,17 +405,17 @@ function Drivers({ notify }) {
   return (
     <div>
       <div className="card">
-        <div className="card-head">
-          <div className="card-title">
+        <div className="card-head" style={{ display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "space-between", alignItems: "center" }}>
+          <div className="card-title" style={{ whiteSpace: "nowrap" }}>
             <FontAwesomeIcon icon={faUserGroup} style={{ marginRight: 8, color: "var(--gold)" }} />
             Driver Registry <span>({filtered.length} drivers)</span>
           </div>
-          <div className="card-actions">
-            <div style={{ position: "relative" }}>
+          <div className="card-actions" style={{ display: "flex", flexWrap: "wrap", gap: "8px", flex: "1 1 300px", justifyContent: "flex-end" }}>
+            <div style={{ position: "relative", flex: "1 1 200px", maxWidth: "300px" }}>
               <FontAwesomeIcon icon={faSearch} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#aaa", fontSize: 12, pointerEvents: "none" }} />
-              <input className="search-box" style={{ width: 230, paddingLeft: 30 }} placeholder="Search name, franchise, ID..." value={search} onChange={e => setSearch(e.target.value)} />
+              <input className="search-box" style={{ width: "100%", paddingLeft: 30, boxSizing: "border-box" }} placeholder="Search name, franchise, ID..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
-            <button className="btn btn-green" onClick={openEnroll}>+ Enroll Driver</button>
+            <button className="btn btn-green" onClick={openEnroll} style={{ whiteSpace: "nowrap" }}>+ Enroll Driver</button>
           </div>
         </div>
 
@@ -426,7 +427,7 @@ function Drivers({ notify }) {
               {label}
             </button>
           ))}
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ flexGrow: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6, minWidth: "150px" }}>
             <span style={{ fontSize: ".78rem", color: "var(--gray)" }}>Show</span>
             {[10, 25, 50].map(n => (
               <button key={n} onClick={() => setPageSize(n)} style={{ padding: "3px 10px", borderRadius: 6, border: pageSize === n ? "1.5px solid var(--green)" : "1.5px solid var(--gray2)", background: pageSize === n ? "var(--green)" : "transparent", color: pageSize === n ? "#fff" : "var(--gray)", fontSize: ".78rem", fontWeight: pageSize === n ? 700 : 400, cursor: "pointer", transition: "all 0.15s" }}>
@@ -438,12 +439,20 @@ function Drivers({ notify }) {
 
         {loading ? <Loading /> : data.length === 0 ? <Empty /> : (
           <>
-            <div className="tbl-wrap">
-              <table>
+            <div className="tbl-wrap" style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+              <table style={{ width: "100%", minWidth: 1000, whiteSpace: "nowrap" }}>
                 <thead>
                   <tr>
-                    <th>ID</th><th>Name</th><th>Username</th><th>Franchise</th>
-                    <th>Body #</th><th>Contact</th><th>QR</th><th>Status</th><th>Enrolled</th><th>Actions</th>
+                    <th style={{ width: "6%" }}>ID</th>
+                    <th style={{ width: "16%" }}>Name</th>
+                    <th style={{ width: "14%" }}>Username</th>
+                    <th style={{ width: "12%" }}>Franchise</th>
+                    <th style={{ width: "8%" }}>Body #</th>
+                    <th style={{ width: "12%" }}>Contact</th>
+                    <th style={{ width: "6%", textAlign: "center" }}>QR</th>
+                    <th style={{ width: "8%" }}>Status</th>
+                    <th style={{ width: "10%" }}>Enrolled</th>
+                    <th style={{ width: "auto" }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -457,25 +466,29 @@ function Drivers({ notify }) {
                       <td><strong>{driverFullName(d)}</strong></td>
                       <td>
                         {d.username
-                          ? <span style={{ fontSize: ".85rem" }}>{d.username}</span>
+                          ? <span style={{ fontSize: ".85rem" }}><MaskedUsername username={d.username} /></span>
                           : <span style={{ fontSize: ".73rem", color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 4, padding: "1px 6px" }}>No login</span>
                         }
                       </td>
                       <td>{d.franchise}</td>
                       <td>{d.body_no || "—"}</td>
                       <td>{d.contact || "—"}</td>
-                      <td>
+                      <td style={{ textAlign: "center" }}>
                         {d.qr_id ? (
                           d.qr_status === "Revoked" ? (
-                            <span style={{ fontSize: ".78rem", color: "#dc2626", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-                              <FontAwesomeIcon icon={faQrcode} style={{ fontSize: 12 }} />Revoked
+                            <span title="Revoked" style={{ color: "#dc2626", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                              <FontAwesomeIcon icon={faBan} style={{ fontSize: 16 }} />
                             </span>
                           ) : (
-                            <button onClick={() => openQR(d)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 4, color: "var(--green)", fontSize: ".78rem", fontWeight: 600 }}>
-                              <FontAwesomeIcon icon={faQrcode} style={{ fontSize: 12 }} />Issued
+                            <button title="View QR" onClick={() => openQR(d)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--green)" }}>
+                              <FontAwesomeIcon icon={faQrcode} style={{ fontSize: 18 }} />
                             </button>
                           )
-                        ) : <span style={{ color: "var(--gray2)" }}>—</span>}
+                        ) : (
+                          <span title="Not Issued" style={{ color: "#dc2626", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                            <FontAwesomeIcon icon={faTriangleExclamation} style={{ fontSize: 16 }} />
+                          </span>
+                        )}
                       </td>
                       <td style={{ width: 100 }}>
                         <span className={`badge ${d.status === "Active" ? "badge-active" : "badge-inactive"}`} style={{ display: "inline-block", minWidth: 80, textAlign: "center" }}>
@@ -484,7 +497,7 @@ function Drivers({ notify }) {
                       </td>
                       <td style={{ fontSize: ".85rem" }}>{formatDate(d.created_at)}</td>
                       <td>
-                        <div className="row-actions">
+                        <div className="row-actions" style={{ display: "flex", flexWrap: "nowrap", gap: "6px" }}>
                           {d.status === "Active" ? (
                             <button className="ib ib-del" onClick={() => setSuspendItem(d)} disabled={toggling === d.id} style={{ background: "#fff8e1", color: "#b45309", borderColor: "#f59e0b", minWidth: 88 }}>
                               <FontAwesomeIcon icon={faBan} style={{ marginRight: 4, fontSize: 11 }} />Suspend
@@ -509,7 +522,7 @@ function Drivers({ notify }) {
             </div>
 
             {filtered.length > pageSize && (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderTop: "1px solid var(--gray2)" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderTop: "1px solid var(--gray2)", flexWrap: "wrap", gap: "10px" }}>
                 <span style={{ fontSize: ".8rem", color: "var(--gray)" }}>
                   Showing {Math.min((currentPage - 1) * pageSize + 1, filtered.length)}–{Math.min(currentPage * pageSize, filtered.length)} of {filtered.length} drivers
                 </span>
@@ -603,7 +616,7 @@ function Drivers({ notify }) {
       {/* ── QR MODAL ── */}
       {qrSelected && (
         <div onClick={closeQR} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "24px" }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: "20px", width: "320px", overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,0.2)" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: "20px", width: "320px", maxWidth: "100%", overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,0.2)" }}>
             <div style={{ background: "#2d5a1b", padding: "16px 20px", textAlign: "center" }}>
               <div style={{ fontSize: "18px", fontWeight: "bold", color: "#fff" }}>eTODA Nagcarlan</div>
               <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.75)", marginTop: "2px" }}>Official Driver QR Code</div>

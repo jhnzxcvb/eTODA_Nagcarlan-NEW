@@ -23,6 +23,16 @@ class ApiService {
     baseUrl = url;
   }
 
+  Future<Map<String, dynamic>> fetchStations() async {
+    final response = await http.get(Uri.parse('$baseUrl/api/stations'));
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to connect to Go Backend');
+    }
+  }
+
   Future<Map<String, dynamic>> fetchDriverData() async {
     final response = await http.get(Uri.parse('$baseUrl/api/drivers'));
 

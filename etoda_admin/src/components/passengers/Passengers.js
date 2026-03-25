@@ -9,6 +9,7 @@ import { api } from '../../lib/api';
 import Loading from '../ui/Loading';
 import Empty from '../ui/Empty';
 import Modal from '../ui/Modal';
+import MaskedUsername from '../ui/MaskedUsername';
 
 const formatDate = (str) => {
   if (!str) return '—';
@@ -177,7 +178,7 @@ function Passengers({ notify }) {
                     <tr key={p.id} style={{ opacity: p.status === 'Suspended' ? 0.6 : 1, transition: 'opacity 0.2s' }}>
                       <td><strong>{p.id}</strong></td>
                       <td><strong>{capitalizeName(p.name || '—')}</strong></td>
-                      <td style={{ fontSize: '.85rem' }}>{p.username || '—'}</td>
+                      <td style={{ fontSize: '.85rem' }}><MaskedUsername username={p.username} /></td>
                       <td style={{ fontSize: '.85rem' }}>{p.contact || '—'}</td>
                       <td style={{ width: 100 }}>
                         <span

@@ -57,10 +57,38 @@ func SetupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/complaints/", middleware.CORS(controllers.ComplaintByID))
 	mux.HandleFunc("/api/trips", middleware.CORS(controllers.Trips))
 
+	// TODA Stations Management
+	mux.HandleFunc("/api/stations", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "GET":
+			controllers.GetStations(w, r)
+		case "POST":
+			controllers.AddStation(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
+	mux.HandleFunc("/api/stations/", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "PATCH":
+			controllers.UpdateStation(w, r)
+		case "DELETE":
+			controllers.DeleteStation(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
 	mux.HandleFunc("/api/notifications", middleware.CORS(controllers.GetNotifications))
 	mux.HandleFunc("/api/notifications/read", middleware.CORS(controllers.MarkNotificationsRead))
 	mux.HandleFunc("/api/notifications/clear", middleware.CORS(controllers.ClearNotifications))
 	mux.HandleFunc("/api/notifications/", middleware.CORS(controllers.DeleteNotification))
 
 	mux.HandleFunc("/api/qrcodes/lookup", middleware.CORS(controllers.QRLookup))
+
+	// Serve uploaded files (like station logos) statically
+	mux.HandleFunc("/uploads/", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {
+		http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))).ServeHTTP(w, r)
+	}))
 }
