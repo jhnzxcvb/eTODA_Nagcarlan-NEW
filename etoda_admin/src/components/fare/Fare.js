@@ -11,8 +11,6 @@ import Loading from '../ui/Loading';
 import Empty from '../ui/Empty';
 import Modal from '../ui/Modal';
 
-const STATIONS = ["Nagcarlan TODA", "Oobi TODA", "Talangan TODA", "San Antonio TODA"];
-
 function Fare({ notify }) {
   const [data,        setData]        = useState([]);
   const [loading,     setLoading]     = useState(true);
@@ -55,12 +53,15 @@ function Fare({ notify }) {
   };
   useEffect(() => { load(); }, []);
 
-  const stations = ['All', ...STATIONS];
+  const dynamicAssociations = useMemo(() => {
+    const assocs = data.map(d => d.association).filter(a => a && a.trim() !== '');
+    return ['All', ...Array.from(new Set(assocs)).sort()];
+  }, [data]);
 
   const filtered = useMemo(() => {
     let rows = [...data];
     if (stationFilter !== 'All') {
-      rows = rows.filter(f => f.origin === stationFilter);
+      rows = rows.filter(f => f.association === stationFilter);
     }
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -191,15 +192,43 @@ function Fare({ notify }) {
   };
 
   const parseCSV = text => {
-    const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+    const lines = text.split('\n').map(l=>l.trim());
+    if (lines.length < 5) return { error: 'File does not have enough rows. Please ensure it follows the new format.' };
+    
+    const assocCols = lines[0].split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+    const association = assocCols[1] || '';
+
+    const routeCol = lines[1].split(',')[0].trim().replace(/^"|"$/g,'').toLowerCase();
+    if (routeCol !== 'route' && routeCol !== 'short line') return { error: 'Invalid format: Second row must start with "Route" or "Short Line".' };
+
     const rows = [];
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',').map(c=>c.trim().replace(/^"|"$/g,''));
-      if (cols.length < 3) continue;
-      const [origin, destination, raw] = cols;
-      const base = parseFloat(raw);
-      if (!origin||!destination||isNaN(base)||base<=0) return { error: `Row ${i+1} is invalid: "${lines[i]}"` };
-      rows.push({ origin, destination, base_fare: base });
+    if (routeCol === 'route') {
+      for (let i = 4; i < lines.length; i++) {
+        if (!lines[i]) continue;
+        const cols = lines[i].split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+        if (cols.length < 3) continue;
+        const [origin, destination, raw] = cols;
+        if (!origin && !destination) continue;
+        const base = parseFloat(raw);
+        if (!origin||!destination||isNaN(base)||base<=0) return { error: `Row ${i+1} is invalid: "${lines[i]}"` };
+        rows.push({ origin, destination, base_fare: base, association });
+      }
+    } else if (routeCol === 'short line') {
+      const headers = lines[3].split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+      for (let i = 4; i < lines.length; i++) {
+        if (!lines[i]) continue;
+        const cols = lines[i].split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+        const origin = cols[0];
+        if (!origin) continue;
+        for (let j = 1; j < cols.length; j++) {
+          const destination = headers[j];
+          if (!destination) continue;
+          const base = parseFloat(cols[j]);
+          if (!isNaN(base) && base > 0) {
+            rows.push({ origin, destination, base_fare: base, association });
+          }
+        }
+      }
     }
     return rows.length ? { rows } : { error: 'No valid rows found.' };
   };
@@ -211,14 +240,38 @@ function Fare({ notify }) {
       const wb = XLSX.read(buffer, { type: 'array' });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-      if (raw.length < 2) return { error: 'Spreadsheet is empty.' };
+      if (raw.length < 5) return { error: 'Spreadsheet does not have enough rows. Please ensure it follows the new format.' };
+      
+      const association = raw[0]?.[1] ? String(raw[0][1]).trim() : '';
+
+      const routeCol = raw[1]?.[0] ? String(raw[1][0]).trim().toLowerCase() : '';
+      if (routeCol !== 'route' && routeCol !== 'short line') return { error: 'Invalid format: Second row must start with "Route" or "Short Line".' };
+
       const rows = [];
-      for (let i = 1; i < raw.length; i++) {
-        const [origin, destination, baseFare] = raw[i].map(c => String(c).trim());
-        if (!origin && !destination) continue;
-        const base = parseFloat(baseFare);
-        if (!origin||!destination||isNaN(base)||base<=0) return { error: `Row ${i+1} is invalid.` };
-        rows.push({ origin, destination, base_fare: base });
+      if (routeCol === 'route') {
+        for (let i = 4; i < raw.length; i++) {
+          if (!raw[i] || raw[i].length === 0) continue;
+          const [origin, destination, baseFare] = raw[i].map(c => String(c).trim());
+          if (!origin && !destination) continue;
+          const base = parseFloat(baseFare);
+          if (!origin||!destination||isNaN(base)||base<=0) return { error: `Row ${i+1} is invalid.` };
+          rows.push({ origin, destination, base_fare: base, association });
+        }
+      } else if (routeCol === 'short line') {
+        const headers = raw[3] || [];
+        for (let i = 4; i < raw.length; i++) {
+          if (!raw[i] || raw[i].length === 0) continue;
+          const origin = String(raw[i][0] || '').trim();
+          if (!origin) continue;
+          for (let j = 1; j < raw[i].length; j++) {
+            const destination = String(headers[j] || '').trim();
+            if (!destination) continue;
+            const base = parseFloat(raw[i][j]);
+            if (!isNaN(base) && base > 0) {
+              rows.push({ origin, destination, base_fare: base, association });
+            }
+          }
+        }
       }
       return rows.length ? { rows } : { error: 'No valid rows found.' };
     } catch(e) { return { error: 'Could not read file: ' + e.message }; }
@@ -320,8 +373,7 @@ function Fare({ notify }) {
               onChange={e => { setStationFilter(e.target.value); setCurrentPage(1); }}
               style={{ padding: '7px 32px 7px 30px', border: '1.5px solid var(--gray2)', borderRadius: 8, fontSize: '.85rem', outline: 'none', background: '#fff', cursor: 'pointer', minWidth: 160, appearance: 'auto' }}
             >
-              <option value="All">All Stations</option>
-              {stations.filter(s => s !== 'All').map(s => <option key={s} value={s}>{s}</option>)}
+              {dynamicAssociations.map(s => <option key={s} value={s}>{s === 'All' ? 'All Associations' : s}</option>)}
             </select>
           </div>
 
@@ -383,9 +435,9 @@ function Fare({ notify }) {
                     <th onClick={() => handleSort('origin')} style={{ cursor:'pointer', userSelect:'none' }}>Origin <SortIcon col="origin" /></th>
                     <th onClick={() => handleSort('destination')} style={{ cursor:'pointer', userSelect:'none' }}>Destination <SortIcon col="destination" /></th>
                     <th onClick={() => handleSort('base_fare')} style={{ cursor:'pointer', userSelect:'none' }}>Base <SortIcon col="base_fare" /></th>
-                    <th>Discounted (−20%)</th>
+                    <th>Discounted (₱5 Off)</th>
                     <th>Night (+15%)</th>
-                    <th>Special (×3)</th>
+                    <th>Special (Disc. ×2)</th>
                     <th>Last Updated</th>
                     <th>Actions</th>
                   </tr>
@@ -502,7 +554,7 @@ function Fare({ notify }) {
       {/* ── ADD ROUTE ── */}
       {addOpen && (
         <Modal title="Add Fare Route" onClose={() => setAddOpen(false)}>
-          <div className="box-info">Discounted (−20%), Night (+15%), Special (×3) are auto-calculated.</div>
+          <div className="box-info">Discounted (₱5 Off), Night (+15%), Special (Disc. ×2) are auto-calculated.</div>
           <div className="form-row">
             <div className="field">
               <label>Origin *</label>
@@ -519,7 +571,7 @@ function Fare({ notify }) {
           </div>
           {base > 0 && (
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:16}}>
-              {[['Discounted',(base*.8).toFixed(2),'var(--green)'],['Night',(base*1.15).toFixed(2),'var(--blue)'],['Special',(base*3).toFixed(2),'var(--ora)']].map(([l,v,c])=>(
+              {[['Discounted',Math.max(0, base-5).toFixed(2),'var(--green)'],['Night',(base*1.15).toFixed(2),'var(--blue)'],['Special',(Math.max(0, base-5)*2).toFixed(2),'var(--ora)']].map(([l,v,c])=>(
                 <div key={l} style={{background:'var(--bg)',borderRadius:7,padding:'10px 12px',textAlign:'center'}}>
                   <div style={{fontSize:'.65rem',color:'var(--gray)',textTransform:'uppercase',marginBottom:3}}>{l}</div>
                   <div style={{fontWeight:700,color:c,fontSize:'1.1rem'}}>₱{v}</div>
@@ -554,7 +606,7 @@ function Fare({ notify }) {
           </div>
           {editBase > 0 && (
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:16}}>
-              {[['Discounted',(editBase*.8).toFixed(2),'var(--green)'],['Night',(editBase*1.15).toFixed(2),'var(--blue)'],['Special',(editBase*3).toFixed(2),'var(--ora)']].map(([l,v,c])=>(
+              {[['Discounted',Math.max(0, editBase-5).toFixed(2),'var(--green)'],['Night',(editBase*1.15).toFixed(2),'var(--blue)'],['Special',(Math.max(0, editBase-5)*2).toFixed(2),'var(--ora)']].map(([l,v,c])=>(
                 <div key={l} style={{background:'var(--bg)',borderRadius:7,padding:'10px 12px',textAlign:'center'}}>
                   <div style={{fontSize:'.65rem',color:'var(--gray)',textTransform:'uppercase',marginBottom:3}}>{l}</div>
                   <div style={{fontWeight:700,color:c,fontSize:'1.1rem'}}>₱{v}</div>
@@ -574,7 +626,8 @@ function Fare({ notify }) {
         <Modal title="Import Tariff" onClose={() => { setUploadOpen(false); setFileRows([]); setFileError(''); setFileName(''); setExcludedRows(new Set()); }}>
           <div className="box-blue">
             Upload a <strong>.csv</strong> or <strong>.xlsx / .xls</strong> file.<br/>
-            Required columns: <code>origin</code>, <code>destination</code>, <code>base_fare</code><br/>
+            Format 1 (Route): Row 2 = "Route", Row 4 = Headers (origin, destination, base_fare), Row 5+ = Data.<br/>
+            Format 2 (Short Line): Row 2 = "Short Line", Row 4 = Destinations, Row 5+ = Origin (Col A) & matrix fares.<br/>
             Existing routes will be <strong>updated</strong>. New routes will be <strong>added</strong>.
           </div>
           <div className="field">
@@ -609,7 +662,7 @@ function Fare({ notify }) {
                           onChange={toggleAllPreview} style={{ cursor:'pointer', width:14, height:14 }}
                         />
                       </th>
-                      <th>Origin</th><th>Destination</th><th>Base</th><th>Disc.</th><th>Night</th><th>Special</th>
+                      <th>Origin</th><th>Destination</th><th>Association</th><th>Base</th><th>Disc.</th><th>Night</th><th>Special</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -628,10 +681,11 @@ function Fare({ notify }) {
                             />
                           </td>
                           <td>{row.origin}</td><td>{row.destination}</td>
+                          <td><span style={{ fontSize: '.75rem', color: 'var(--gray)' }}>{row.association || '—'}</span></td>
                           <td>₱{row.base_fare.toFixed(2)}</td>
-                          <td>₱{(row.base_fare*.8).toFixed(2)}</td>
+                          <td>₱{Math.max(0, row.base_fare-5).toFixed(2)}</td>
                           <td>₱{(row.base_fare*1.15).toFixed(2)}</td>
-                          <td>₱{(row.base_fare*3).toFixed(2)}</td>
+                          <td>₱{(Math.max(0, row.base_fare-5)*2).toFixed(2)}</td>
                         </tr>
                       );
                     })}

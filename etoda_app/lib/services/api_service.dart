@@ -2,27 +2,57 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class ApiService {
+  // Ginamit natin ang static String para ma-access sa buong app
+  // 10.0.2.2 ang default para sa Android Studio Emulator papuntang localhost (Go)
   static String baseUrl = const String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://10.0.2.2:8080', // Default for Android Emulator
+    defaultValue: 'http://10.0.2.2:8080', 
   );
 
   static void setBaseUrl(String url) {
     baseUrl = url;
   }
 
-  // Fetch Station Data
-  Future<Map<String, dynamic>> fetchStations() async {
-    final response = await http.get(Uri.parse('$baseUrl/api/stations'));
+  // --- FARE MATRIX METHODS ---
 
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else {
-      throw Exception('Failed to connect to Go Backend');
+  /// Kukuha ng lahat ng fare data para sa FareMatrixScreen
+  /// Inaasahan nito ang JSON array mula sa Go backend
+  Future<List<dynamic>> fetchFares() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/api/fares'));
+      
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to load fares: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Fare Fetch Error: $e');
+      return [];
     }
   }
 
-  // Fetch All Drivers
+  // --- STATION & MAP METHODS ---
+
+  /// Kukuha ng terminal/station locations para sa Map Explorer
+  Future<Map<String, dynamic>> fetchStations() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/api/stations'));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to connect to Go Backend');
+      }
+    } catch (e) {
+      print('❌ Station Fetch Error: $e');
+      return {'success': false, 'data': []};
+    }
+  }
+
+  // --- DRIVER METHODS ---
+
+  /// Kukuha ng listahan ng mga drivers para sa registry
   Future<List<dynamic>> fetchDriverData() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/api/drivers'));
@@ -37,7 +67,9 @@ class ApiService {
     }
   }
 
-  // Submit a Complaint (The missing method)
+  // --- COMPLAINTS METHODS ---
+
+  /// Mag-submit ng reklamo (Passenger to Admin)
   Future<bool> submitComplaint(Map<String, dynamic> data) async {
     try {
       final response = await http.post(
@@ -47,9 +79,8 @@ class ApiService {
       );
 
       print('📥 Response Status: ${response.statusCode}');
-      print('📥 Response Body: ${response.body}');
-
-      // Accept 200 (Go utils.JSONOK) or 201 (Created)
+      
+      // Tumatanggap ng 200 OK o 201 Created mula sa Go utils.JSONOK
       if (response.statusCode == 200 || response.statusCode == 201) {
         return true;
       } else {
