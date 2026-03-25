@@ -19,29 +19,6 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
   // Nagcarlan Center Coordinates
   static const LatLng _nagcarlanCenter = LatLng(14.1382, 121.4116);
 
-  final List<String> locations = [
-    "Abo", "Alibungbungan", "Alumbrado", "Balayong", "Balite", "Banago",
-    "Banca-banca", "Bangcuro", "Bukal", "Bunga", "Cabuyew", "Calumpang",
-    "Kanluran Kabubuhayan", "Silangan Kabubuhayan", "Labangan", "Lawaguin",
-    "Malaya", "Malinao", "Manaol", "Maravilla", "Nagcarlan Public Market",
-    "Oobi", "Palayan", "Palina", "Poblacion", "Sabang", "San Francisco",
-    "Santa Lucia", "Sibulan", "Sinipian", "Sulsuguin", "Talangan", "Tanza",
-    "Taytay", "Tipacan", "Yukos",
-  ]..sort();
-
-  // Helper to determine station based on alphabetical range
-  String getStationForLocation(String name) {
-    String firstLetter = name[0].toUpperCase();
-    if (firstLetter.compareTo('A') >= 0 && firstLetter.compareTo('L') <= 0) {
-      return "Central Terminal";
-    } else if (firstLetter.compareTo('M') >= 0 && firstLetter.compareTo('S') <= 0) {
-      return "North Terminal";
-    } else if (firstLetter.compareTo('T') >= 0 && firstLetter.compareTo('Z') <= 0) {
-      return "East Terminal";
-    }
-    return "Central Terminal";
-  }
-
   // Terminal Branding Config
   final Map<String, Map<String, dynamic>> terminalBranding = {
     "Central Terminal": {
@@ -70,42 +47,84 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
 
   List<Marker> _markers = [];
   List<dynamic> _dynamicStations = [];
+  List<dynamic> _fares = [];
+  List<String> _allLocations = [];
   bool _isLoadingStations = true;
+
+  List<String> get _filteredLocations {
+    if (activeStationFilter == null) return _allLocations;
+    final Set<String> filtered = {};
+    for (var fare in _fares) {
+      if (fare['association'] == activeStationFilter) {
+        if (fare['origin'] != null) filtered.add(fare['origin'].toString());
+        if (fare['destination'] != null) filtered.add(fare['destination'].toString());
+      }
+    }
+    return filtered.toList()..sort();
+  }
 
   @override
   void initState() {
     super.initState();
-    _fetchStations();
+    _fetchData();
   }
 
-  Future<void> _fetchStations() async {
+  Future<void> _fetchData() async {
     try {
-      final data = await _apiService.fetchStations();
-      if (data['success'] == true) {
+      final stationData = await _apiService.fetchStations();
+      final fareData = await _apiService.fetchFares();
+      
+      if (mounted) {
         setState(() {
-          _dynamicStations = data['data'] ?? [];
+          if (stationData['success'] == true) {
+            _dynamicStations = stationData['data'] ?? [];
+          }
+          _fares = fareData;
+          _extractLocations();
           _isLoadingStations = false;
         });
         _updateMarkers();
       }
     } catch (e) {
-      debugPrint('Failed to load stations: $e');
-      setState(() {
-        _isLoadingStations = false;
-      });
+      debugPrint('Failed to load data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingStations = false;
+        });
+      }
     }
+  }
+
+  void _extractLocations() {
+    final Set<String> locs = {};
+    for (var fare in _fares) {
+      if (fare['origin'] != null) locs.add(fare['origin'].toString());
+      if (fare['destination'] != null) locs.add(fare['destination'].toString());
+    }
+    _allLocations = locs.toList()..sort();
+  }
+
+  // Helper to dynamically find which Terminal/Association a location belongs to
+  String? getStationForLocation(String location) {
+    for (var fare in _fares) {
+      if (fare['origin'] == location || fare['destination'] == location) {
+        return fare['association']?.toString();
+      }
+    }
+    return null;
   }
 
   void _onStationTapped(String stationName) {
     setState(() {
       activeStationFilter = (activeStationFilter == stationName) ? null : stationName;
 
-      // Clear selections if they no longer match the filter
-      if (activeStationFilter != null && terminalBranding.containsKey(activeStationFilter)) {
-        if (fromLocation != null && getStationForLocation(fromLocation!) != activeStationFilter) {
+      // Clear selections if they are no longer valid for this station filter
+      if (activeStationFilter != null) {
+        final validLocs = _filteredLocations;
+        if (fromLocation != null && !validLocs.contains(fromLocation)) {
           fromLocation = null;
         }
-        if (toLocation != null && getStationForLocation(toLocation!) != activeStationFilter) {
+        if (toLocation != null && !validLocs.contains(toLocation)) {
           toLocation = null;
         }
       }
@@ -238,10 +257,32 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
       return;
     }
 
-    double baseFare = (tripType == "Special Trip") ? 50.0 : 30.0;
-    if (passengerType != "Regular") baseFare *= 0.80;
+    Map<String, dynamic>? routeFare;
+    for (var f in _fares) {
+      if ((f['origin'] == fromLocation && f['destination'] == toLocation) ||
+          (f['origin'] == toLocation && f['destination'] == fromLocation)) {
+        routeFare = f;
+        break;
+      }
+    }
 
-    setState(() => fare = "₱${baseFare.toStringAsFixed(2)}");
+    if (routeFare == null) {
+      setState(() => fare = "₱0.00");
+      return;
+    }
+
+    double finalFare = 0.0;
+    if (tripType == "Special Trip") {
+      finalFare = (routeFare['special_fare'] as num).toDouble();
+    } else {
+      if (passengerType == "Regular") {
+        finalFare = (routeFare['base_fare'] as num).toDouble();
+      } else {
+        finalFare = (routeFare['discounted_fare'] as num).toDouble();
+      }
+    }
+
+    setState(() => fare = "₱${finalFare.toStringAsFixed(2)}");
   }
 
   @override
@@ -405,14 +446,26 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
                   _buildSearchableDropdown("Pick-up Point", fromLocation, (val) {
                     setState(() {
                       fromLocation = val;
-                      if (val != null) activeStationFilter = getStationForLocation(val);
+                      if (val != null) {
+                        activeStationFilter = getStationForLocation(val);
+                      } else if (toLocation == null) {
+                        activeStationFilter = null;
+                      }
                     });
                     _updateMarkers();
                     _calculateFare();
                   }),
                   const SizedBox(height: 16),
                   _buildSearchableDropdown("Drop-off Destination", toLocation, (val) {
-                    setState(() => toLocation = val);
+                    setState(() {
+                      toLocation = val;
+                      if (val != null) {
+                        activeStationFilter = getStationForLocation(val);
+                      } else if (fromLocation == null) {
+                        activeStationFilter = null;
+                      }
+                    });
+                    _updateMarkers();
                     _calculateFare();
                   }),
                 ],
@@ -488,23 +541,33 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
   }
 
   Widget _buildSearchableDropdown(String label, String? selectedValue, ValueChanged<String?> onChanged) {
-    final filteredOptions = (activeStationFilter == null || !terminalBranding.containsKey(activeStationFilter))
-        ? locations
-        : locations.where((loc) => getStationForLocation(loc) == activeStationFilter).toList();
+    final validLocs = _filteredLocations;
 
     return Autocomplete<String>(
-      optionsBuilder: (v) => v.text == '' ? filteredOptions : filteredOptions.where((o) => o.toLowerCase().contains(v.text.toLowerCase())),
+      key: ValueKey('${label}_$activeStationFilter'),
+      initialValue: TextEditingValue(text: selectedValue ?? ''),
+      optionsBuilder: (v) => v.text == '' ? validLocs : validLocs.where((o) => o.toLowerCase().contains(v.text.toLowerCase())),
       onSelected: onChanged,
       fieldViewBuilder: (ctx, ctrl, node, onSubmit) {
-        if (selectedValue != null && ctrl.text == "") ctrl.text = selectedValue;
-        if (selectedValue == null && ctrl.text != "" && !filteredOptions.contains(ctrl.text)) ctrl.text = "";
         return TextFormField(
           controller: ctrl,
           focusNode: node,
+          onChanged: (val) {
+            if (val.isEmpty) onChanged(null);
+          },
           decoration: InputDecoration(
             labelText: label,
             labelStyle: const TextStyle(color: nagcarlanGreen, fontSize: 14),
             prefixIcon: const Icon(Icons.location_on_rounded, color: nagcarlanGreen),
+            suffixIcon: selectedValue != null
+                ? IconButton(
+                    icon: const Icon(Icons.clear_rounded, color: Colors.grey, size: 20),
+                    onPressed: () {
+                      ctrl.clear();
+                      onChanged(null);
+                    },
+                  )
+                : null,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             filled: true,
             fillColor: Colors.white,

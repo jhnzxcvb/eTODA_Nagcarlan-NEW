@@ -33,6 +33,24 @@ class ApiService {
     }
   }
 
+  Future<List<dynamic>> fetchFares() async {
+    final response = await http.get(Uri.parse('$baseUrl/api/fare'));
+
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      // Safely extract the list depending on how the backend wraps it
+      if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
+        return List<dynamic>.from(decoded['data'] ?? []);
+      } else if (decoded is List) {
+        return List<dynamic>.from(decoded);
+      } else {
+        return [];
+      }
+    } else {
+      throw Exception('Failed to connect to Go Backend');
+    }
+  }
+
   Future<Map<String, dynamic>> fetchDriverData() async {
     final response = await http.get(Uri.parse('$baseUrl/api/drivers'));
 

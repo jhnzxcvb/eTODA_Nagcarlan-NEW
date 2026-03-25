@@ -4,24 +4,36 @@ import (
 	"fmt"
 	"net/http"
 
-	"etoda_admin/models"
 	"etoda_admin/utils"
 )
+
+// FareRoute defines the structure for fare matrix entries including Association
+type FareRoute struct {
+	ID             int     `json:"id"`
+	Origin         string  `json:"origin"`
+	Destination    string  `json:"destination"`
+	Association    string  `json:"association"`
+	BaseFare       float64 `json:"base_fare"`
+	DiscountedFare float64 `json:"discounted_fare"`
+	NightFare      float64 `json:"night_fare"`
+	SpecialFare    float64 `json:"special_fare"`
+	CreatedAt      string  `json:"created_at"`
+}
 
 // Fare handler manages fare matrix CRUD operations.
 func Fare(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		rows, _ := DB.Query("SELECT id,origin,destination,base_fare,discounted_fare,night_fare,special_fare,to_char(created_at,'YYYY-MM-DD') FROM fare_matrix ORDER BY id")
+		rows, _ := DB.Query("SELECT id,origin,destination,COALESCE(association,''),base_fare,discounted_fare,night_fare,special_fare,to_char(created_at,'YYYY-MM-DD') FROM fare_matrix ORDER BY id")
 		defer rows.Close()
-		list := []models.Fare{}
+		list := []FareRoute{}
 		for rows.Next() {
-			var f models.Fare
-			rows.Scan(&f.ID, &f.Origin, &f.Destination, &f.BaseFare, &f.DiscountedFare, &f.NightFare, &f.SpecialFare, &f.CreatedAt)
+			var f FareRoute
+			rows.Scan(&f.ID, &f.Origin, &f.Destination, &f.Association, &f.BaseFare, &f.DiscountedFare, &f.NightFare, &f.SpecialFare, &f.CreatedAt)
 			list = append(list, f)
 		}
 		if list == nil {
-			list = []models.Fare{}
+			list = []FareRoute{}
 		}
 		utils.JSONOK(w, list)
 
@@ -29,6 +41,7 @@ func Fare(w http.ResponseWriter, r *http.Request) {
 		var b struct {
 			Origin      string  `json:"origin"`
 			Destination string  `json:"destination"`
+			Association string  `json:"association"`
 			BaseFare    float64 `json:"base_fare"`
 		}
 		utils.Decode(r, &b)
@@ -36,17 +49,28 @@ func Fare(w http.ResponseWriter, r *http.Request) {
 			utils.JSONErr(w, "All fields required", 400)
 			return
 		}
-		var f models.Fare
+		if b.Association == "" {
+			b.Association = "Nagcarlan TODA" // Default association
+		}
+
+		discounted := b.BaseFare - 5
+		if discounted < 0 {
+			discounted = 0
+		}
+		special := discounted * 2
+
+		var f FareRoute
 		err := DB.QueryRow(
-			`INSERT INTO fare_matrix(origin,destination,base_fare,discounted_fare,night_fare,special_fare)
-             VALUES($1,$2,$3,$4,$5,$6)
+			`INSERT INTO fare_matrix(origin,destination,association,base_fare,discounted_fare,night_fare,special_fare)
+             VALUES($1,$2,$3,$4,$5,$6,$7)
              ON CONFLICT(origin,destination) DO UPDATE SET
+               association=EXCLUDED.association,
                base_fare=EXCLUDED.base_fare,discounted_fare=EXCLUDED.discounted_fare,
                night_fare=EXCLUDED.night_fare,special_fare=EXCLUDED.special_fare
-             RETURNING id,origin,destination,base_fare,discounted_fare,night_fare,special_fare,to_char(created_at,'YYYY-MM-DD')`,
-			b.Origin, b.Destination, b.BaseFare,
-			b.BaseFare*0.8, b.BaseFare*1.15, b.BaseFare*3,
-		).Scan(&f.ID, &f.Origin, &f.Destination, &f.BaseFare, &f.DiscountedFare, &f.NightFare, &f.SpecialFare, &f.CreatedAt)
+             RETURNING id,origin,destination,COALESCE(association,''),base_fare,discounted_fare,night_fare,special_fare,to_char(created_at,'YYYY-MM-DD')`,
+			b.Origin, b.Destination, b.Association, b.BaseFare,
+			discounted, b.BaseFare*1.15, special,
+		).Scan(&f.ID, &f.Origin, &f.Destination, &f.Association, &f.BaseFare, &f.DiscountedFare, &f.NightFare, &f.SpecialFare, &f.CreatedAt)
 		if err != nil {
 			utils.JSONErr(w, err.Error(), 500)
 			return
