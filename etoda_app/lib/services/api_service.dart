@@ -14,7 +14,7 @@ class ApiService {
   // use a mutable field so tests or higher‑level code can re‑configure
   static String baseUrl = const String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://192.168.88.1:8080',
+    defaultValue: 'http://10.0.2.2:8080',
   );
 
   /// Override the base URL at runtime (e.g. after determining the device's
@@ -28,6 +28,20 @@ class ApiService {
 
     if (response.statusCode == 200) {
       return json.decode(response.body);
+    } else {
+      throw Exception('Failed to connect to Go Backend');
+    }
+  }
+
+  Future<Map<String, dynamic>?> getDriverByQr(String qrCode) async {
+    // Uses the backend search endpoint which now supports searching by QR ID
+    final response = await http.get(Uri.parse('$baseUrl/api/drivers?search=$qrCode'));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      // Return the first match if found, otherwise null
+      if (data.isNotEmpty) return data.first;
+      return null;
     } else {
       throw Exception('Failed to connect to Go Backend');
     }
