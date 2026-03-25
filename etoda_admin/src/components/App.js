@@ -5,11 +5,12 @@ import {
   faHome, faUsers, faUser, faDollarSign, faCreditCard,
   faMobileAlt, faExclamationTriangle, faCar, faClipboard,
   faChevronUp, faSignOutAlt, faCog, faUserCircle, faBell,
-  faUserPlus, faIdCard, faQrcode,
+  faUserPlus, faIdCard, faQrcode, faMapMarkerAlt,
 } from '@fortawesome/free-solid-svg-icons';
 import Auth from '../Auth';
 import Dashboard from './dashboard/Dashboard';
 import Drivers from './drivers/Drivers';
+import TodaStations from './drivers/TodaStations';
 import Passengers from './passengers/Passengers';
 import Trips from './trips/Trips';
 import Payments from './payments/Payments';
@@ -131,6 +132,7 @@ export default function App() {
     ['drivers',    faUsers,               'Drivers'],
     ['passengers', faUser,                'Passengers'],
     ['fare',       faDollarSign,          'Fare Matrix'],
+    ['stations',   faMapMarkerAlt,        'TODA Stations'],
     ['payments',   faCreditCard,          'Payments'],
     ['qrcodes',    faMobileAlt,           'QR Codes'],
     ['complaints', faExclamationTriangle, 'Complaints'],
@@ -321,6 +323,7 @@ export default function App() {
           {panel === 'drivers'    && <Drivers    notify={notify} setPanel={setPanel} />}
           {panel === 'passengers' && <Passengers notify={notify} setPanel={setPanel} />}
           {panel === 'fare'       && <Fare       notify={notify} setPanel={setPanel} />}
+          {panel === 'stations'   && <TodaStations notify={notify} setPanel={setPanel} />}
           {panel === 'payments'   && <Payments   notify={notify} setPanel={setPanel} />}
           {panel === 'qrcodes'    && <QRCodes    notify={notify} setPanel={setPanel} />}
           {panel === 'complaints' && <Complaints notify={notify} setPanel={setPanel} />}

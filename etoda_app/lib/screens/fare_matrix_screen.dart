@@ -3,6 +3,7 @@ import 'package:etoda_nagcarlan/main.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:etoda_nagcarlan/widgets/branding_footer.dart';
+import 'package:etoda_nagcarlan/services/api_service.dart';
 
 class FareMatrixScreen extends StatefulWidget {
   const FareMatrixScreen({super.key});
@@ -13,6 +14,7 @@ class FareMatrixScreen extends StatefulWidget {
 
 class _FareMatrixScreenState extends State<FareMatrixScreen> {
   final MapController _mapController = MapController();
+  final ApiService _apiService = ApiService();
 
   // Nagcarlan Center Coordinates
   static const LatLng _nagcarlanCenter = LatLng(14.1382, 121.4116);
@@ -39,13 +41,6 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
     }
     return "Central Terminal";
   }
-
-  // Real Station Data with Coordinates
-  final Map<String, LatLng> stationCoords = {
-    "Central Terminal": const LatLng(14.1382, 121.4116),
-    "North Terminal": const LatLng(14.1550, 121.4050),
-    "East Terminal": const LatLng(14.1320, 121.4300),
-  };
 
   // Terminal Branding Config
   final Map<String, Map<String, dynamic>> terminalBranding = {
@@ -74,11 +69,31 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
   String fare = "₱0.00";
 
   List<Marker> _markers = [];
+  List<dynamic> _dynamicStations = [];
+  bool _isLoadingStations = true;
 
   @override
   void initState() {
     super.initState();
-    _updateMarkers();
+    _fetchStations();
+  }
+
+  Future<void> _fetchStations() async {
+    try {
+      final data = await _apiService.fetchStations();
+      if (data['success'] == true) {
+        setState(() {
+          _dynamicStations = data['data'] ?? [];
+          _isLoadingStations = false;
+        });
+        _updateMarkers();
+      }
+    } catch (e) {
+      debugPrint('Failed to load stations: $e');
+      setState(() {
+        _isLoadingStations = false;
+      });
+    }
   }
 
   void _onStationTapped(String stationName) {
@@ -86,7 +101,7 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
       activeStationFilter = (activeStationFilter == stationName) ? null : stationName;
 
       // Clear selections if they no longer match the filter
-      if (activeStationFilter != null) {
+      if (activeStationFilter != null && terminalBranding.containsKey(activeStationFilter)) {
         if (fromLocation != null && getStationForLocation(fromLocation!) != activeStationFilter) {
           fromLocation = null;
         }
@@ -99,20 +114,47 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
     _calculateFare();
   }
 
+  Color _parseHexColor(String hexColor) {
+    hexColor = hexColor.toUpperCase().replaceAll("#", "");
+    if (hexColor.length == 6) {
+      hexColor = "FF$hexColor";
+    }
+    return Color(int.tryParse(hexColor, radix: 16) ?? 0xFF16A34A);
+  }
+
   void _updateMarkers() {
     setState(() {
-      _markers = stationCoords.entries.map((entry) {
-        bool isHighlighted = entry.key == activeStationFilter;
-        final branding = terminalBranding[entry.key]!;
-        final Color baseColor = branding['color'];
+      _markers = _dynamicStations.map((station) {
+        final String name = station['name'] ?? 'Unknown Station';
+        final double lat = double.tryParse(station['lat'].toString()) ?? 14.1382;
+        final double lng = double.tryParse(station['lng'].toString()) ?? 121.4116;
+        final String logoUrl = station['logo'] ?? '';
+        final String dbColorHex = station['color'] ?? '';
+
+        final Color dbColor = dbColorHex.isNotEmpty ? _parseHexColor(dbColorHex) : Colors.green;
+
+        final String fullLogoUrl = logoUrl.isNotEmpty ? (logoUrl.startsWith('http') ? logoUrl : '${ApiService.baseUrl}/uploads/$logoUrl') : '';
+
+        bool isHighlighted = name == activeStationFilter;
+
+        // Fallback to existing terminal branding if matched, else use default green
+        final branding = terminalBranding.containsKey(name)
+            ? terminalBranding[name]!
+            : {
+                "color": dbColor,
+                "logo": Icons.storefront_rounded,
+                "range": "TODA",
+              };
+
+        final Color baseColor = terminalBranding.containsKey(name) ? branding['color'] : dbColor;
 
         return Marker(
-          point: entry.value,
+          point: LatLng(lat, lng),
           width: 120,
           height: 120,
           alignment: Alignment.topCenter,
           child: GestureDetector(
-            onTap: () => _onStationTapped(entry.key),
+            onTap: () => _onStationTapped(name),
             child: AnimatedScale(
               scale: isHighlighted ? 1.3 : 1.0,
               duration: const Duration(milliseconds: 400),
@@ -123,6 +165,7 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    constraints: const BoxConstraints(maxWidth: 100),
                     decoration: BoxDecoration(
                       color: isHighlighted ? Colors.orange : Colors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -137,12 +180,14 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
                       border: Border.all(color: isHighlighted ? Colors.white : baseColor, width: 2),
                     ),
                     child: Text(
-                      "${branding['range']}",
+                      branding['range'] == "TODA" ? name : "${branding['range']}",
                       style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                           color: isHighlighted ? Colors.white : baseColor
                       ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -163,11 +208,17 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
                             color: Colors.white,
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(
-                            branding['logo'],
-                            size: isHighlighted ? 30 : 20,
-                            color: isHighlighted ? Colors.orange : baseColor,
-                          ),
+                          child: fullLogoUrl.isNotEmpty
+                              ? CircleAvatar(
+                                  radius: isHighlighted ? 15 : 10,
+                                  backgroundImage: NetworkImage(fullLogoUrl),
+                                  backgroundColor: Colors.transparent,
+                                )
+                              : Icon(
+                                  branding['logo'],
+                                  size: isHighlighted ? 30 : 20,
+                                  color: isHighlighted ? Colors.orange : baseColor,
+                                ),
                         ),
                       ),
                     ],
@@ -437,7 +488,7 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
   }
 
   Widget _buildSearchableDropdown(String label, String? selectedValue, ValueChanged<String?> onChanged) {
-    final filteredOptions = activeStationFilter == null
+    final filteredOptions = (activeStationFilter == null || !terminalBranding.containsKey(activeStationFilter))
         ? locations
         : locations.where((loc) => getStationForLocation(loc) == activeStationFilter).toList();
 
