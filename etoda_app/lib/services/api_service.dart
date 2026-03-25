@@ -11,11 +11,35 @@ class ApiService {
     baseUrl = url;
   }
 
+  // Fetch Station Data
+  Future<Map<String, dynamic>> fetchStations() async {
+    final response = await http.get(Uri.parse('$baseUrl/api/stations'));
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to connect to Go Backend');
+    }
+  }
+
+  // Fetch All Drivers
+  Future<List<dynamic>> fetchDriverData() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/api/drivers'));
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to load drivers');
+      }
+    } catch (e) {
+      print('❌ Driver Fetch Error: $e');
+      return [];
+    }
+  }
+
+  // Submit a Complaint (The missing method)
   Future<bool> submitComplaint(Map<String, dynamic> data) async {
     try {
-      print('🚀 Sending Request to: $baseUrl/api/complaints');
-      print('📦 Payload: ${json.encode(data)}');
-
       final response = await http.post(
         Uri.parse('$baseUrl/api/complaints'),
         headers: {'Content-Type': 'application/json'},

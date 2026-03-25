@@ -3,17 +3,29 @@ const BASE = 'http://localhost:8080';
 
 async function api(endpoint, method = 'GET', body = null) {
   try {
+    const isFormData = body instanceof FormData;
+    const headers = {
+      'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+    };
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
+
     const response = await fetch(BASE + endpoint, {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
-      },
-      body: body ? JSON.stringify(body) : null,
+      headers,
+      body: isFormData ? body : (body ? JSON.stringify(body) : null),
     });
+    
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      return { success: false, error: `Server returned an error: ${response.status} ${response.statusText}` };
+    }
+    
     const data = await response.json();
     return data;
   } catch (error) {
+    console.error("API Fetch Error:", error);
     return { success: false, error: 'Failed to connect to server. Please check if the backend is running.' };
   }
 }

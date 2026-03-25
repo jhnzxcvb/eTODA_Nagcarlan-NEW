@@ -182,6 +182,9 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                   children: [
                     const Text("TRIP IN PROGRESS", 
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green)),
+                    if (data != null && data['last_driver_name'] != null)
+                      Text("You're riding with ${data['last_driver_name']}",
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
                     Text("Tap to view details or report issues", 
                         style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                   ],

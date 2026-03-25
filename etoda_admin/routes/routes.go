@@ -60,7 +60,29 @@ func SetupRoutes(mux *http.ServeMux) {
 	// Trips
 	mux.HandleFunc("/api/trips", middleware.CORS(controllers.Trips))
 
-	// Notifications
+	// TODA Stations Management
+	mux.HandleFunc("/api/stations", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "GET":
+			controllers.GetStations(w, r)
+		case "POST":
+			controllers.AddStation(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
+	mux.HandleFunc("/api/stations/", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "PATCH":
+			controllers.UpdateStation(w, r)
+		case "DELETE":
+			controllers.DeleteStation(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
 	mux.HandleFunc("/api/notifications", middleware.CORS(controllers.GetNotifications))
 	mux.HandleFunc("/api/notifications/read", middleware.CORS(controllers.MarkNotificationsRead))
 	mux.HandleFunc("/api/notifications/clear", middleware.CORS(controllers.ClearNotifications))
