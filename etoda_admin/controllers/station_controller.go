@@ -111,6 +111,7 @@ func UpdateStation(w http.ResponseWriter, r *http.Request) {
 	lat, _ := strconv.ParseFloat(r.FormValue("lat"), 64)
 	lng, _ := strconv.ParseFloat(r.FormValue("lng"), 64)
 	color := r.FormValue("color")
+	removeLogo := r.FormValue("remove_logo")
 
 	var logo string
 	file, header, err := r.FormFile("logo")
@@ -129,6 +130,9 @@ func UpdateStation(w http.ResponseWriter, r *http.Request) {
 	if logo != "" {
 		_, err = DB.Exec("UPDATE toda_stations SET name = $1, lat = $2, lng = $3, logo = $4, color = $5 WHERE id = $6",
 			name, lat, lng, logo, color, id)
+	} else if removeLogo == "true" {
+		_, err = DB.Exec("UPDATE toda_stations SET name = $1, lat = $2, lng = $3, logo = '', color = $4 WHERE id = $5",
+			name, lat, lng, color, id)
 	} else {
 		_, err = DB.Exec("UPDATE toda_stations SET name = $1, lat = $2, lng = $3, color = $4 WHERE id = $5",
 			name, lat, lng, color, id)

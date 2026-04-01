@@ -88,12 +88,16 @@ export default function TodaStations({ notify }) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [fetchTime, setFetchTime] = useState(Date.now());
 
   const load = useCallback(async (q = '') => {
     setLoading(true);
     // Assumes your backend will have this endpoint configured
     const r = await api(`/api/stations${q ? `?search=${encodeURIComponent(q)}` : ''}`);
-    if (r.success) setData(r.data || []);
+    if (r.success) {
+      setData(r.data || []);
+      setFetchTime(Date.now()); // Update cache-buster to instantly display new images
+    }
     // else notify(r.error, 'error'); // Uncomment if backend is fully implemented
     setLoading(false);
   }, []);
@@ -142,7 +146,13 @@ export default function TodaStations({ notify }) {
     payload.append('lat', form.lat);
     payload.append('lng', form.lng);
     payload.append('color', form.color || '#16a34a');
-    if (form.logoFile) payload.append('logo', form.logoFile);
+    
+    if (form.logoFile) {
+      payload.append('logo', form.logoFile);
+    } else if (!form.logoPreview && editItem?.logo) {
+      payload.append('remove_logo', 'true');
+      payload.append('logo', '');
+    }
 
     const r = await api(`/api/stations/${editItem.id}`, 'PATCH', payload);
     setSaving(false);
@@ -165,7 +175,7 @@ export default function TodaStations({ notify }) {
     }
   };
 
-  const getImageUrl = (logo) => logo ? (logo.startsWith('http') ? logo : `http://localhost:8080/uploads/${logo}`) : null;
+  const getImageUrl = (logo) => logo ? (logo.startsWith('http') ? logo : `http://localhost:8080/uploads/${logo}?v=${fetchTime}`) : null;
 
   const openAdd = () => { setForm(BLANK); setAddOpen(true); };
   const openEdit = (s) => {

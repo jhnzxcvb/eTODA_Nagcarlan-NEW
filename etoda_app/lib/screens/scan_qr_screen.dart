@@ -98,6 +98,24 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
         return;
       }
 
+      // Fetch driver profile to ensure we have the latest profile picture
+      final driverId = data['driver_id'] ?? data['id'];
+      if (driverId != null) {
+        try {
+          final profileRes = await http.get(
+            Uri.parse('${ApiService.baseUrl}/api/profile?role=driver&id=$driverId')
+          ).timeout(const Duration(seconds: 5));
+          if (profileRes.statusCode == 200) {
+            final profileData = jsonDecode(profileRes.body);
+            if (profileData['profile_pic'] != null) {
+              data['profile_pic'] = profileData['profile_pic'];
+            }
+          }
+        } catch (e) {
+          debugPrint('⚠️ Could not fetch driver profile pic: $e');
+        }
+      }
+
       // 5. Prepare arguments for the Profile Screen.
       // We create a clean map with just the driver data and the passenger ID
       // to avoid confusion with nested 'data' keys.
