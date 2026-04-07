@@ -22,10 +22,10 @@ class ScannedDriverProfileScreen extends StatelessWidget {
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>? ?? {};
 
     final int passengerId = (d['passenger_id'] as num?)?.toInt() ?? 0;
-    final int driverId = (d['id'] as num?)?.toInt() ?? 
-                         (d['driver_id'] as num?)?.toInt() ?? 
+    final int driverId = (d['id'] as num?)?.toInt() ??
+                         (d['driver_id'] as num?)?.toInt() ??
                          int.tryParse(d['id']?.toString() ?? '') ?? 0;
-    
+
     final String first = d['first_name']?.toString() ?? '';
     final String last = d['last_name']?.toString() ?? '';
     final String fullName = "$first $last".trim().toUpperCase();
@@ -34,6 +34,14 @@ class ScannedDriverProfileScreen extends StatelessWidget {
     final bool isActive = dbStatus == 'Active' && qrStat != 'Revoked';
     final bool isVerified = d['license_no']?.toString().isNotEmpty ?? false;
     final String profilePic = d['profile_pic']?.toString() ?? '';
+
+    // Contact number — try all possible field names from your DB
+    final String contactNumber = d['contact_number']?.toString()
+                               ?? d['phone']?.toString()
+                               ?? d['contact']?.toString()
+                               ?? d['phone_number']?.toString()
+                               ?? d['mobile']?.toString()
+                               ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -60,7 +68,9 @@ class ScannedDriverProfileScreen extends StatelessWidget {
                     decoration: const BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 5))],
+                      boxShadow: [
+                        BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 5))
+                      ],
                     ),
                     child: CircleAvatar(
                       radius: 65,
@@ -75,7 +85,8 @@ class ScannedDriverProfileScreen extends StatelessWidget {
                   ),
                   if (isVerified)
                     Container(
-                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                      decoration: const BoxDecoration(
+                          color: Colors.white, shape: BoxShape.circle),
                       child: const Icon(Icons.verified, color: Colors.blue, size: 36),
                     ),
                 ],
@@ -84,20 +95,27 @@ class ScannedDriverProfileScreen extends StatelessWidget {
               Text(
                 fullName.isEmpty ? 'DRIVER NAME' : fullName,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: nagcarlanGreen, letterSpacing: 0.8),
+                style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: nagcarlanGreen,
+                    letterSpacing: 0.8),
               ),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _statusPill(
-                    label: isActive ? "ACTIVE" : "INACTIVE", 
+                    label: isActive ? "ACTIVE" : "INACTIVE",
                     icon: isActive ? Icons.check_circle_rounded : Icons.cancel_rounded,
                     color: isActive ? Colors.green : Colors.red,
                   ),
                   if (isVerified) ...[
                     const SizedBox(width: 10),
-                    _statusPill(label: "VERIFIED", icon: Icons.shield_rounded, color: Colors.blue),
+                    _statusPill(
+                        label: "VERIFIED",
+                        icon: Icons.shield_rounded,
+                        color: Colors.blue),
                   ],
                 ],
               ),
@@ -121,6 +139,19 @@ class ScannedDriverProfileScreen extends StatelessWidget {
                   "Member Since": d['created_at']?.toString() ?? 'N/A',
                 },
               ),
+
+              // ── Contact number card (shown if available) ──
+              if (contactNumber.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                InfoSectionCard(
+                  title: "CONTACT",
+                  icon: Icons.phone_rounded,
+                  items: {
+                    "Contact Number": contactNumber,
+                  },
+                ),
+              ],
+
               const SizedBox(height: 35),
               SizedBox(
                 width: double.infinity,
@@ -128,19 +159,25 @@ class ScannedDriverProfileScreen extends StatelessWidget {
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.play_circle_fill_rounded, size: 28),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isActive ? const Color(0xFF1B5E20) : Colors.grey[600],
+                    backgroundColor:
+                        isActive ? const Color(0xFF1B5E20) : Colors.grey[600],
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15)),
                   ),
                   onPressed: isActive
                       ? () => _showFareCalculator(context, {
-                            'passenger_id': passengerId,
-                            'driver_id': driverId,
-                            'full_name': fullName,
-                            'body_no': d['body_no'],
+                            'passenger_id':   passengerId,
+                            'driver_id':      driverId,
+                            'full_name':      fullName,
+                            'body_no':        d['body_no'],
+                            'contact_number': contactNumber, // ← passed through
                           })
                       : null,
-                  label: Text(isActive ? "START TRIP NOW" : "DRIVER UNAVAILABLE", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  label: Text(
+                    isActive ? "START TRIP NOW" : "DRIVER UNAVAILABLE",
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
               const SizedBox(height: 25),
@@ -152,7 +189,8 @@ class ScannedDriverProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _statusPill({required String label, required IconData icon, required Color color}) {
+  Widget _statusPill(
+      {required String label, required IconData icon, required Color color}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
@@ -165,7 +203,9 @@ class ScannedDriverProfileScreen extends StatelessWidget {
         children: [
           Icon(icon, size: 16, color: color),
           const SizedBox(width: 6),
-          Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 12)),
+          Text(label,
+              style: TextStyle(
+                  color: color, fontWeight: FontWeight.w900, fontSize: 12)),
         ],
       ),
     );

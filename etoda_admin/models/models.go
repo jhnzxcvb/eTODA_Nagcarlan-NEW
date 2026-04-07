@@ -65,15 +65,19 @@ type Fare struct {
 }
 
 type Payment struct {
-	ID            int     `json:"id"`
-	RefCode       string  `json:"ref_code"`
-	PassengerName string  `json:"passenger_name"`
-	DriverName    string  `json:"driver_name"`
-	Route         string  `json:"route"`
-	Amount        float64 `json:"amount"`
-	Method        string  `json:"method"`
-	Status        string  `json:"status"`
-	PaidAt        string  `json:"paid_at"`
+	ID             int     `json:"id"`
+	RefCode        string  `json:"ref_code"`
+	PassengerName  string  `json:"passenger_name"`
+	DriverName     string  `json:"driver_name"`
+	Route          string  `json:"route"`
+	Amount         float64 `json:"amount"`
+	Method         string  `json:"method"`
+	Status         string  `json:"status"`
+	PaidAt         string  `json:"paid_at"`
+	PassengerType  string  `json:"passenger_type"`
+	TripType       string  `json:"trip_type"`
+	EwalletAccount string  `json:"ewallet_account"`
+	ContactNumber  string  `json:"contact_number"`
 }
 
 type QRCode struct {

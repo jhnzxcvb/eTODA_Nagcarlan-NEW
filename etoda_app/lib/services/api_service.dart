@@ -1,4 +1,5 @@
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 
 /// Simple service wrapper for calling the Go backend.
@@ -63,7 +64,8 @@ class ApiService {
 
   Future<Map<String, dynamic>?> getDriverByQr(String qrCode) async {
     // Uses the backend search endpoint which now supports searching by QR ID
-    final response = await http.get(Uri.parse('$baseUrl/api/drivers?search=$qrCode'));
+    final response =
+        await http.get(Uri.parse('$baseUrl/api/drivers?search=$qrCode'));
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
@@ -85,6 +87,37 @@ class ApiService {
       return response.statusCode == 201 || response.statusCode == 200;
     } catch (e) {
       return false;
+    }
+  }
+
+  // ── Generic POST — used by PaymentMethodDialog ──────────────────────────────
+  Future<Map<String, dynamic>> post(
+      String path, Map<String, dynamic> body) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl$path'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(body),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final decoded = json.decode(response.body);
+        // Handle both raw map and wrapped { success, data } responses
+        if (decoded is Map<String, dynamic>) {
+          // If backend wraps response in { success: true, data: {...} }
+          if (decoded.containsKey('data') && decoded['data'] is Map) {
+            return Map<String, dynamic>.from(decoded['data']);
+          }
+          return decoded;
+        }
+        return {'raw': decoded};
+      } else {
+        debugPrint('ApiService.post $path → HTTP ${response.statusCode}: ${response.body}');
+        return {};
+      }
+    } catch (e) {
+      debugPrint('ApiService.post error [$path]: $e');
+      return {};
     }
   }
 }
