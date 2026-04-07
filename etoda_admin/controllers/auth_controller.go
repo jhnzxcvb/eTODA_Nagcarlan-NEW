@@ -176,17 +176,17 @@ func UnifiedLogin(w http.ResponseWriter, r *http.Request) {
 		PlateNumber   string
 	}
 	var driverPass string
-	var email, franchise, association string
+	var email, franchise, association, profilePic string
 
 	// Fetch necessary fields using the actual 'drivers' table schema
 	driverQuery := `SELECT id, COALESCE(username, ''), COALESCE(first_name, ''), COALESCE(middle_name, ''), COALESCE(last_name, ''),
                            COALESCE(contact, ''), COALESCE(body_no, ''),
                            COALESCE(license_no, ''), COALESCE(plate_number, ''), 
-                           COALESCE(email, ''), COALESCE(franchise, ''), COALESCE(association, ''), COALESCE(password_hash, '')
+                           COALESCE(email, ''), COALESCE(franchise, ''), COALESCE(association, ''), COALESCE(profile_pic, ''), COALESCE(password_hash, '')
                     FROM drivers WHERE username=$1`
 	err = DB.QueryRow(driverQuery, creds.Username).Scan(
 		&d.DriverID, &d.Username, &d.FirstName, &d.MiddleName, &d.LastName,
-		&d.PhoneNumber, &d.BodyNumber, &d.LicenseNumber, &d.PlateNumber, &email, &franchise, &association, &driverPass,
+		&d.PhoneNumber, &d.BodyNumber, &d.LicenseNumber, &d.PlateNumber, &email, &franchise, &association, &profilePic, &driverPass,
 	)
 
 	if err == nil && driverPass == creds.Password {
@@ -207,6 +207,7 @@ func UnifiedLogin(w http.ResponseWriter, r *http.Request) {
 			"license_number": d.LicenseNumber,
 			"franchise":      franchise,
 			"association":    association,
+			"profile_pic":    profilePic,
 			"message":        "Driver login successful",
 		})
 		return
