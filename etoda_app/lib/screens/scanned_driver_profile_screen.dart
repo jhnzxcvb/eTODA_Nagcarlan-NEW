@@ -140,18 +140,6 @@ class ScannedDriverProfileScreen extends StatelessWidget {
                 },
               ),
 
-              // ── Contact number card (shown if available) ──
-              if (contactNumber.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                InfoSectionCard(
-                  title: "CONTACT",
-                  icon: Icons.phone_rounded,
-                  items: {
-                    "Contact Number": contactNumber,
-                  },
-                ),
-              ],
-
               const SizedBox(height: 35),
               SizedBox(
                 width: double.infinity,

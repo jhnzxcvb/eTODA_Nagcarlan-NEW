@@ -9,6 +9,9 @@ class PassengerTripDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Map<String, dynamic> trip =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>? ?? {};
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Trip Details'),
@@ -22,25 +25,24 @@ class PassengerTripDetailsScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
                   children: [
-                    const InfoSectionCard(
+                    InfoSectionCard(
                       title: "TRIP OVERVIEW",
                       icon: Icons.receipt_long_outlined,
                       items: {
-                        "Date": "FEB 22, 2026",
-                        "Route": "Poblacion to Talangan",
-                        "Fare Paid": "P15.00",
-                        "Status": "Completed",
+                        "Date": trip['started_at'] ?? 'N/A',
+                        "Route": trip['route'] ?? 'N/A',
+                        "Fare Paid": "₱${trip['fare_amount'] ?? '0.00'}",
+                        "Reference": trip['trip_code'] ?? 'N/A',
                       },
                     ),
                     const SizedBox(height: 16),
-                    const InfoSectionCard(
+                    InfoSectionCard(
                       title: "DRIVER DETAILS",
                       icon: Icons.person_outline,
                       items: {
-                        "Name": "Juan A. Dela Cruz",
-                        "Contact Number": "0912-345-6789",
-                        "Plate Number": "NA 12345",
-                        "Body Number": "01",
+                        "Name": trip['driver_name'] ?? 'N/A',
+                        "Plate Number": trip['plate_number'] ?? 'N/A',
+                        "Body Number": trip['body_no'] ?? 'N/A',
                       },
                     ),
                     const SizedBox(height: 24),

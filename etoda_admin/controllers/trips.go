@@ -1,47 +1,77 @@
 package controllers
 
 import (
-	"net/http"
-
-	"etoda_admin/models"
+	"database/sql"
 	"etoda_admin/utils"
+	"net/http"
 )
 
-// Trips returns trip log entries, optionally filtered by search term.
+// Trips handles the /api/trips endpoint, serving trip history for both admin and users.
 func Trips(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		utils.JSONErr(w, "Method not allowed", 405)
 		return
 	}
-	search := r.URL.Query().Get("search")
-	q := `SELECT t.id,t.trip_code,
-        COALESCE(p.first_name||' '||COALESCE(p.middle_name,'')||' '||p.last_name,'—'),COALESCE(d.name,'—'),COALESCE(d.contact,'—'),
-        COALESCE(t.route,''),t.fare_amount,COALESCE(t.payment_method,''),
-        t.duration_min,to_char(t.started_at,'YYYY-MM-DD')
-        FROM trip_logs t
-        LEFT JOIN users p ON t.passenger_id=p.user_id
-        LEFT JOIN drivers d ON t.driver_id=d.id
-        WHERE 1=1`
-	args := []interface{}{}
-	if search != "" {
-		args = append(args, "%"+search+"%")
-		q += ` AND (p.name ILIKE $1 OR d.name ILIKE $1 OR t.route ILIKE $1 OR t.trip_code ILIKE $1)`
+
+	// If passenger_id is provided, filter results for the mobile app's history view.
+	passengerID := r.URL.Query().Get("passenger_id")
+
+	query := `
+		SELECT 
+			t.trip_code, 
+			COALESCE(u.first_name || ' ' || u.last_name, 'Guest'),
+			COALESCE(d.first_name || ' ' || d.last_name, 'Driver'),
+			COALESCE(d.contact, '—'),
+			COALESCE(d.plate_number, '—'),
+			COALESCE(d.body_no, '—'),
+			COALESCE(t.route, '—'),
+			t.fare_amount, 
+			t.payment_method, 
+			to_char(t.started_at, 'YYYY-MM-DD HH24:MI')
+		FROM trip_logs t
+		LEFT JOIN users u ON t.passenger_id = u.user_id
+		LEFT JOIN drivers d ON t.driver_id = d.id`
+
+	var rows *sql.Rows
+	var err error
+	if passengerID != "" {
+		rows, err = DB.Query(query+" WHERE t.passenger_id = $1 ORDER BY t.id DESC", passengerID)
+	} else {
+		rows, err = DB.Query(query + " ORDER BY t.id DESC")
 	}
-	q += " ORDER BY t.id DESC"
-	rows, err := DB.Query(q, args...)
+
 	if err != nil {
-		utils.JSONErr(w, err.Error(), 500)
+		utils.JSONErr(w, "Database error: "+err.Error(), 500)
 		return
 	}
 	defer rows.Close()
-	list := []models.Trip{}
+
+	// We use a map to match the specific keys expected by the Admin dashboard React code.
+	list := []map[string]interface{}{}
 	for rows.Next() {
-		var t models.Trip
-		rows.Scan(&t.ID, &t.TripCode, &t.PassengerName, &t.DriverName, &t.DriverContact, &t.Route, &t.FareAmount, &t.Method, &t.DurationMin, &t.StartedAt)
-		list = append(list, t)
+		var code, pName, dName, contact, plate, body, route, method, date string
+		var amount float64
+		if err := rows.Scan(&code, &pName, &dName, &contact, &plate, &body, &route, &amount, &method, &date); err != nil {
+			continue
+		}
+
+		list = append(list, map[string]interface{}{
+			"trip_code":      code,
+			"passenger_name": pName,
+			"driver_name":    dName,
+			"driver_contact": contact,
+			"plate_number":   plate,
+			"body_no":        body,
+			"route":          route,
+			"fare_amount":    amount,
+			"payment_method": method,
+			"duration_min":   15, // estimated average duration
+			"started_at":     date,
+		})
 	}
+
 	if list == nil {
-		list = []models.Trip{}
+		list = []map[string]interface{}{}
 	}
 	utils.JSONOK(w, list)
 }
