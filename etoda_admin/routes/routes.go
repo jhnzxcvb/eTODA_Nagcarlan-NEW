@@ -16,6 +16,16 @@ func SetupRoutes(mux *http.ServeMux) {
 		w.Write([]byte("🚀 Nagcarlan eTODA API is running..."))
 	})
 
+	// Serve uploaded files (e.g., logos, avatars) with CORS headers
+	mux.HandleFunc("/uploads/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		if r.Method == "OPTIONS" {
+			return
+		}
+		http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))).ServeHTTP(w, r)
+	})
+
 	// --- 2. UNIFIED AUTH & SIGNUP (Mobile & Web) ---
 	mux.HandleFunc("/api/login", middleware.CORS(middleware.JSONContentTypeMiddleware(controllers.UnifiedLogin)))
 	mux.HandleFunc("/api/signup", middleware.CORS(middleware.JSONContentTypeMiddleware(controllers.PassengerSignup)))

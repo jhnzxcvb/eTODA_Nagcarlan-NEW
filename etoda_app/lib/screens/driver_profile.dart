@@ -93,6 +93,8 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
       return str.isEmpty ? fallback : str;
     }
 
+    final String profilePic = getVal('profile_pic', '');
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("My Driver Profile"),
@@ -112,10 +114,15 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const SizedBox(height: 24),
-                    const CircleAvatar(
+                    CircleAvatar(
                       radius: 65,
                       backgroundColor: Colors.white,
-                      child: Icon(Icons.person, size: 70, color: Color(0xFFA5D6A7)),
+                      backgroundImage: profilePic.isNotEmpty
+                          ? NetworkImage('${ApiService.baseUrl}/uploads/$profilePic')
+                          : null,
+                      child: profilePic.isEmpty
+                          ? const Icon(Icons.person, size: 70, color: Color(0xFFA5D6A7))
+                          : null,
                     ),
                     const SizedBox(height: 12),
                     Text(

@@ -4,6 +4,7 @@ import 'package:etoda_nagcarlan/main.dart';
 import 'package:etoda_nagcarlan/widgets/info_cards.dart';
 import 'package:etoda_nagcarlan/widgets/branding_footer.dart';
 import 'package:etoda_nagcarlan/widgets/fare_calculator_dialog.dart';
+import 'package:etoda_nagcarlan/services/api_service.dart';
 
 class ScannedDriverProfileScreen extends StatelessWidget {
   const ScannedDriverProfileScreen({super.key});
@@ -32,6 +33,7 @@ class ScannedDriverProfileScreen extends StatelessWidget {
     final String qrStat = d['qr_status']?.toString() ?? '';
     final bool isActive = dbStatus == 'Active' && qrStat != 'Revoked';
     final bool isVerified = d['license_no']?.toString().isNotEmpty ?? false;
+    final String profilePic = d['profile_pic']?.toString() ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -63,7 +65,12 @@ class ScannedDriverProfileScreen extends StatelessWidget {
                     child: CircleAvatar(
                       radius: 65,
                       backgroundColor: Colors.grey[100],
-                      child: Icon(Icons.person, size: 85, color: Colors.green[200]),
+                      backgroundImage: profilePic.isNotEmpty
+                          ? NetworkImage('${ApiService.baseUrl}/uploads/$profilePic')
+                          : null,
+                      child: profilePic.isEmpty
+                          ? Icon(Icons.person, size: 85, color: Colors.green[200])
+                          : null,
                     ),
                   ),
                   if (isVerified)

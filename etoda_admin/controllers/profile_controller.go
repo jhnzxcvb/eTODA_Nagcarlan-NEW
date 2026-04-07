@@ -64,17 +64,18 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 			PlateNumber   string `json:"plate_number"`
 			Franchise     string `json:"franchise"`
 			Association   string `json:"association"`
+			ProfilePic    string `json:"profile_pic"`
 		}
 		// Map the actual 'drivers' table schema to the struct
 		query := `SELECT id, COALESCE(username, ''), COALESCE(first_name, ''), COALESCE(middle_name, ''), COALESCE(last_name, ''),
                          COALESCE(contact, ''), COALESCE(email, ''), COALESCE(license_no, ''), COALESCE(body_no, ''), COALESCE(plate_number, ''),
-                         COALESCE(franchise, ''), COALESCE(association, '')
+                         COALESCE(franchise, ''), COALESCE(association, ''), COALESCE(profile_pic, '')
                   FROM drivers WHERE id = $1`
 
 		err := DB.QueryRow(query, id).Scan(
 			&d.DriverID, &d.Username, &d.FirstName, &d.MiddleName, &d.LastName,
 			&d.PhoneNumber, &d.Email, &d.LicenseNumber, &d.BodyNumber, &d.PlateNumber,
-			&d.Franchise, &d.Association,
+			&d.Franchise, &d.Association, &d.ProfilePic,
 		)
 		if err != nil {
 			log.Printf("❌ Driver profile fetch error (ID: %s): %v", id, err)
@@ -96,6 +97,7 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 			"body_number":    d.BodyNumber,
 			"franchise":      d.Franchise,
 			"association":    d.Association,
+			"profile_pic":    d.ProfilePic,
 		})
 
 	} else {
@@ -119,12 +121,17 @@ func UpdatePassengerProfile(w http.ResponseWriter, r *http.Request) {
 	phoneNumber := r.FormValue("phone_number")
 	currentPassword := r.FormValue("current_password")
 	newPassword := r.FormValue("new_password")
+	removeAvatar := r.FormValue("remove_avatar")
 
 	userID, _ := strconv.Atoi(userIDStr)
 	if userID == 0 {
 		http.Error(w, "Missing or invalid user_id", http.StatusBadRequest)
 		return
 	}
+
+	// Before updating, get the old avatar filename to delete it later
+	var oldProfilePic string
+	DB.QueryRow("SELECT COALESCE(profile_pic, '') FROM users WHERE user_id = $1", userID).Scan(&oldProfilePic)
 
 	var profilePic string
 	file, header, err := r.FormFile("avatar")
@@ -169,6 +176,10 @@ func UpdatePassengerProfile(w http.ResponseWriter, r *http.Request) {
 		fields = append(fields, fmt.Sprintf("profile_pic=$%d", paramIdx))
 		params = append(params, profilePic)
 		paramIdx++
+	} else if removeAvatar == "true" {
+		fields = append(fields, fmt.Sprintf("profile_pic=$%d", paramIdx))
+		params = append(params, "") // Set to empty string
+		paramIdx++
 	}
 	query = fmt.Sprintf(`UPDATE users SET %s WHERE user_id=$%d`, strings.Join(fields, ", "), paramIdx)
 	params = append(params, userID)
@@ -177,6 +188,11 @@ func UpdatePassengerProfile(w http.ResponseWriter, r *http.Request) {
 		log.Printf("❌ Passenger update error: %v", err)
 		http.Error(w, "Failed to update profile", http.StatusInternalServerError)
 		return
+	}
+
+	// If update was successful, delete old file
+	if oldProfilePic != "" && (profilePic != "" || removeAvatar == "true") {
+		os.Remove(filepath.Join("uploads", oldProfilePic))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -200,6 +216,7 @@ func UpdateDriverProfile(w http.ResponseWriter, r *http.Request) {
 	plateNumber := r.FormValue("plate_number")
 	licenseNumber := r.FormValue("license_number")
 
+	removeAvatar := r.FormValue("remove_avatar")
 	// Fallback in case the Flutter form sends the database column name instead of the JSON key
 	if licenseNumber == "" {
 		licenseNumber = r.FormValue("license_no")
@@ -214,6 +231,25 @@ func UpdateDriverProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Before updating, get the old avatar filename to delete it later
+	var oldProfilePic string
+	DB.QueryRow("SELECT COALESCE(profile_pic, '') FROM drivers WHERE id = $1", driverID).Scan(&oldProfilePic)
+
+	var profilePic string
+	file, header, err := r.FormFile("avatar")
+	if err == nil {
+		defer file.Close()
+		os.MkdirAll("uploads", os.ModePerm)
+		filename := strings.ReplaceAll(header.Filename, " ", "_")
+		profilePic = fmt.Sprintf("driver_%d_%s", driverID, filename)
+		out, err := os.Create(filepath.Join("uploads", profilePic))
+		if err == nil {
+			defer out.Close()
+			io.Copy(out, file)
+		}
+	}
+
+	// Optional password change
 	if currentPassword != "" || newPassword != "" {
 		var storedPassword string
 		err := DB.QueryRow("SELECT password_hash FROM drivers WHERE id = $1", driverID).Scan(&storedPassword)
@@ -229,21 +265,36 @@ func UpdateDriverProfile(w http.ResponseWriter, r *http.Request) {
 
 	var query string
 	var params []interface{}
+	fields := []string{"first_name=$1", "middle_name=$2", "last_name=$3", "contact=$4", "license_no=$5", "plate_number=$6"}
+	params = []interface{}{firstName, middleName, lastName, phoneNumber, licenseNumber, plateNumber}
+	paramIdx := 7
 
 	if newPassword != "" {
-		query = `UPDATE drivers SET first_name=$1, middle_name=$2, last_name=$3, contact=$4, license_no=$5, plate_number=$6, password_hash=$7 
-                 WHERE id=$8`
-		params = []interface{}{firstName, middleName, lastName, phoneNumber, licenseNumber, plateNumber, newPassword, driverID}
-	} else {
-		query = `UPDATE drivers SET first_name=$1, middle_name=$2, last_name=$3, contact=$4, license_no=$5, plate_number=$6 
-                 WHERE id=$7`
-		params = []interface{}{firstName, middleName, lastName, phoneNumber, licenseNumber, plateNumber, driverID}
+		fields = append(fields, fmt.Sprintf("password_hash=$%d", paramIdx))
+		params = append(params, newPassword)
+		paramIdx++
 	}
+	if profilePic != "" {
+		fields = append(fields, fmt.Sprintf("profile_pic=$%d", paramIdx))
+		params = append(params, profilePic)
+		paramIdx++
+	} else if removeAvatar == "true" {
+		fields = append(fields, fmt.Sprintf("profile_pic=$%d", paramIdx))
+		params = append(params, "")
+		paramIdx++
+	}
+	query = fmt.Sprintf(`UPDATE drivers SET %s WHERE id=$%d`, strings.Join(fields, ", "), paramIdx)
+	params = append(params, driverID)
 
 	if _, err := DB.Exec(query, params...); err != nil {
 		log.Printf("❌ Driver update error: %v", err)
 		http.Error(w, "Failed to update profile", http.StatusInternalServerError)
 		return
+	}
+
+	// If update was successful, delete old file
+	if oldProfilePic != "" && (profilePic != "" || removeAvatar == "true") {
+		os.Remove(filepath.Join("uploads", oldProfilePic))
 	}
 
 	w.Header().Set("Content-Type", "application/json")

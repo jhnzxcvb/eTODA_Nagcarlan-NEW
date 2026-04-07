@@ -1,15 +1,25 @@
-
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:etoda_nagcarlan/main.dart';
+import 'package:etoda_nagcarlan/constants.dart';
 
 enum PaymentMethod { cash, ewallet }
 enum EWallet { gcash, maya, konek2card }
 
 class PaymentMethodDialog extends StatefulWidget {
   final VoidCallback onPaymentConfirmed;
+  final double fare;
+  final String passengerType;
+  final String tripType;
+  final Map<String, dynamic> driverData;
 
-  const PaymentMethodDialog({super.key, required this.onPaymentConfirmed});
+  const PaymentMethodDialog({
+    super.key, 
+    required this.onPaymentConfirmed,
+    required this.fare,
+    required this.passengerType,
+    required this.tripType,
+    required this.driverData,
+  });
 
   @override
   State<PaymentMethodDialog> createState() => _PaymentMethodDialogState();
@@ -66,6 +76,11 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
             const Text(
               "Select Payment Method",
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: nagcarlanGreen),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Amount to Pay: ₱${widget.fare.toStringAsFixed(2)}",
+              style: TextStyle(fontSize: 16, color: Colors.grey[700], fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 20),
 
