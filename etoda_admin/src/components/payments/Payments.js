@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faCreditCard, faSearch, faFilter, faEye,
   faChevronLeft, faChevronRight, faMoneyBillWave,
-  faMobileAlt, faCheck, faRotateLeft, faBan, faRefresh
+  faMobileAlt, faRefresh,
 } from '@fortawesome/free-solid-svg-icons';
 import { api } from '../../lib/api';
 import Loading from '../ui/Loading';
@@ -24,7 +24,6 @@ function Payments({ notify }) {
   const [loading, setLoading] = useState(true);
   const [viewItem, setViewItem] = useState(null);
 
-  // ── Filters & Pagination ──
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [pageSize, setPageSize] = useState(10);
@@ -36,22 +35,13 @@ function Payments({ notify }) {
     if (r.success) setData(r.data || []);
     setLoading(false);
   };
+
   useEffect(() => { load(); }, []);
   useEffect(() => { setCurrentPage(1); }, [statusFilter, pageSize, search]);
 
-  const update = async (id, status) => {
-    const r = await api(`/api/payments/${id}`, 'PATCH', { status });
-    if (r.success) {
-      load();
-      notify(`Payment → ${status}`, status === 'Refunded' ? 'warn' : 'success');
-    }
-  };
-
   const filtered = useMemo(() => {
     let rows = data;
-    if (statusFilter !== 'All') {
-      rows = rows.filter(p => p.status === statusFilter);
-    }
+    if (statusFilter !== 'All') rows = rows.filter(p => p.status === statusFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
       rows = rows.filter(p =>
@@ -170,23 +160,6 @@ function Payments({ notify }) {
                           <button className="ib ib-view" onClick={() => setViewItem(p)} style={{ minWidth: 60 }}>
                             <FontAwesomeIcon icon={faEye} style={{ marginRight: 4, fontSize: 11 }} />View
                           </button>
-                          {p.status === 'Pending' && (
-                            <button className="ib" onClick={() => update(p.id, 'Settled')}
-                              style={{ background: '#f0fdf4', color: '#166534', borderColor: '#86efac', minWidth: 80 }}>
-                              <FontAwesomeIcon icon={faCheck} style={{ marginRight: 4, fontSize: 11 }} />Settle
-                            </button>
-                          )}
-                          {p.status === 'Settled' && (
-                            <button className="ib" onClick={() => update(p.id, 'Refunded')}
-                              style={{ background: '#fef2f2', color: '#991b1b', borderColor: '#fca5a5', minWidth: 80 }}>
-                              <FontAwesomeIcon icon={faRotateLeft} style={{ marginRight: 4, fontSize: 11 }} />Refund
-                            </button>
-                          )}
-                          {p.status === 'Refunded' && (
-                            <button className="ib" disabled style={{ opacity: 0.5, cursor: 'default', minWidth: 80 }}>
-                              <FontAwesomeIcon icon={faBan} style={{ marginRight: 4, fontSize: 11 }} />Refunded
-                            </button>
-                          )}
                         </div>
                       </td>
                     </tr>
@@ -226,17 +199,18 @@ function Payments({ notify }) {
         )}
       </div>
 
+      {/* ── VIEW MODAL ── */}
       {viewItem && (
         <Modal title={`Transaction: ${viewItem.ref_code}`} onClose={() => setViewItem(null)}>
           <DG rows={[
-            ['Ref Code', viewItem.ref_code],
+            ['Ref Code',  viewItem.ref_code],
             ['Passenger', viewItem.passenger_name],
-            ['Driver', viewItem.driver_name],
-            ['Route', viewItem.route],
-            ['Amount', `₱${Number(viewItem.amount).toFixed(2)}`],
-            ['Method', viewItem.method],
-            ['Status', viewItem.status],
-            ['Date', formatDate(viewItem.paid_at)]
+            ['Driver',    viewItem.driver_name],
+            ['Route',     viewItem.route],
+            ['Amount',    `₱${Number(viewItem.amount).toFixed(2)}`],
+            ['Method',    viewItem.method],
+            ['Status',    viewItem.status],
+            ['Date',      formatDate(viewItem.paid_at)],
           ]} />
           <div className="modal-footer">
             <button className="btn btn-ghost" onClick={() => setViewItem(null)}>Close</button>

@@ -49,7 +49,6 @@ export default function App() {
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
-  // ── Fetch notifications from real API ──
   const fetchNotifications = async () => {
     try {
       const res = await fetch(`${BASE}/api/notifications`);
@@ -58,7 +57,6 @@ export default function App() {
     } catch {}
   };
 
-  // Poll every 30 seconds for new notifications
   useEffect(() => {
     if (!auth) return;
     fetchNotifications();
@@ -81,12 +79,12 @@ export default function App() {
   };
 
   const logout = () => {
-  localStorage.removeItem('adminUser');
-  localStorage.removeItem('adminToken');
-  setAuth(null);
-  setDropdownOpen(false); // ← add this
-  notify('Logged out', 'info');
-};
+    localStorage.removeItem('adminUser');
+    localStorage.removeItem('adminToken');
+    setAuth(null);
+    setDropdownOpen(false);
+    notify('Logged out', 'info');
+  };
 
   const markAllRead = async () => {
     await fetch(`${BASE}/api/notifications/read`, { method: 'PATCH' });
@@ -109,11 +107,10 @@ export default function App() {
     setNotifications(n => n.map(x => x.id === id ? { ...x, is_read: true } : x));
   };
 
-  // Format time ago
   const timeAgo = (dateStr) => {
     const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
-    if (diff < 60)   return `${diff}s ago`;
-    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    if (diff < 60)    return `${diff}s ago`;
+    if (diff < 3600)  return `${Math.floor(diff/60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
     return `${Math.floor(diff/86400)}d ago`;
   };
@@ -309,12 +306,6 @@ export default function App() {
               )}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.74rem', color: 'var(--gray)' }}>
-              <div className="sync-dot" /><span>Go + PostgreSQL</span>
-            </div>
-            <div style={{ fontSize: '.74rem', color: 'var(--gray)' }}>
-              {new Date().toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' })}
-            </div>
           </div>
         </header>
 

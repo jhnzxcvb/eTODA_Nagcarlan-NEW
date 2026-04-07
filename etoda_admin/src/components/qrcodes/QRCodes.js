@@ -3,11 +3,12 @@ import React, { useState, useEffect, useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPrint, faDownload, faTimes, faQrcode, faSearch,
-  faFilter, faChevronLeft, faChevronRight,
+  faFilter, faChevronLeft, faChevronRight, faBan, faCircleCheck,
 } from "@fortawesome/free-solid-svg-icons";
 import { api } from "../../lib/api";
 import Loading from "../ui/Loading";
 import Empty from "../ui/Empty";
+import Modal from "../ui/Modal";
 import QRCode from "qrcode";
 
 const COL = {
@@ -20,14 +21,17 @@ const COL = {
 };
 
 function QRCodes({ notify }) {
-  const [data,        setData]        = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [search,      setSearch]      = useState("");
-  const [statusFilter,setStatusFilter]= useState("All");
-  const [pageSize,    setPageSize]    = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selected,    setSelected]    = useState(null);
-  const [qrDataUrl,   setQrDataUrl]   = useState("");
+  const [data,         setData]         = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [search,       setSearch]       = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [pageSize,     setPageSize]     = useState(10);
+  const [currentPage,  setCurrentPage]  = useState(1);
+  const [selected,     setSelected]     = useState(null);
+  const [qrDataUrl,    setQrDataUrl]    = useState("");
+  const [revokeItem,   setRevokeItem]   = useState(null);  // ← confirm revoke
+  const [restoreItem,  setRestoreItem]  = useState(null);  // ← confirm restore
+  const [toggling,     setToggling]     = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -59,7 +63,9 @@ function QRCodes({ notify }) {
   const paginated  = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const update = async (id, status, franchise) => {
+    setToggling(id);
     const r = await api(`/api/qrcodes/${id}`, "PATCH", { status });
+    setToggling(null);
     if (r.success) {
       load();
       notify(
@@ -67,6 +73,16 @@ function QRCodes({ notify }) {
         status === "Active" ? "success" : "warn",
       );
     }
+  };
+
+  const confirmRevoke = async () => {
+    await update(revokeItem.id, "Revoked", revokeItem.franchise);
+    setRevokeItem(null);
+  };
+
+  const confirmRestore = async () => {
+    await update(restoreItem.id, "Active", restoreItem.franchise);
+    setRestoreItem(null);
   };
 
   const openModal = async (q) => {
@@ -250,11 +266,13 @@ function QRCodes({ notify }) {
                             </button>
                           )}
                           {q.status === "Active" ? (
-                            <button className="ib ib-del" onClick={() => update(q.id, "Revoked", q.franchise)} style={{ width: "68px" }}>
+                            <button className="ib ib-del" onClick={() => setRevokeItem(q)}
+                              disabled={toggling === q.id} style={{ width: "68px" }}>
                               Revoke
                             </button>
                           ) : (
-                            <button className="ib ib-edit" onClick={() => update(q.id, "Active", q.franchise)} style={{ width: "68px" }}>
+                            <button className="ib ib-edit" onClick={() => setRestoreItem(q)}
+                              disabled={toggling === q.id} style={{ width: "68px" }}>
                               Restore
                             </button>
                           )}
@@ -340,6 +358,43 @@ function QRCodes({ notify }) {
           </div>
         </div>
       )}
+
+      {/* ── REVOKE CONFIRM ── */}
+      {revokeItem && (
+        <Modal title="Revoke QR Code" onClose={() => setRevokeItem(null)}>
+          <div style={{ background: "#fff8e1", border: "1px solid #f59e0b", borderRadius: 10, padding: "14px 16px", marginBottom: 16, fontSize: ".88rem", color: "#78350f", lineHeight: 1.7 }}>
+            Are you sure you want to revoke the QR code for <strong>{revokeItem.driver_name}</strong> (Franchise: <strong>{revokeItem.franchise}</strong>)?<br />
+            The driver will not be able to use this QR code until it is restored.
+          </div>
+          <div className="modal-footer">
+            <button className="btn btn-ghost" onClick={() => setRevokeItem(null)}>Cancel</button>
+            <button onClick={confirmRevoke} disabled={toggling === revokeItem.id}
+              style={{ background: "#d97706", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontWeight: 700, cursor: "pointer" }}>
+              <FontAwesomeIcon icon={faBan} style={{ marginRight: 6 }} />
+              {toggling === revokeItem.id ? "Revoking..." : "Yes, Revoke"}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── RESTORE CONFIRM ── */}
+      {restoreItem && (
+        <Modal title="Restore QR Code" onClose={() => setRestoreItem(null)}>
+          <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 10, padding: "14px 16px", marginBottom: 16, fontSize: ".88rem", color: "#14532d", lineHeight: 1.7 }}>
+            Restore the QR code for <strong>{restoreItem.driver_name}</strong> (Franchise: <strong>{restoreItem.franchise}</strong>)?<br />
+            The driver will be able to use this QR code again.
+          </div>
+          <div className="modal-footer">
+            <button className="btn btn-ghost" onClick={() => setRestoreItem(null)}>Cancel</button>
+            <button onClick={confirmRestore} disabled={toggling === restoreItem.id}
+              style={{ background: "var(--green)", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontWeight: 700, cursor: "pointer" }}>
+              <FontAwesomeIcon icon={faCircleCheck} style={{ marginRight: 6 }} />
+              {toggling === restoreItem.id ? "Restoring..." : "Yes, Restore"}
+            </button>
+          </div>
+        </Modal>
+      )}
+
     </div>
   );
 }
