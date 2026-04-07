@@ -132,7 +132,11 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
         fare: fare,
         passengerType: selectedPassenger,
         tripType: selectedTrip,
-        driverData: widget.driverData,
+        driverData: {
+          ...widget.driverData,
+          'from_location': fromLocation,
+          'to_location': toLocation,
+        },
         onPaymentConfirmed: () {
           // 1. Pop the FareCalculatorDialog (which is underneath)
           // Since the PaymentMethodDialog has already popped itself (and its loading dialog) 

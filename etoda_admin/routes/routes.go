@@ -52,10 +52,21 @@ func SetupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/passengers", middleware.CORS(controllers.Passengers))
 	mux.HandleFunc("/api/passengers/", middleware.CORS(controllers.PassengerByID))
 
-	// Fare & Payments
+	// Fare Management
 	mux.HandleFunc("/api/fare", middleware.CORS(controllers.Fare))
 	mux.HandleFunc("/api/fare/", middleware.CORS(controllers.FareByID))
-	mux.HandleFunc("/api/payments", middleware.CORS(controllers.Payments))
+
+	// ── PAYMENTS: GET = list all, POST = create from Flutter app ──
+	mux.HandleFunc("/api/payments", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "GET":
+			controllers.Payments(w, r)
+		case "POST":
+			controllers.CreatePayment(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
 	mux.HandleFunc("/api/payments/", middleware.CORS(controllers.PaymentByID))
 
 	// QR Codes & Operations
@@ -63,7 +74,7 @@ func SetupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/qrcodes", middleware.CORS(controllers.QRCodes))
 	mux.HandleFunc("/api/qrcodes/", middleware.CORS(controllers.QRCodeByID))
 
-	// Complaints Management (FIXED: Duplicates removed)
+	// Complaints Management
 	mux.HandleFunc("/api/complaints", middleware.CORS(controllers.Complaints))
 	mux.HandleFunc("/api/complaints/", middleware.CORS(controllers.ComplaintByID))
 
@@ -93,6 +104,7 @@ func SetupRoutes(mux *http.ServeMux) {
 		}
 	}))
 
+	// Notifications
 	mux.HandleFunc("/api/notifications", middleware.CORS(controllers.GetNotifications))
 	mux.HandleFunc("/api/notifications/read", middleware.CORS(controllers.MarkNotificationsRead))
 	mux.HandleFunc("/api/notifications/clear", middleware.CORS(controllers.ClearNotifications))
