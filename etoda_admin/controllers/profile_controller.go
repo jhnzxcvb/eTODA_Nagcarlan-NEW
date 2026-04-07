@@ -119,6 +119,7 @@ func UpdatePassengerProfile(w http.ResponseWriter, r *http.Request) {
 	middleName := r.FormValue("middle_name")
 	lastName := r.FormValue("last_name")
 	phoneNumber := r.FormValue("phone_number")
+	email := r.FormValue("email")
 	currentPassword := r.FormValue("current_password")
 	newPassword := r.FormValue("new_password")
 	removeAvatar := r.FormValue("remove_avatar")
@@ -163,9 +164,9 @@ func UpdatePassengerProfile(w http.ResponseWriter, r *http.Request) {
 
 	var query string
 	var params []interface{}
-	fields := []string{"first_name=$1", "middle_name=$2", "last_name=$3", "phone_number=$4"}
-	params = []interface{}{firstName, middleName, lastName, phoneNumber}
-	paramIdx := 5
+	fields := []string{"first_name=$1", "middle_name=$2", "last_name=$3", "phone_number=$4", "email=$5"}
+	params = []interface{}{firstName, middleName, lastName, phoneNumber, email}
+	paramIdx := 6
 
 	if newPassword != "" {
 		fields = append(fields, fmt.Sprintf("password_hash=$%d", paramIdx))
@@ -213,14 +214,9 @@ func UpdateDriverProfile(w http.ResponseWriter, r *http.Request) {
 	middleName := r.FormValue("middle_name")
 	lastName := r.FormValue("last_name")
 	phoneNumber := r.FormValue("phone_number")
-	plateNumber := r.FormValue("plate_number")
-	licenseNumber := r.FormValue("license_number")
+	email := r.FormValue("email")
 
 	removeAvatar := r.FormValue("remove_avatar")
-	// Fallback in case the Flutter form sends the database column name instead of the JSON key
-	if licenseNumber == "" {
-		licenseNumber = r.FormValue("license_no")
-	}
 
 	currentPassword := r.FormValue("current_password")
 	newPassword := r.FormValue("new_password")
@@ -265,9 +261,9 @@ func UpdateDriverProfile(w http.ResponseWriter, r *http.Request) {
 
 	var query string
 	var params []interface{}
-	fields := []string{"first_name=$1", "middle_name=$2", "last_name=$3", "contact=$4", "license_no=$5", "plate_number=$6"}
-	params = []interface{}{firstName, middleName, lastName, phoneNumber, licenseNumber, plateNumber}
-	paramIdx := 7
+	fields := []string{"first_name=$1", "middle_name=$2", "last_name=$3", "contact=$4", "email=$5"}
+	params = []interface{}{firstName, middleName, lastName, phoneNumber, email}
+	paramIdx := 6
 
 	if newPassword != "" {
 		fields = append(fields, fmt.Sprintf("password_hash=$%d", paramIdx))
