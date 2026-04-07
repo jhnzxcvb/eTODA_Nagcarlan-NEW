@@ -52,6 +52,23 @@ class ApiService {
     }
   }
 
+  Future<List<dynamic>> fetchTrips(String passengerId) async {
+    final response = await http.get(Uri.parse('$baseUrl/api/trips?passenger_id=$passengerId'));
+
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
+        return List<dynamic>.from(decoded['data'] ?? []);
+      } else if (decoded is List) {
+        return List<dynamic>.from(decoded);
+      } else {
+        return [];
+      }
+    } else {
+      throw Exception('Failed to fetch trip history');
+    }
+  }
+
   Future<Map<String, dynamic>> fetchDriverData() async {
     final response = await http.get(Uri.parse('$baseUrl/api/drivers'));
 

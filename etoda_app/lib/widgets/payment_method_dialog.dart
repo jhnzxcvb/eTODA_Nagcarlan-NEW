@@ -236,13 +236,18 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
 
   Future<bool> _postPayment() async {
     try {
+      final pId = (widget.driverData['passenger_id'] as num?)?.toInt() ?? 0;
+      if (pId == 0) {
+        debugPrint('Payment Warning: passenger_id is 0. Ensure user is logged in.');
+      }
+
       final route = [
         widget.driverData['from_location'],
         widget.driverData['to_location'],
       ].where((e) => e != null && e.toString().trim().isNotEmpty).join(' → ');
 
       final body = {
-        'passenger_id': (widget.driverData['passenger_id'] as num?)?.toInt() ?? 0,
+        'passenger_id': pId,
         'driver_id': (widget.driverData['driver_id'] as num?)?.toInt() ?? 0,
         'passenger_name': widget.driverData['passenger_name'] ?? 'Passenger',
         'driver_name': widget.driverData['full_name'] ?? 'Driver',

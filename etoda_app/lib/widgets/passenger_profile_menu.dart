@@ -16,7 +16,7 @@ class PassengerProfileMenu extends StatelessWidget {
             Navigator.pushNamed(context, '/passenger_edit_profile', arguments: passengerData);
             break;
           case 'trip_history':
-            Navigator.pushNamed(context, '/passenger_trip_history');
+            Navigator.pushNamed(context, '/passenger_trip_history', arguments: passengerData);
             break;
           case 'logout':
             // Navigate to landing screen and remove all previous routes

@@ -104,28 +104,43 @@ func CreatePayment(w http.ResponseWriter, r *http.Request) {
 		now.UnixMilli()%9999,
 	)
 
+	tx, err := DB.Begin()
+	if err != nil {
+		utils.JSONErr(w, err.Error(), 500)
+		return
+	}
+	defer tx.Rollback()
+
 	var id int
-	err := DB.QueryRow(`
+	err = tx.QueryRow(`
 		INSERT INTO payments
 			(ref_code, passenger_id, driver_id, route, amount, method,
 			 passenger_type, trip_type, ewallet_account, contact_number,
 			 status, paid_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
 		RETURNING id`,
-		ref,
-		b.PassengerID,
-		b.DriverID,
-		b.Route,
-		b.Amount,
-		b.Method,
-		b.PassengerType,
-		b.TripType,
-		b.EwalletAccount,
-		b.ContactNumber,
-		b.Status,
+		ref, b.PassengerID, b.DriverID, b.Route, b.Amount, b.Method,
+		b.PassengerType, b.TripType, b.EwalletAccount, b.ContactNumber, b.Status,
 	).Scan(&id)
 
 	if err != nil {
+		utils.JSONErr(w, err.Error(), 500)
+		return
+	}
+
+	// Also insert into trip_logs to ensure it reflects in Trip History
+	_, err = tx.Exec(`
+		INSERT INTO trip_logs 
+			(trip_code, passenger_id, driver_id, route, fare_amount, payment_method, duration_min, started_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+		ref, b.PassengerID, b.DriverID, b.Route, b.Amount, b.Method, 15, // Defaulting to 15 mins
+	)
+	if err != nil {
+		utils.JSONErr(w, "Trip log error: "+err.Error(), 500)
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
 		utils.JSONErr(w, err.Error(), 500)
 		return
 	}
