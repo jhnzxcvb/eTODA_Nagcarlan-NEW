@@ -317,7 +317,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
                               const SizedBox(height: 16),
                               _buildTextField(label: "Contact Number", controller: _contactController, icon: Icons.phone_android_outlined, keyboardType: TextInputType.phone),
                               const SizedBox(height: 16),
-                              _buildTextField(label: "Email Address", controller: _emailController, icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
+                              _buildTextField(label: "Email Address (Optional)", controller: _emailController, icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress, isOptional: true),
                               
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 24.0),
