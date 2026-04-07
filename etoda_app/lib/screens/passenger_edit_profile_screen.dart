@@ -309,6 +309,8 @@ class _PassengerEditProfileScreenState extends State<PassengerEditProfileScreen>
                         _buildTextField(label: "Last Name", controller: _lastNameController, icon: Icons.person_outline),
                         const SizedBox(height: 16),
                         _buildTextField(label: "Contact Number", controller: _contactController, icon: Icons.phone_android_outlined, keyboardType: TextInputType.phone),
+                        const SizedBox(height: 16),
+                        _buildTextField(label: "Email Address (Optional)", controller: _emailController, icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress, isOptional: true),
 
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 24.0),
@@ -457,6 +459,7 @@ class _PassengerEditProfileScreenState extends State<PassengerEditProfileScreen>
       ),
       validator: (v) {
         if (!isOptional && (v == null || v.trim().isEmpty)) return "This field is required";
+        if (keyboardType == TextInputType.emailAddress && v != null && v.isNotEmpty && !v.contains('@')) return "Enter a valid email address";
         return null;
       },
     );
