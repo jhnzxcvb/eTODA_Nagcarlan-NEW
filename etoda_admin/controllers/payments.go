@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"etoda_admin/models"
@@ -145,9 +146,10 @@ func CreatePayment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	performedBy := "Passenger:" + strconv.Itoa(b.PassengerID)
 	utils.LogAudit(DB, "INSERT", "Payment", ref,
 		fmt.Sprintf("₱%.2f via %s | Passenger:%d Driver:%d",
-			b.Amount, b.Method, b.PassengerID, b.DriverID))
+			b.Amount, b.Method, b.PassengerID, b.DriverID), performedBy, "User")
 
 	utils.JSONOK(w, map[string]interface{}{
 		"id":       id,
@@ -169,6 +171,7 @@ func PaymentByID(w http.ResponseWriter, r *http.Request) {
 	var ref string
 	DB.QueryRow("SELECT ref_code FROM payments WHERE id=$1", id).Scan(&ref)
 	DB.Exec("UPDATE payments SET status=$1 WHERE id=$2", b.Status, id)
-	utils.LogAudit(DB, "UPDATE", "Payment", ref, fmt.Sprintf("Status → %s", b.Status))
+	adminID := fmt.Sprintf("%v", r.Context().Value("admin_id"))
+	utils.LogAudit(DB, "UPDATE", "Payment", ref, fmt.Sprintf("Status → %s", b.Status), "Admin:"+adminID, "Admin")
 	utils.JSONOK(w, map[string]string{"message": "Updated"})
 }

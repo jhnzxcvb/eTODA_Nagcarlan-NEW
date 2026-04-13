@@ -114,14 +114,16 @@ func PassengerByID(w http.ResponseWriter, r *http.Request) {
 
 		var name string
 		DB.QueryRow("SELECT (first_name||' '||last_name) FROM users WHERE user_id=$1", id).Scan(&name)
-		utils.LogAudit(DB, "UPDATE", "Passenger", id, fmt.Sprintf("Updated passenger: %s", name))
+		adminID := fmt.Sprintf("%v", r.Context().Value("admin_id"))
+		utils.LogAudit(DB, "UPDATE", "Passenger", id, fmt.Sprintf("Updated passenger: %s", name), "Admin:"+adminID, "Admin")
 		utils.JSONOK(w, map[string]string{"message": "Updated"})
 
 	case "DELETE":
 		var name string
 		DB.QueryRow("SELECT (first_name||' '||last_name) FROM users WHERE user_id=$1", id).Scan(&name)
 		DB.Exec("DELETE FROM users WHERE user_id=$1", id)
-		utils.LogAudit(DB, "DELETE", "Passenger", id, fmt.Sprintf("Deleted passenger: %s", name))
+		adminID := fmt.Sprintf("%v", r.Context().Value("admin_id"))
+		utils.LogAudit(DB, "DELETE", "Passenger", id, fmt.Sprintf("Deleted passenger: %s", name), "Admin:"+adminID, "Admin")
 		utils.JSONOK(w, map[string]string{"message": "Deleted"})
 
 	default:

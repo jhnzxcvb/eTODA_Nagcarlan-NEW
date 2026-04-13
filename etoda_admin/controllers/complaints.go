@@ -5,6 +5,7 @@ import (
 	"etoda_admin/utils"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -83,7 +84,12 @@ func Complaints(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		utils.LogAudit(DB, "CREATE", "Complaint", code, "New report filed")
+		performedBy := "Passenger:" + strconv.Itoa(b.PassengerID)
+		if b.PassengerID == 0 {
+			performedBy = "Passenger:Guest"
+		}
+
+		utils.LogAudit(DB, "CREATE", "Complaint", code, "New report filed", performedBy, "User")
 		// Return 201 Created status for successful resource creation
 		w.WriteHeader(http.StatusCreated)
 		utils.JSONOK(w, map[string]interface{}{"report_code": code, "status": "success"})
@@ -131,7 +137,8 @@ func ComplaintByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		utils.LogAudit(DB, "UPDATE", "Complaint", id, "Status updated to "+b.Status)
+		adminID := fmt.Sprintf("%v", r.Context().Value("admin_id"))
+		utils.LogAudit(DB, "UPDATE", "Complaint", id, "Status updated to "+b.Status, "Admin:"+adminID, "Admin")
 		utils.JSONOK(w, map[string]string{"message": "Update successful"})
 		return
 	}

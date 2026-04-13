@@ -1,11 +1,10 @@
-
 import 'package:etoda_nagcarlan/main.dart';
 import 'package:flutter/material.dart';
 import 'package:etoda_nagcarlan/widgets/info_cards.dart';
 import 'package:etoda_nagcarlan/widgets/branding_footer.dart';
 
-class PassengerTripDetailsScreen extends StatelessWidget {
-  const PassengerTripDetailsScreen({super.key});
+class DriverTripDetailsScreen extends StatelessWidget {
+  const DriverTripDetailsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -17,6 +16,8 @@ class PassengerTripDetailsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Trip Details'),
+        backgroundColor: nagcarlanGreen,
+        foregroundColor: Colors.white,
       ),
       body: Container(
         decoration: nagcarlanGradient,
@@ -33,48 +34,25 @@ class PassengerTripDetailsScreen extends StatelessWidget {
                       items: {
                         "Date": trip['started_at'] ?? 'N/A',
                         "Route": trip['route'] ?? 'N/A',
-                        "Fare Paid": "₱${fare.toStringAsFixed(2)}",
+                        "Fare Collected": "₱${fare.toStringAsFixed(2)}",
                         "Payment Method": trip['payment_method'] ?? 'N/A',
                         "Reference": trip['trip_code'] ?? 'N/A',
+                        "Duration": "${trip['duration_min'] ?? 0} min",
                       },
                     ),
                     const SizedBox(height: 16),
                     InfoSectionCard(
-                      title: "DRIVER DETAILS",
+                      title: "PASSENGER DETAILS",
                       icon: Icons.person_outline,
                       items: {
-                        "Name": trip['driver_name'] ?? 'N/A',
-                        "Plate Number": trip['plate_number'] ?? 'N/A',
-                        "Body Number": trip['body_no'] ?? 'N/A',
-                        "Contact": trip['driver_contact'] ?? '—',
+                        "Name": trip['passenger_name'] ?? 'Guest',
                       },
                     ),
                     const SizedBox(height: 24),
-                    // --- Contact Driver Button ---
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.phone_in_talk_outlined),
-                        onPressed: () {
-                          final contact = trip['driver_contact'] ?? 'N/A';
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text('Calling driver ($contact)...')),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: nagcarlanGreen,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        label: const Text(
-                          "CALL DRIVER",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
+                    const Text(
+                      "This trip record is saved in the official TODA ledger.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.black54, fontSize: 12),
                     ),
                   ],
                 ),

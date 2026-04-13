@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import 'dart:convert';
 
 /// Simple service wrapper for calling the Go backend.
@@ -12,6 +13,31 @@ import 'dart:convert';
 /// ever run the app on a physical device you'll want to redefine the host
 /// address (e.g. your machine's LAN IP).
 class ApiService {
+  // ── Global Session State (For Simulation/One-Emulator Testing) ─────────────
+  static bool isDriverOnline = false;
+  static Map<String, dynamic>? activeTrip;
+  static Timer? _backgroundPollTimer;
+
+  /// Keeps the driver polling the database even if the UI is switched to Passenger
+  static void startDriverPolling(String driverId) {
+    _backgroundPollTimer?.cancel();
+    _backgroundPollTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+      // Only poll if driver is "online" and doesn't already have an active trip
+      if (!isDriverOnline || activeTrip != null) return;
+      
+      try {
+        final api = ApiService();
+        final trip = await api.fetchActiveTrip(driverId);
+        if (trip != null) {
+          activeTrip = trip;
+          debugPrint('🚩 Real-time trip detected in background for Driver ID: $driverId');
+        }
+      } catch (e) {
+        debugPrint('⚠️ Background polling error: $e');
+      }
+    });
+  }
+
   // use a mutable field so tests or higher‑level code can re‑configure
   static String baseUrl = const String.fromEnvironment(
     'BASE_URL',
@@ -22,6 +48,26 @@ class ApiService {
   /// network settings).
   static void setBaseUrl(String url) {
     baseUrl = url;
+  }
+
+  /// Updates the driver's online/offline status in the database.
+  /// This is called when the driver starts/ends their shift.
+  Future<bool> updateDriverStatus(int driverId, bool online) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/api/drivers/$driverId'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'is_active': online,
+          'status': online ? 'Active' : 'Inactive',
+        }),
+      );
+      isDriverOnline = online;
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error updating driver status: $e');
+      return false;
+    }
   }
 
   Future<Map<String, dynamic>> fetchStations() async {
@@ -69,6 +115,33 @@ class ApiService {
     }
   }
 
+  Future<List<dynamic>> fetchDriverTrips(String driverId) async {
+    final response = await http.get(Uri.parse('$baseUrl/api/trips?driver_id=$driverId'));
+
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
+        return List<dynamic>.from(decoded['data'] ?? []);
+      } else if (decoded is List) {
+        return List<dynamic>.from(decoded);
+      } else {
+        return [];
+      }
+    } else {
+      throw Exception('Failed to fetch driver trip history');
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchActiveTrip(String driverId) async {
+    final response = await http.get(Uri.parse('$baseUrl/api/trips/active?driver_id=$driverId'));
+
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      return (decoded != null && decoded is Map<String, dynamic>) ? decoded : null;
+    }
+    return null;
+  }
+
   Future<Map<String, dynamic>> fetchDriverData() async {
     final response = await http.get(Uri.parse('$baseUrl/api/drivers'));
 
@@ -85,7 +158,15 @@ class ApiService {
         await http.get(Uri.parse('$baseUrl/api/drivers?search=$qrCode'));
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
+      final decoded = json.decode(response.body);
+      List<dynamic> data = [];
+      
+      if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
+        data = decoded['data'];
+      } else if (decoded is List) {
+        data = decoded;
+      }
+
       // Return the first match if found, otherwise null
       if (data.isNotEmpty) return data.first;
       return null;
