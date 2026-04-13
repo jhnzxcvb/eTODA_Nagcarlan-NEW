@@ -10,6 +10,7 @@ import Loading from "../ui/Loading";
 import Empty from "../ui/Empty";
 import Modal from "../ui/Modal";
 import QRCode from "qrcode";
+import { buildPageWindow } from '../../lib/pagination';
 
 const COL = {
   franchise: { width: "110px", maxWidth: "110px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" },
@@ -61,6 +62,7 @@ function QRCodes({ notify }) {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginated  = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const pageWindow = buildPageWindow(currentPage, totalPages);
 
   const update = async (id, status, franchise) => {
     setToggling(id);
@@ -295,17 +297,24 @@ function QRCodes({ notify }) {
                     style={{ background: "none", border: "1px solid var(--gray2)", borderRadius: 6, padding: "4px 10px", cursor: currentPage === 1 ? "not-allowed" : "pointer", opacity: currentPage === 1 ? 0.4 : 1 }}>
                     <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize: 11 }} />
                   </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                    <button key={p} onClick={() => setCurrentPage(p)}
-                      style={{ padding: "4px 10px", borderRadius: 6, fontSize: ".8rem", cursor: "pointer",
-                        fontWeight: p === currentPage ? 700 : 400,
-                        border:     p === currentPage ? "1.5px solid var(--green)" : "1px solid var(--gray2)",
-                        background: p === currentPage ? "var(--green)" : "none",
-                        color:      p === currentPage ? "#fff" : "var(--gray)",
-                      }}>
-                      {p}
-                    </button>
-                  ))}
+                  {pageWindow.map((p, idx) =>
+                    p === '…' ? (
+                      <span key={`ellipsis-${idx}`} style={{ fontSize: '.8rem', color: 'var(--gray)', padding: '0 4px' }}>…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setCurrentPage(p)}
+                        style={{
+                          padding: "4px 10px", borderRadius: 6, fontSize: ".8rem",
+                          fontWeight: p === currentPage ? 700 : 400,
+                          border: p === currentPage ? "1.5px solid var(--green)" : "1.5px solid var(--gray2)",
+                          background: p === currentPage ? "var(--green)" : "none",
+                          color: p === currentPage ? "#fff" : "var(--gray)",
+                          cursor: "pointer",
+                        }}
+                      >{p}</button>
+                    )
+                  )}
                   <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
                     style={{ background: "none", border: "1px solid var(--gray2)", borderRadius: 6, padding: "4px 10px", cursor: currentPage === totalPages ? "not-allowed" : "pointer", opacity: currentPage === totalPages ? 0.4 : 1 }}>
                     <FontAwesomeIcon icon={faChevronRight} style={{ fontSize: 11 }} />

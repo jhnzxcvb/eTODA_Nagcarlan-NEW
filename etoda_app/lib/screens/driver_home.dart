@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:etoda_nagcarlan/main.dart';
+import 'package:etoda_nagcarlan/services/api_service.dart';
 import 'package:etoda_nagcarlan/widgets/branding_footer.dart';
 
 class DriverHomeScreen extends StatefulWidget {
@@ -15,53 +16,63 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
   bool _isTripActive = false;
   bool _isLoadingShift = false;
   bool _isInitialized = false;
+  Timer? _uiRefreshTimer;
+  final ApiService _apiService = ApiService();
+
+  @override
+  void dispose() {
+    _uiRefreshTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     
-    // Initialize state from arguments (e.g., when returning from a trip)
     if (!_isInitialized) {
-      final Map<String, dynamic>? args =
-          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-      
-      if (args != null && args['is_shift_active'] == true) {
-        setState(() {
-          _isShiftActive = true;
-        });
-      }
+      // Sync local UI state with Global Session
+      _isShiftActive = ApiService.isDriverOnline;
+      _isTripActive = ApiService.activeTrip != null;
+
+      // Start a small UI timer to watch for changes caught by the background poller
+      _uiRefreshTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+        if (mounted && ApiService.activeTrip != null && !_isTripActive) {
+          setState(() {
+            _isTripActive = true;
+          });
+        }
+      });
+
       _isInitialized = true;
     }
   }
 
   void _toggleShift() {
-    if (!_isShiftActive) {
-      // STARTING SHIFT
-      setState(() {
-        _isLoadingShift = true;
-      });
+    final Map<String, dynamic>? driverData =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final String driverId = (driverData?['id'] ?? driverData?['driver_id'] ?? '').toString();
 
-      // Simulation: Load for 2 seconds then start shift and show trip
+    if (!_isShiftActive) {
+      setState(() => _isLoadingShift = true);
       Timer(const Duration(seconds: 2), () {
         if (mounted) {
           setState(() {
             _isLoadingShift = false;
             _isShiftActive = true;
-            _isTripActive = true; // Auto-show trip for simulation
+            ApiService.isDriverOnline = true;
           });
+          ApiService.startDriverPolling(driverId);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Going Online... A passenger is waiting for you."),
-              backgroundColor: Colors.green,
-            ),
+            const SnackBar(content: Text("You are now ONLINE."), backgroundColor: Colors.green),
           );
         }
       });
     } else {
-      // ENDING SHIFT
       setState(() {
         _isShiftActive = false;
         _isTripActive = false;
+        ApiService.isDriverOnline = false;
+        ApiService.activeTrip = null;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -75,6 +86,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
   void _endTrip() {
     setState(() {
       _isTripActive = false;
+      ApiService.activeTrip = null;
     });
     
     final Map<String, dynamic>? driverData =
@@ -100,17 +112,15 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDetailRow(Icons.person, "Passenger", "Maria Santos"),
+            _buildDetailRow(Icons.person, "Passenger", ApiService.activeTrip?['passenger_name'] ?? 'Guest'),
             const SizedBox(height: 12),
-            _buildDetailRow(Icons.location_on, "From", "Poblacion"),
+            _buildDetailRow(Icons.route, "Route", ApiService.activeTrip?['route'] ?? '—'),
             const SizedBox(height: 12),
-            _buildDetailRow(Icons.flag, "To", "Talangan"),
-            const SizedBox(height: 12),
-            _buildDetailRow(Icons.category, "Passenger Type", "Normal"),
-            const SizedBox(height: 12),
-            _buildDetailRow(Icons.alt_route, "Trip Type", "Regular"),
+            _buildDetailRow(Icons.confirmation_number_outlined, "Ref Code", ApiService.activeTrip?['trip_code'] ?? '—'),
             const Divider(height: 32),
-            _buildDetailRow(Icons.payments, "Fare Total", "₱30.00", isBold: true, valueColor: nagcarlanGreen),
+            _buildDetailRow(Icons.payments, "Fare Total", 
+                "₱${(ApiService.activeTrip?['fare_amount'] as num?)?.toStringAsFixed(2) ?? '0.00'}", 
+                isBold: true, valueColor: nagcarlanGreen),
           ],
         ),
         actions: [
@@ -282,7 +292,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                   textColor: nagcarlanGreen,
                   onTap: () {
                     // History is now accessible even if offline
-                    Navigator.pushNamed(context, '/driver_trip_history');
+                    Navigator.pushNamed(context, '/driver_trip_history', arguments: driverData);
                   },
                 ),
                 const Spacer(),
@@ -327,12 +337,12 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
               children: [
                 const Icon(Icons.directions_car, color: Colors.red, size: 32),
                 const SizedBox(width: 15),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("TRIP IN PROGRESS", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red)),
-                      Text("Passenger: Maria Santos", style: TextStyle(fontSize: 14, color: Colors.black87)),
+                      const Text("TRIP IN PROGRESS", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red)),
+                      Text("Passenger: ${ApiService.activeTrip?['passenger_name'] ?? 'Guest'}", style: const TextStyle(fontSize: 14, color: Colors.black87)),
                     ],
                   ),
                 ),

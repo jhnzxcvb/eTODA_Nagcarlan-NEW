@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -23,11 +24,31 @@ func JSONOK(w http.ResponseWriter, data interface{}) {
 	json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "data": data})
 }
 
+// JSONOKWithTotal writes a success JSON response with a total count (for paginated endpoints).
+func JSONOKWithTotal(w http.ResponseWriter, data interface{}, total int) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "data": data, "total": total})
+}
+
 // JSONErr writes an error JSON response with a status code.
 func JSONErr(w http.ResponseWriter, msg string, code int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": msg})
+}
+
+// QueryInt reads an integer query parameter by key.
+// Returns fallback if the key is missing, empty, or not a valid positive integer.
+func QueryInt(r *http.Request, key string, fallback int) int {
+	v := r.URL.Query().Get(key)
+	if v == "" {
+		return fallback
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n < 1 {
+		return fallback
+	}
+	return n
 }
 
 // Decode parses JSON body into v.
@@ -51,9 +72,9 @@ func RandHex() string {
 }
 
 // LogAudit inserts an audit record using the provided database handle.
-func LogAudit(db *sql.DB, action, entity, entityID, detail string) {
+func LogAudit(db *sql.DB, action, entity, entityID, detail, performedBy, actorType string) {
 	db.Exec(
-		`INSERT INTO audit_logs (action, entity, entity_id, detail, performed_by, created_at) VALUES ($1,$2,$3,$4,'Admin',NOW())`,
-		action, entity, entityID, detail,
+		`INSERT INTO audit_logs (action, entity, entity_id, detail, performed_by, actor_type, created_at) VALUES ($1,$2,$3,$4,$5,$6,NOW())`,
+		action, entity, entityID, detail, performedBy, actorType,
 	)
 }

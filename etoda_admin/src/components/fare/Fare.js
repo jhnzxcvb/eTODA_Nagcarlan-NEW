@@ -7,6 +7,7 @@ import {
   faRotate, faPlus, faChevronLeft, faChevronRight,
 } from '@fortawesome/free-solid-svg-icons';
 import { api } from '../../lib/api';
+import { buildPageWindow } from '../../lib/pagination';
 import Loading from '../ui/Loading';
 import Empty from '../ui/Empty';
 import Modal from '../ui/Modal';
@@ -194,13 +195,10 @@ function Fare({ notify }) {
   const parseCSV = text => {
     const lines = text.split('\n').map(l=>l.trim());
     if (lines.length < 5) return { error: 'File does not have enough rows. Please ensure it follows the new format.' };
-    
     const assocCols = lines[0].split(',').map(c=>c.trim().replace(/^"|"$/g,''));
     const association = assocCols[1] || '';
-
     const routeCol = lines[1].split(',')[0].trim().replace(/^"|"$/g,'').toLowerCase();
     if (routeCol !== 'route' && routeCol !== 'short line') return { error: 'Invalid format: Second row must start with "Route" or "Short Line".' };
-
     const rows = [];
     if (routeCol === 'route') {
       for (let i = 4; i < lines.length; i++) {
@@ -224,9 +222,7 @@ function Fare({ notify }) {
           const destination = headers[j];
           if (!destination) continue;
           const base = parseFloat(cols[j]);
-          if (!isNaN(base) && base > 0) {
-            rows.push({ origin, destination, base_fare: base, association });
-          }
+          if (!isNaN(base) && base > 0) rows.push({ origin, destination, base_fare: base, association });
         }
       }
     }
@@ -240,13 +236,10 @@ function Fare({ notify }) {
       const wb = XLSX.read(buffer, { type: 'array' });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-      if (raw.length < 5) return { error: 'Spreadsheet does not have enough rows. Please ensure it follows the new format.' };
-      
+      if (raw.length < 5) return { error: 'Spreadsheet does not have enough rows.' };
       const association = raw[0]?.[1] ? String(raw[0][1]).trim() : '';
-
       const routeCol = raw[1]?.[0] ? String(raw[1][0]).trim().toLowerCase() : '';
       if (routeCol !== 'route' && routeCol !== 'short line') return { error: 'Invalid format: Second row must start with "Route" or "Short Line".' };
-
       const rows = [];
       if (routeCol === 'route') {
         for (let i = 4; i < raw.length; i++) {
@@ -267,9 +260,7 @@ function Fare({ notify }) {
             const destination = String(headers[j] || '').trim();
             if (!destination) continue;
             const base = parseFloat(raw[i][j]);
-            if (!isNaN(base) && base > 0) {
-              rows.push({ origin, destination, base_fare: base, association });
-            }
+            if (!isNaN(base) && base > 0) rows.push({ origin, destination, base_fare: base, association });
           }
         }
       }
@@ -343,6 +334,9 @@ function Fare({ notify }) {
     if (allPreviewChecked) setExcludedRows(new Set(fileRows.map((_, i) => i)));
     else setExcludedRows(new Set());
   };
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const pageWindow = buildPageWindow(currentPage, totalPages);
 
   return (
     <div>
@@ -472,35 +466,47 @@ function Fare({ notify }) {
                 </tbody>
               </table>
             </div>
-            {filtered.length > pageSize && (() => {
-              const totalPages = Math.ceil(filtered.length / pageSize);
-              return (
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 18px', borderTop:'1px solid var(--gray2)' }}>
-                  <span style={{ fontSize:'.8rem', color:'var(--gray)' }}>
-                    Showing {Math.min((currentPage-1)*pageSize+1, filtered.length)}–{Math.min(currentPage*pageSize, filtered.length)} of {filtered.length} routes
-                  </span>
-                  <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-                    <button onClick={() => setCurrentPage(p => Math.max(1, p-1))} disabled={currentPage===1}
-                      style={{ background:'none', border:'1px solid var(--gray2)', borderRadius:6, padding:'4px 10px', cursor: currentPage===1 ? 'not-allowed' : 'pointer', opacity: currentPage===1 ? 0.4 : 1 }}>
-                      <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize:11 }} />
-                    </button>
-                    {Array.from({ length: totalPages }, (_, i) => i+1).map(p => (
+
+            {/* ── Windowed Pagination ── */}
+            {totalPages > 1 && (
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 18px', borderTop:'1px solid var(--gray2)' }}>
+                <span style={{ fontSize:'.8rem', color:'var(--gray)' }}>
+                  Showing {Math.min((currentPage-1)*pageSize+1, filtered.length)}–{Math.min(currentPage*pageSize, filtered.length)} of {filtered.length} routes
+                </span>
+                <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p-1))}
+                    disabled={currentPage === 1}
+                    style={{ background:'none', border:'1px solid var(--gray2)', borderRadius:6, padding:'4px 10px', cursor: currentPage===1 ? 'not-allowed' : 'pointer', opacity: currentPage===1 ? 0.4 : 1 }}
+                  >
+                    <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize:11 }} />
+                  </button>
+
+                  {pageWindow.map((p, idx) =>
+                    p === '…' ? (
+                      <span key={`ellipsis-${idx}`} style={{ fontSize:'.8rem', color:'var(--gray)', padding:'0 4px' }}>…</span>
+                    ) : (
                       <button key={p} onClick={() => setCurrentPage(p)} style={{
                         padding:'4px 10px', borderRadius:6, fontSize:'.8rem',
-                        fontWeight: p===currentPage ? 700 : 400,
-                        border: p===currentPage ? '1.5px solid var(--green)' : '1px solid var(--gray2)',
-                        background: p===currentPage ? 'var(--green)' : 'none',
-                        color: p===currentPage ? '#fff' : 'var(--gray)', cursor:'pointer',
+                        fontWeight: p === currentPage ? 700 : 400,
+                        border: p === currentPage ? '1.5px solid var(--green)' : '1px solid var(--gray2)',
+                        background: p === currentPage ? 'var(--green)' : 'none',
+                        color: p === currentPage ? '#fff' : 'var(--gray)',
+                        cursor:'pointer',
                       }}>{p}</button>
-                    ))}
-                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p+1))} disabled={currentPage===totalPages}
-                      style={{ background:'none', border:'1px solid var(--gray2)', borderRadius:6, padding:'4px 10px', cursor: currentPage===totalPages ? 'not-allowed' : 'pointer', opacity: currentPage===totalPages ? 0.4 : 1 }}>
-                      <FontAwesomeIcon icon={faChevronRight} style={{ fontSize:11 }} />
-                    </button>
-                  </div>
+                    )
+                  )}
+
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p+1))}
+                    disabled={currentPage === totalPages}
+                    style={{ background:'none', border:'1px solid var(--gray2)', borderRadius:6, padding:'4px 10px', cursor: currentPage===totalPages ? 'not-allowed' : 'pointer', opacity: currentPage===totalPages ? 0.4 : 1 }}
+                  >
+                    <FontAwesomeIcon icon={faChevronRight} style={{ fontSize:11 }} />
+                  </button>
                 </div>
-              );
-            })()}
+              </div>
+            )}
           </>
         )}
       </div>
@@ -509,13 +515,11 @@ function Fare({ notify }) {
       {deleteOpen && deleteTarget && (
         <Modal title="Delete Route" onClose={() => { setDeleteOpen(false); setDeleteTarget(null); }}>
           <div style={{ background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:10, padding:'14px 16px', marginBottom:16, fontSize:'.88rem', color:'#7f1d1d', lineHeight:1.6 }}>
-            Are you sure you want to delete <strong>"{deleteTarget.label}"</strong>?<br/>
-            This cannot be undone.
+            Are you sure you want to delete <strong>"{deleteTarget.label}"</strong>?<br/>This cannot be undone.
           </div>
           <div className="modal-footer">
             <button className="btn btn-ghost" onClick={() => { setDeleteOpen(false); setDeleteTarget(null); }}>Cancel</button>
-            <button onClick={confirmDelete}
-              style={{ background:'#dc2626', color:'#fff', border:'none', borderRadius:8, padding:'8px 18px', fontWeight:700, cursor:'pointer' }}>
+            <button onClick={confirmDelete} style={{ background:'#dc2626', color:'#fff', border:'none', borderRadius:8, padding:'8px 18px', fontWeight:700, cursor:'pointer' }}>
               Yes, Delete Route
             </button>
           </div>
@@ -543,8 +547,7 @@ function Fare({ notify }) {
           </div>
           <div className="modal-footer">
             <button className="btn btn-ghost" onClick={() => setBulkDelOpen(false)}>Cancel</button>
-            <button onClick={doBulkDelete} disabled={bulkDeleting}
-              style={{ background:'#dc2626', color:'#fff', border:'none', borderRadius:8, padding:'8px 18px', fontWeight:700, cursor:'pointer' }}>
+            <button onClick={doBulkDelete} disabled={bulkDeleting} style={{ background:'#dc2626', color:'#fff', border:'none', borderRadius:8, padding:'8px 18px', fontWeight:700, cursor:'pointer' }}>
               {bulkDeleting ? 'Deleting...' : `Yes, Delete ${selected.size} Routes`}
             </button>
           </div>
@@ -571,7 +574,7 @@ function Fare({ notify }) {
           </div>
           {base > 0 && (
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:16}}>
-              {[['Discounted',Math.max(0, base-5).toFixed(2),'var(--green)'],['Night',(base*1.15).toFixed(2),'var(--blue)'],['Special',(Math.max(0, base-5)*2).toFixed(2),'var(--ora)']].map(([l,v,c])=>(
+              {[['Discounted',Math.max(0,base-5).toFixed(2),'var(--green)'],['Night',(base*1.15).toFixed(2),'var(--blue)'],['Special',(Math.max(0,base-5)*2).toFixed(2),'var(--ora)']].map(([l,v,c])=>(
                 <div key={l} style={{background:'var(--bg)',borderRadius:7,padding:'10px 12px',textAlign:'center'}}>
                   <div style={{fontSize:'.65rem',color:'var(--gray)',textTransform:'uppercase',marginBottom:3}}>{l}</div>
                   <div style={{fontWeight:700,color:c,fontSize:'1.1rem'}}>₱{v}</div>
@@ -606,7 +609,7 @@ function Fare({ notify }) {
           </div>
           {editBase > 0 && (
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:16}}>
-              {[['Discounted',Math.max(0, editBase-5).toFixed(2),'var(--green)'],['Night',(editBase*1.15).toFixed(2),'var(--blue)'],['Special',(Math.max(0, editBase-5)*2).toFixed(2),'var(--ora)']].map(([l,v,c])=>(
+              {[['Discounted',Math.max(0,editBase-5).toFixed(2),'var(--green)'],['Night',(editBase*1.15).toFixed(2),'var(--blue)'],['Special',(Math.max(0,editBase-5)*2).toFixed(2),'var(--ora)']].map(([l,v,c])=>(
                 <div key={l} style={{background:'var(--bg)',borderRadius:7,padding:'10px 12px',textAlign:'center'}}>
                   <div style={{fontSize:'.65rem',color:'var(--gray)',textTransform:'uppercase',marginBottom:3}}>{l}</div>
                   <div style={{fontWeight:700,color:c,fontSize:'1.1rem'}}>₱{v}</div>
@@ -626,8 +629,8 @@ function Fare({ notify }) {
         <Modal title="Import Tariff" onClose={() => { setUploadOpen(false); setFileRows([]); setFileError(''); setFileName(''); setExcludedRows(new Set()); }}>
           <div className="box-blue">
             Upload a <strong>.csv</strong> or <strong>.xlsx / .xls</strong> file.<br/>
-            Format 1 (Route): Row 2 = "Route", Row 4 = Headers (origin, destination, base_fare), Row 5+ = Data.<br/>
-            Format 2 (Short Line): Row 2 = "Short Line", Row 4 = Destinations, Row 5+ = Origin (Col A) & matrix fares.<br/>
+            Format 1 (Route): Row 2 = "Route", Row 4 = Headers, Row 5+ = Data.<br/>
+            Format 2 (Short Line): Row 2 = "Short Line", Row 4 = Destinations, Row 5+ = Origin & matrix fares.<br/>
             Existing routes will be <strong>updated</strong>. New routes will be <strong>added</strong>.
           </div>
           <div className="field">
@@ -642,7 +645,6 @@ function Fare({ notify }) {
               <FontAwesomeIcon icon={faTriangleExclamation} style={{ fontSize:13 }} /> {fileError}
             </div>
           )}
-
           {fileRows.length > 0 && (
             <>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
@@ -681,11 +683,11 @@ function Fare({ notify }) {
                             />
                           </td>
                           <td>{row.origin}</td><td>{row.destination}</td>
-                          <td><span style={{ fontSize: '.75rem', color: 'var(--gray)' }}>{row.association || '—'}</span></td>
+                          <td><span style={{ fontSize:'.75rem', color:'var(--gray)' }}>{row.association||'—'}</span></td>
                           <td>₱{row.base_fare.toFixed(2)}</td>
-                          <td>₱{Math.max(0, row.base_fare-5).toFixed(2)}</td>
+                          <td>₱{Math.max(0,row.base_fare-5).toFixed(2)}</td>
                           <td>₱{(row.base_fare*1.15).toFixed(2)}</td>
-                          <td>₱{(Math.max(0, row.base_fare-5)*2).toFixed(2)}</td>
+                          <td>₱{(Math.max(0,row.base_fare-5)*2).toFixed(2)}</td>
                         </tr>
                       );
                     })}

@@ -15,6 +15,8 @@ import 'package:etoda_nagcarlan/screens/fare_matrix_screen.dart';
 import 'package:etoda_nagcarlan/screens/forgot_password_screen.dart';
 import 'package:etoda_nagcarlan/screens/trip_started_screen.dart';
 import 'package:etoda_nagcarlan/screens/passenger_trip_history_screen.dart';
+import 'package:etoda_nagcarlan/screens/passenger_trip_details_screen.dart';
+import 'package:etoda_nagcarlan/screens/driver_trip_details_screen.dart';
 
 void main() {
   runApp(const EtodaApp());
@@ -70,11 +72,17 @@ class EtodaApp extends StatelessWidget {
         '/driver_home': (context) => const DriverHomeScreen(),
         '/driver_profile': (context) => const DriverProfileScreen(),
         '/driver_edit_profile': (context) => const DriverEditProfileScreen(),
-        '/driver_trip_history': (context) => const DriverTripHistoryScreen(),
+        '/driver_trip_history': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+          final String driverId = (args?['id'] ?? args?['driver_id'] ?? '').toString();
+          return DriverTripHistoryScreen(driverId: driverId);
+        },
         '/scan_qr': (context) => const ScanQRScreen(),
         '/driver_profile_scanned': (context) => const ScannedDriverProfileScreen(),
         '/fare_matrix': (context) => const FareMatrixScreen(),
         '/passenger_trip_history': (context) => const PassengerTripHistoryScreen(),
+        '/passenger_trip_details': (context) => const PassengerTripDetailsScreen(),
+        '/driver_trip_details': (context) => const DriverTripDetailsScreen(),
       },
     );
   }

@@ -7,6 +7,7 @@ import {
   faNotesMedical, faChevronLeft, faChevronRight,
 } from '@fortawesome/free-solid-svg-icons';
 import { api } from '../../lib/api';
+import { buildPageWindow } from '../../lib/pagination';
 import Loading from '../ui/Loading';
 import Empty from '../ui/Empty';
 import Modal from '../ui/Modal';
@@ -69,6 +70,7 @@ function Complaints({ notify }) {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginated  = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const pageWindow = buildPageWindow(currentPage, totalPages);
 
   const openView = (c) => { 
     setViewItem(c); 
@@ -207,6 +209,23 @@ function Complaints({ notify }) {
               {s === 'All' ? `All (${data.length})` : `${s} (${data.filter(c => c.status === s).length})`}
             </button>
           ))}
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '.78rem', color: 'var(--gray)' }}>Show</span>
+            {[10, 25, 50].map(n => (
+              <button
+                key={n}
+                onClick={() => { setPageSize(n); setCurrentPage(1); }}
+                style={{
+                  padding: '3px 10px', borderRadius: 6,
+                  border: pageSize === n ? '1.5px solid var(--green)' : '1.5px solid var(--gray2)',
+                  background: pageSize === n ? 'var(--green)' : 'transparent',
+                  color: pageSize === n ? '#fff' : 'var(--gray)',
+                  fontSize: '.78rem', fontWeight: pageSize === n ? 700 : 400,
+                  cursor: 'pointer', transition: 'all 0.15s',
+                }}
+              >{n}</button>
+            ))}
+          </div>
         </div>
 
         {loading ? <Loading /> : data.length === 0 ? <Empty /> : (
@@ -246,16 +265,59 @@ function Complaints({ notify }) {
               </table>
             </div>
 
-            {/* Pagination controls ... same as original */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', borderTop: '1px solid var(--gray2)' }}>
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', borderTop: '1px solid var(--gray2)' }}>
                 <span style={{ fontSize: '.8rem', color: 'var(--gray)' }}>
-                    Showing {paginated.length} of {filtered.length} complaints
+                  Showing {Math.min((currentPage - 1) * pageSize + 1, filtered.length)}–{Math.min(currentPage * pageSize, filtered.length)} of {filtered.length} complaints
                 </span>
-                <div style={{ display: 'flex', gap: 6 }}>
-                    <button onClick={() => setCurrentPage(p => Math.max(1, p-1))} className="btn btn-ghost btn-sm" disabled={currentPage === 1}>Prev</button>
-                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p+1))} className="btn btn-ghost btn-sm" disabled={currentPage === totalPages}>Next</button>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    style={{
+                      background: 'none', border: '1px solid var(--gray2)',
+                      borderRadius: 6, padding: '4px 10px',
+                      cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                      opacity: currentPage === 1 ? 0.4 : 1,
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize: 11 }} />
+                  </button>
+
+                  {pageWindow.map((p, idx) =>
+                    p === '…' ? (
+                      <span key={`ellipsis-${idx}`} style={{ fontSize: '.8rem', color: 'var(--gray)', padding: '0 4px' }}>…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setCurrentPage(p)}
+                        style={{
+                          padding: '4px 10px', borderRadius: 6, fontSize: '.8rem',
+                          fontWeight: p === currentPage ? 700 : 400,
+                          border: p === currentPage ? '1.5px solid var(--green)' : '1px solid var(--gray2)',
+                          background: p === currentPage ? 'var(--green)' : 'none',
+                          color: p === currentPage ? '#fff' : 'var(--gray)',
+                          cursor: 'pointer',
+                        }}
+                      >{p}</button>
+                    )
+                  )}
+
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    style={{
+                      background: 'none', border: '1px solid var(--gray2)',
+                      borderRadius: 6, padding: '4px 10px',
+                      cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                      opacity: currentPage === totalPages ? 0.4 : 1,
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faChevronRight} style={{ fontSize: 11 }} />
+                  </button>
                 </div>
-            </div>
+              </div>
+            )}
           </>
         )}
       </div>

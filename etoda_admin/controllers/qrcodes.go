@@ -49,10 +49,12 @@ func QRCodeByID(w http.ResponseWriter, r *http.Request) {
 	if b.Status == "Active" {
 		newQR := fmt.Sprintf("QR-AES-%s-%s", strings.ReplaceAll(franchise, "-", ""), utils.RandHex())
 		DB.Exec("UPDATE qr_codes SET status=$1,qr_id=$2 WHERE id=$3", b.Status, newQR, id)
-		utils.LogAudit(DB, "RESTORE", "QRCode", franchise, "QR regenerated with new AES key")
+		adminID := fmt.Sprintf("%v", r.Context().Value("admin_id"))
+		utils.LogAudit(DB, "RESTORE", "QRCode", franchise, "QR regenerated with new AES key", "Admin:"+adminID, "Admin")
 	} else {
 		DB.Exec("UPDATE qr_codes SET status=$1 WHERE id=$2", b.Status, id)
-		utils.LogAudit(DB, "REVOKE", "QRCode", franchise, fmt.Sprintf("QR status → %s", b.Status))
+		adminID := fmt.Sprintf("%v", r.Context().Value("admin_id"))
+		utils.LogAudit(DB, "REVOKE", "QRCode", franchise, fmt.Sprintf("QR status → %s", b.Status), "Admin:"+adminID, "Admin")
 	}
 	utils.JSONOK(w, map[string]string{"message": "Updated"})
 }

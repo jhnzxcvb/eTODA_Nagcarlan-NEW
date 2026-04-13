@@ -42,6 +42,9 @@ func SetupRoutes(mux *http.ServeMux) {
 
 	// --- 4. ADMIN & DASHBOARD ENDPOINTS (Web App) ---
 	mux.HandleFunc("/api/dashboard", middleware.CORS(controllers.Dashboard))
+
+	// ── AUDIT: /stats must be registered BEFORE /audit to avoid prefix conflict ──
+	mux.HandleFunc("/api/audit/stats", middleware.CORS(controllers.AuditStats))
 	mux.HandleFunc("/api/audit", middleware.CORS(controllers.AuditTrail))
 
 	// Drivers Management

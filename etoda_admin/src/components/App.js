@@ -22,7 +22,6 @@ import { Toasts, useToast } from './ui/Toast';
 
 const BASE = 'http://localhost:8080';
 
-// Map notification type → icon/color config
 const NOTIF_STYLE = {
   complaint: { icon: faExclamationTriangle, color: '#dc2626', bg: '#fee2e2' },
   driver:    { icon: faUserPlus,            color: '#2d5a1b', bg: '#e8f5e9' },
@@ -46,6 +45,15 @@ export default function App() {
   const [notifications, setNotifications] = useState([]);
   const dropdownRef = useRef();
   const notifRef    = useRef();
+
+  // ── Audit navigation: view name + prefill search ID ──
+  const [searchParam, setSearchParam] = useState('');
+
+  // Called by Audit.js: navigate(viewName, entityId)
+  const auditNavigate = (view, id = '') => {
+    setSearchParam(id);
+    setPanel(view);
+  };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
@@ -138,6 +146,12 @@ export default function App() {
   ];
   const TITLE = Object.fromEntries(NAV.map(([id,, l]) => [id, l]));
 
+  // Clear searchParam when user manually clicks a sidebar nav item
+  const handleNavClick = (id) => {
+    setSearchParam('');
+    setPanel(id);
+  };
+
   return (
     <div className="app">
       <aside className="sb">
@@ -151,7 +165,7 @@ export default function App() {
             <button
               key={id}
               className={`sb-btn${panel === id ? ' active' : ''}`}
-              onClick={() => setPanel(id)}
+              onClick={() => handleNavClick(id)}
             >
               <FontAwesomeIcon icon={icon} className="sb-ico" style={{ color: 'var(--gold)' }} />
               {lbl}
@@ -239,8 +253,6 @@ export default function App() {
                     @keyframes fadeSlideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
                     @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
                   `}</style>
-
-                  {/* Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #f0f0f0' }}>
                     <div style={{ fontWeight: '800', fontSize: '0.95rem', color: '#1a1a1a' }}>
                       🔔 Notifications
@@ -256,8 +268,6 @@ export default function App() {
                       </button>
                     )}
                   </div>
-
-                  {/* List */}
                   <div style={{ maxHeight: 360, overflowY: 'auto' }}>
                     {notifications.length === 0 ? (
                       <div style={{ padding: '32px 16px', textAlign: 'center', color: '#aaa', fontSize: '0.85rem' }}>
@@ -291,8 +301,6 @@ export default function App() {
                       );
                     })}
                   </div>
-
-                  {/* Footer */}
                   {notifications.length > 0 && (
                     <div onClick={clearAll}
                       style={{ padding: '12px 16px', textAlign: 'center', fontSize: '0.78rem', color: '#dc2626', fontWeight: '700', cursor: 'pointer', borderTop: '1px solid #f0f0f0', transition: 'background 0.15s' }}
@@ -310,16 +318,16 @@ export default function App() {
         </header>
 
         <div className="content">
-          {panel === 'dashboard'  && <Dashboard  notify={notify} setPanel={setPanel} />}
-          {panel === 'drivers'    && <Drivers    notify={notify} setPanel={setPanel} />}
-          {panel === 'passengers' && <Passengers notify={notify} setPanel={setPanel} />}
-          {panel === 'fare'       && <Fare       notify={notify} setPanel={setPanel} />}
+          {panel === 'dashboard'  && <Dashboard    notify={notify} setPanel={setPanel} />}
+          {panel === 'drivers'    && <Drivers      notify={notify} setPanel={setPanel} initialSearch={searchParam} />}
+          {panel === 'passengers' && <Passengers   notify={notify} setPanel={setPanel} initialSearch={searchParam} />}
+          {panel === 'fare'       && <Fare         notify={notify} setPanel={setPanel} initialSearch={searchParam} />}
           {panel === 'stations'   && <TodaStations notify={notify} setPanel={setPanel} />}
-          {panel === 'payments'   && <Payments   notify={notify} setPanel={setPanel} />}
-          {panel === 'qrcodes'    && <QRCodes    notify={notify} setPanel={setPanel} />}
-          {panel === 'complaints' && <Complaints notify={notify} setPanel={setPanel} />}
-          {panel === 'trips'      && <Trips      notify={notify} setPanel={setPanel} />}
-          {panel === 'audit'      && <Audit      notify={notify} setPanel={setPanel} />}
+          {panel === 'payments'   && <Payments     notify={notify} setPanel={setPanel} initialSearch={searchParam} />}
+          {panel === 'qrcodes'    && <QRCodes      notify={notify} setPanel={setPanel} initialSearch={searchParam} />}
+          {panel === 'complaints' && <Complaints   notify={notify} setPanel={setPanel} initialSearch={searchParam} />}
+          {panel === 'trips'      && <Trips        notify={notify} setPanel={setPanel} />}
+          {panel === 'audit'      && <Audit        notify={notify} navigate={auditNavigate} />}
         </div>
       </div>
       <Toasts toasts={toasts} dismiss={dismiss} />

@@ -128,7 +128,8 @@ func Drivers(w http.ResponseWriter, r *http.Request) {
 		}
 
 		fullName := strings.TrimSpace(b.FirstName + " " + b.MiddleName + " " + b.LastName)
-		utils.LogAudit(DB, "ENROLL", "Driver", code, fmt.Sprintf("Enrolled %s (%s)", fullName, b.Franchise))
+		adminID := fmt.Sprintf("%v", r.Context().Value("admin_id"))
+		utils.LogAudit(DB, "ENROLL", "Driver", code, fmt.Sprintf("Enrolled %s (%s)", fullName, b.Franchise), "Admin:"+adminID, "Admin")
 		InsertNotification("New Driver Registered", fmt.Sprintf("%s has been enrolled.", fullName), "driver")
 
 		var d models.AdminDriver
@@ -181,14 +182,16 @@ func DriverByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		utils.LogAudit(DB, "UPDATE", "Driver", id, "Updated driver details")
+		adminID := fmt.Sprintf("%v", r.Context().Value("admin_id"))
+		utils.LogAudit(DB, "UPDATE", "Driver", id, "Updated driver details", "Admin:"+adminID, "Admin")
 		utils.JSONOK(w, map[string]string{"message": "Updated"})
 
 	case "DELETE":
 		var fName, lName, code string
 		DB.QueryRow("SELECT first_name, last_name, driver_code FROM drivers WHERE id=$1", id).Scan(&fName, &lName, &code)
 		DB.Exec("DELETE FROM drivers WHERE id=$1", id)
-		utils.LogAudit(DB, "DELETE", "Driver", code, fmt.Sprintf("Removed driver %s %s", fName, lName))
+		adminID := fmt.Sprintf("%v", r.Context().Value("admin_id"))
+		utils.LogAudit(DB, "DELETE", "Driver", code, fmt.Sprintf("Removed driver %s %s", fName, lName), "Admin:"+adminID, "Admin")
 		utils.JSONOK(w, map[string]string{"message": "Driver removed"})
 
 	default:

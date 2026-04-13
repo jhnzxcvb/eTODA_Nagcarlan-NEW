@@ -11,6 +11,7 @@ import Loading from '../ui/Loading';
 import Empty from '../ui/Empty';
 import Modal from '../ui/Modal';
 import DG from '../ui/DetailGrid';
+import { buildPageWindow } from '../../lib/pagination';
 
 const formatDate = (str) => {
   if (!str) return '—';
@@ -58,6 +59,7 @@ function Payments({ notify }) {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginated  = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const pageWindow = buildPageWindow(currentPage, totalPages);
 
   const SB = { Pending: 'badge-pending', Settled: 'badge-settled', Refunded: 'badge-refunded' };
 
@@ -207,15 +209,24 @@ function Payments({ notify }) {
                     }}>
                     <FontAwesomeIcon icon={faChevronLeft} style={{ fontSize: 11 }} />
                   </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                    <button key={p} onClick={() => setCurrentPage(p)} style={{
-                      padding: '4px 10px', borderRadius: 6, fontSize: '.8rem',
-                      fontWeight: p === currentPage ? 700 : 400,
-                      border: p === currentPage ? '1.5px solid var(--green)' : '1px solid var(--gray2)',
-                      background: p === currentPage ? 'var(--green)' : 'none',
-                      color: p === currentPage ? '#fff' : 'var(--gray)', cursor: 'pointer',
-                    }}>{p}</button>
-                  ))}
+                  {pageWindow.map((p, idx) =>
+                    p === '…' ? (
+                      <span key={`ellipsis-${idx}`} style={{ fontSize: '.8rem', color: 'var(--gray)', padding: '0 4px' }}>…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setCurrentPage(p)}
+                        style={{
+                          padding: '4px 10px', borderRadius: 6, fontSize: '.8rem',
+                          fontWeight: p === currentPage ? 700 : 400,
+                          border: p === currentPage ? '1.5px solid var(--green)' : '1px solid var(--gray2)',
+                          background: p === currentPage ? 'var(--green)' : 'none',
+                          color: p === currentPage ? '#fff' : 'var(--gray)',
+                          cursor: 'pointer',
+                        }}
+                      >{p}</button>
+                    )
+                  )}
                   <button
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}

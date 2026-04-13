@@ -124,4 +124,5 @@ type AuditLog struct {
 	Detail      string `json:"detail"`
 	PerformedBy string `json:"performed_by"`
 	CreatedAt   string `json:"created_at"`
+	ActorType   string `json:"actor_type"`
 }
