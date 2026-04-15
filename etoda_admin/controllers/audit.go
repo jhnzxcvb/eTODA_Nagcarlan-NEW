@@ -58,8 +58,12 @@ func AuditTrail(w http.ResponseWriter, r *http.Request) {
 	// Paginated data
 	args = append(args, pageSize, offset)
 	dataQ := `
-		SELECT id, action, entity, entity_id, detail, performed_by,
-		       to_char(created_at, 'YYYY-MM-DD HH24:MI:SS')
+		SELECT id, action, entity, 
+		       COALESCE(entity_id, '—'), 
+		       COALESCE(detail, '—'), 
+		       COALESCE(performed_by, '—'),
+		       to_char(created_at, 'YYYY-MM-DD HH24:MI:SS'),
+		       COALESCE(actor_type, 'System')
 		FROM audit_logs` + where +
 		fmt.Sprintf(` ORDER BY id DESC LIMIT $%d OFFSET $%d`, len(args)-1, len(args))
 
@@ -76,6 +80,7 @@ func AuditTrail(w http.ResponseWriter, r *http.Request) {
 		rows.Scan(
 			&a.ID, &a.Action, &a.Entity, &a.EntityID,
 			&a.Detail, &a.PerformedBy, &a.CreatedAt,
+			&a.ActorType,
 		)
 		list = append(list, a)
 	}

@@ -326,7 +326,7 @@ export default function App() {
           {panel === 'payments'   && <Payments     notify={notify} setPanel={setPanel} initialSearch={searchParam} />}
           {panel === 'qrcodes'    && <QRCodes      notify={notify} setPanel={setPanel} initialSearch={searchParam} />}
           {panel === 'complaints' && <Complaints   notify={notify} setPanel={setPanel} initialSearch={searchParam} />}
-          {panel === 'trips'      && <Trips        notify={notify} setPanel={setPanel} />}
+          {panel === 'trips'      && <Trips        notify={notify} setPanel={setPanel} initialSearch={searchParam} />}
           {panel === 'audit'      && <Audit        notify={notify} navigate={auditNavigate} />}
         </div>
       </div>

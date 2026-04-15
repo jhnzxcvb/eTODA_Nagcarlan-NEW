@@ -143,8 +143,7 @@ function QRCodes({ notify }) {
             <div class="qr-wrap"><img src="${qrDataUrl}" alt="QR Code" /></div>
             <div class="driver-name">${selected.driver_name}</div>
             <div class="franchise">Franchise: ${selected.franchise}</div>
-            <div class="qr-id">${selected.qr_id}</div>
-            <div class="badge">&#10003; Active &middot; AES-256 Encrypted</div>
+      
           </div>
           <div class="sticker-footer">Nagcarlan LGU &middot; eTODA System &middot; Issued ${selected.issued_at}</div>
         </div>
@@ -346,8 +345,7 @@ function QRCodes({ notify }) {
               <div style={{ fontSize: "13px", color: "#555", marginBottom: "4px" }}>Franchise: {selected.franchise}</div>
               <div style={{ fontSize: "10px", fontFamily: "monospace", color: "#999", marginBottom: "14px", wordBreak: "break-all" }}>{selected.qr_id}</div>
               <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#e8f5e9", borderRadius: "20px", padding: "5px 14px", marginBottom: "20px" }}>
-                <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#2d5a1b" }} />
-                <span style={{ fontSize: "12px", color: "#2d5a1b", fontWeight: "600" }}>Active · AES-256 Encrypted</span>
+          
               </div>
               <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
                 <button onClick={printSticker} style={{ flex: 1, padding: "11px", fontSize: "13px", fontWeight: "700", borderRadius: "10px", cursor: "pointer", background: "#2d5a1b", color: "#fff", border: "none" }}>
