@@ -94,6 +94,16 @@ function Dashboard({ notify, setPanel }) {
     init();
   }, []);
 
+  // ── Live Refresh ──
+  // Poll the dashboard stats and recent activity every 15 seconds
+  useEffect(() => {
+    const poll = setInterval(() => {
+      loadStats();
+      loadActivity();
+    }, 15000);
+    return () => clearInterval(poll);
+  }, []);
+
   // Date range change — only refresh chart
   useEffect(() => {
     if (isFirstRender.current) {

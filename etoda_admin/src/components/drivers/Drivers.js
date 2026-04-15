@@ -105,11 +105,20 @@ function Drivers({ notify }) {
     const t = setTimeout(() => { load(search); setCurrentPage(1); }, 300);
     return () => clearTimeout(t);
   }, [search, load]);
+
+  // ── Periodic Polling ──
+  // Automatically refresh the list every 10 seconds to catch driver status changes
+  useEffect(() => {
+    const interval = setInterval(() => load(search), 10000);
+    return () => clearInterval(interval);
+  }, [search, load]);
+
   useEffect(() => { setCurrentPage(1); }, [statusFilter, pageSize]);
 
   // ── Stats ──
   const activeCount   = data.filter(d => d.status === "Active").length;
   const inactiveCount = data.filter(d => d.status === "Inactive").length;
+  const suspendedCount = data.filter(d => d.status === "Suspended").length;
   const thisMonth     = useMemo(() => {
     const now = new Date();
     return data.filter(d => {
@@ -241,13 +250,13 @@ function Drivers({ notify }) {
 
   const confirmSuspend = async () => {
     setToggling(suspendItem.id);
-    const next = suspendItem.status === "Active" ? "Inactive" : "Active";
+    const next = suspendItem.status === "Suspended" ? "Inactive" : "Suspended";
     const r = await api(`/api/drivers/${suspendItem.id}`, "PATCH", { status: next });
     setToggling(null); setSuspendItem(null);
     if (r.success) {
       load(search);
       const name = capitalizeName(buildFullName(suspendItem.first_name, suspendItem.middle_name, suspendItem.last_name));
-      notify(next === "Inactive" ? `${name} suspended` : `${name} restored`, next === "Active" ? "success" : "warn");
+      notify(next === "Suspended" ? `${name} suspended` : `${name} restored`, next === "Suspended" ? "warn" : "success");
     }
   };
 
@@ -424,7 +433,7 @@ function Drivers({ notify }) {
         <div style={{ padding: "10px 18px 0", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <FontAwesomeIcon icon={faFilter} style={{ color: "var(--gray)", fontSize: 12 }} />
           <span style={{ fontSize: ".8rem", color: "var(--gray)", marginRight: 4 }}>Filter:</span>
-          {[{ label: `All (${data.length})`, value: "All" }, { label: `Active (${activeCount})`, value: "Active" }, { label: `Suspended (${inactiveCount})`, value: "Inactive" }].map(({ label, value }) => (
+          {[{ label: `All (${data.length})`, value: "All" }, { label: `Active (${activeCount})`, value: "Active" }, { label: `Inactive (${inactiveCount})`, value: "Inactive" }, { label: `Suspended (${suspendedCount})`, value: "Suspended" }].map(({ label, value }) => (
             <button key={value} onClick={() => setStatusFilter(value)} style={{ padding: "4px 12px", borderRadius: 20, border: statusFilter === value ? "1.5px solid var(--green)" : "1.5px solid var(--gray2)", background: statusFilter === value ? "var(--green)" : "transparent", color: statusFilter === value ? "#fff" : "var(--gray)", fontSize: ".78rem", fontWeight: statusFilter === value ? 700 : 400, cursor: "pointer", transition: "all 0.15s" }}>
               {label}
             </button>
@@ -463,7 +472,7 @@ function Drivers({ notify }) {
                       No {statusFilter !== "All" ? statusFilter.toLowerCase() : ""} drivers found.
                     </td></tr>
                   ) : paginated.map(d => (
-                    <tr key={d.id} style={{ opacity: d.status === "Inactive" ? 0.6 : 1, transition: "opacity 0.2s" }}>
+                    <tr key={d.id} style={{ transition: "opacity 0.2s" }}>
                       <td><strong>{d.driver_code}</strong></td>
                       <td><strong>{driverFullName(d)}</strong></td>
                       <td>
@@ -493,14 +502,14 @@ function Drivers({ notify }) {
                         )}
                       </td>
                       <td style={{ width: 100 }}>
-                        <span className={`badge ${d.status === "Active" ? "badge-active" : "badge-inactive"}`} style={{ display: "inline-block", minWidth: 80, textAlign: "center" }}>
-                          {d.status === "Active" ? "Active" : "Suspended"}
+                        <span className={`badge ${d.status === "Active" ? "badge-active" : d.status === "Suspended" ? "badge-inactive" : "badge-pending"}`} style={{ display: "inline-block", minWidth: 80, textAlign: "center" }}>
+                          {d.status}
                         </span>
                       </td>
                       <td style={{ fontSize: ".85rem" }}>{formatDate(d.created_at)}</td>
                       <td>
                         <div className="row-actions" style={{ display: "flex", flexWrap: "nowrap", gap: "6px" }}>
-                          {d.status === "Active" ? (
+                          {d.status !== "Suspended" ? (
                             <button className="ib ib-del" onClick={() => setSuspendItem(d)} disabled={toggling === d.id} style={{ background: "#fff8e1", color: "#b45309", borderColor: "#f59e0b", minWidth: 88 }}>
                               <FontAwesomeIcon icon={faBan} style={{ marginRight: 4, fontSize: 11 }} />Suspend
                             </button>

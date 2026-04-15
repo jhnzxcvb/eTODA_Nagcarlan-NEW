@@ -75,7 +75,15 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
       }
 
       // 3. Decode and Unwrap Data
-      final Map<String, dynamic> fullResponse = jsonDecode(response.body);
+      Map<String, dynamic> fullResponse;
+      try {
+        fullResponse = jsonDecode(response.body);
+      } catch (e) {
+        debugPrint('⚠️ QR Decoding error: $e');
+        _showError("Invalid Response", "The server sent an invalid format. Please try again.");
+        return;
+      }
+      
       debugPrint('✅ QR Lookup Response: $fullResponse');
 
       // Go backend wraps result in "data". If null, fall back to root.
@@ -91,29 +99,11 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
         return;
       }
 
-      if (data['status'] == 'Inactive' || data['status'] == 'Suspended') {
+      if (data['status'] == 'Suspended') {
         _showError("Driver Suspended",
-            "This driver's account is currently inactive.",
+            "This driver's account has been suspended by the administrator.",
             icon: Icons.person_off, iconColor: Colors.orange);
         return;
-      }
-
-      // Fetch driver profile to ensure we have the latest profile picture
-      final driverId = data['driver_id'] ?? data['id'];
-      if (driverId != null) {
-        try {
-          final profileRes = await http.get(
-            Uri.parse('${ApiService.baseUrl}/api/profile?role=driver&id=$driverId')
-          ).timeout(const Duration(seconds: 5));
-          if (profileRes.statusCode == 200) {
-            final profileData = jsonDecode(profileRes.body);
-            if (profileData['profile_pic'] != null) {
-              data['profile_pic'] = profileData['profile_pic'];
-            }
-          }
-        } catch (e) {
-          debugPrint('⚠️ Could not fetch driver profile pic: $e');
-        }
       }
 
       // 5. Prepare arguments for the Profile Screen.

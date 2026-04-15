@@ -19,7 +19,7 @@ func main() {
 	port := utils.Env("DB_PORT", "5432")
 	name := utils.Env("DB_NAME", "etoda_db")
 	user := utils.Env("DB_USER", "postgres")
-	pass := utils.Env("DB_PASSWORD", "123") 
+	pass := utils.Env("DB_PASSWORD", "123")
 	if pass == "" {
 		log.Println("⚠️ DB_PASSWORD not set; connection may fail")
 	}
@@ -37,6 +37,8 @@ func main() {
 	fmt.Println("? Connected to PostgreSQL")
 
 	controllers.DB = db
+	controllers.WSHub = controllers.NewHub()
+	fmt.Println("✓ WebSocket hub initialized")
 
 	mux := http.NewServeMux()
 	routes.SetupRoutes(mux)

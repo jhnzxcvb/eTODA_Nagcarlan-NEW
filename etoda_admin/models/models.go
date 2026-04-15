@@ -112,6 +112,7 @@ type Trip struct {
 	Route         string  `json:"route"`
 	FareAmount    float64 `json:"fare_amount"`
 	Method        string  `json:"payment_method"`
+	Status        string  `json:"status"`
 	DurationMin   int     `json:"duration_min"`
 	StartedAt     string  `json:"started_at"`
 }

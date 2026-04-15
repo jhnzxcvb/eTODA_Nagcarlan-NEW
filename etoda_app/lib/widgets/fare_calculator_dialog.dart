@@ -362,17 +362,31 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
       onSelected: onChanged,
       fieldViewBuilder: (ctx, ctrl, node, onSubmit) {
         if (selectedValue != null && ctrl.text == "") ctrl.text = selectedValue;
-        return TextFormField(
-          controller: ctrl,
-          focusNode: node,
-          style: const TextStyle(fontSize: 15),
-          decoration: InputDecoration(
-            hintText: "Search location...",
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            filled: true,
-            fillColor: Colors.grey[100],
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-          ),
+        return ValueListenableBuilder<TextEditingValue>(
+          valueListenable: ctrl,
+          builder: (context, value, child) {
+            return TextFormField(
+              controller: ctrl,
+              focusNode: node,
+              style: const TextStyle(fontSize: 15),
+              decoration: InputDecoration(
+                hintText: "Search location...",
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                filled: true,
+                fillColor: Colors.grey[100],
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                suffixIcon: value.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 20, color: Colors.grey),
+                        onPressed: () {
+                          ctrl.clear();
+                          onChanged(null);
+                        },
+                      )
+                    : null,
+              ),
+            );
+          },
         );
       },
     );

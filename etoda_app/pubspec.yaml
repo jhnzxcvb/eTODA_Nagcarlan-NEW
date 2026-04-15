@@ -14,6 +14,7 @@ dependencies:
   # --- NETWORKING & API ---
   # Connectivity to Golang/Postgres backend
   http: ^1.2.0
+  web_socket_channel: 3.0.3
 
   # --- UI & STYLE ---
   cupertino_icons: ^1.0.8

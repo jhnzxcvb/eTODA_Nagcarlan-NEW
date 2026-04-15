@@ -129,22 +129,47 @@ func CreatePayment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Also insert into trip_logs to ensure it reflects in Trip History
-	_, err = tx.Exec(`
-		INSERT INTO trip_logs 
-			(trip_code, passenger_id, driver_id, route, fare_amount, payment_method, duration_min, started_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
-		ref, b.PassengerID, b.DriverID, b.Route, b.Amount, b.Method, 15, // Defaulting to 15 mins
-	)
-	if err != nil {
-		utils.JSONErr(w, "Trip log error: "+err.Error(), 500)
-		return
-	}
-
 	if err := tx.Commit(); err != nil {
 		utils.JSONErr(w, err.Error(), 500)
 		return
 	}
+
+	// ─ REAL-TIME: Notify driver via WebSocket ─
+	go func() {
+		// Fetch passenger and driver names for the notification
+		var passengerName, driverName string
+		DB.QueryRow(`
+			SELECT COALESCE(u.first_name || ' ' || u.last_name, 'Passenger')
+			FROM users u WHERE u.user_id = $1`,
+			b.PassengerID).Scan(&passengerName)
+
+		DB.QueryRow(`
+			SELECT COALESCE(d.first_name || ' ' || d.last_name, 'Driver')
+			FROM drivers d WHERE d.id = $1`,
+			b.DriverID).Scan(&driverName)
+
+		// Build trip notification payload
+		payload := map[string]interface{}{
+			"event": "trip_started",
+			"trip": map[string]interface{}{
+				"id":             ref,
+				"trip_code":      ref,
+				"passenger_id":   b.PassengerID,
+				"driver_id":      b.DriverID,
+				"passenger_name": passengerName,
+				"driver_name":    driverName,
+				"origin":         b.Route, // In real app, parse from route or use separate fields
+				"destination":    b.Route,
+				"route":          b.Route,
+				"fare":           b.Amount,
+				"status":         "ongoing",
+				"started_at":     now.Format("2006-01-02T15:04:05Z07:00"),
+			},
+		}
+
+		// Send to driver's WebSocket connection
+		WSHub.NotifyDriver(fmt.Sprintf("%d", b.DriverID), payload)
+	}()
 
 	performedBy := "Passenger:" + strconv.Itoa(b.PassengerID)
 	utils.LogAudit(DB, "INSERT", "Payment", ref,

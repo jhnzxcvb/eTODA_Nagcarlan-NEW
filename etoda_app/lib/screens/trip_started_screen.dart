@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:etoda_nagcarlan/main.dart'; // To access nagcarlanGreen
+import 'package:etoda_nagcarlan/main.dart';
 import 'package:etoda_nagcarlan/widgets/report_dialog.dart';
+import 'package:etoda_nagcarlan/services/api_service.dart';
+import 'dart:async';
 
 class TripStartedScreen extends StatefulWidget {
   final int passengerId;
@@ -17,6 +19,74 @@ class TripStartedScreen extends StatefulWidget {
 }
 
 class _TripStartedScreenState extends State<TripStartedScreen> {
+  StreamSubscription? _wsSubscription;
+  final ApiService _apiService = ApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    _connectWebSocket();
+  }
+
+  @override
+  void dispose() {
+    _wsSubscription?.cancel();
+    ApiService.disconnectWebSocket();
+    super.dispose();
+  }
+
+  void _connectWebSocket() async {
+    try {
+      // Connect to passenger WebSocket
+      await ApiService.connectPassengerWebSocket(widget.passengerId.toString());
+      _setupWebSocketListener();
+    } catch (e) {
+      debugPrint('Failed to connect passenger WebSocket: $e');
+    }
+  }
+
+  /// Set up WebSocket listener for real-time trip updates
+  void _setupWebSocketListener() {
+    _wsSubscription?.cancel();
+    final wsStream = ApiService.getWebSocketStream();
+    
+    if (wsStream == null) {
+      debugPrint('⚠️ WebSocket stream not available');
+      return;
+    }
+
+    _wsSubscription = wsStream.listen(
+      (message) {
+        if (message['event'] == 'trip_ended' || message['event'] == 'trip_cancelled') {
+          debugPrint('✓ Trip finalization notification received: ${message['event']}');
+          if (mounted) {
+            // Bundle the event into the trip data
+            final tripData = Map<String, dynamic>.from(message['trip'] ?? {});
+            if (message['event'] == 'trip_cancelled') {
+              tripData['status'] = 'cancelled';
+              Navigator.of(context).pushReplacementNamed(
+                '/trip_cancelled',
+                arguments: tripData,
+              );
+            } else {
+              tripData['status'] = 'completed';
+              Navigator.of(context).pushReplacementNamed(
+                '/trip_ended',
+                arguments: tripData,
+              );
+            }
+          }
+        }
+      },
+      onError: (error) {
+        debugPrint('⚠️ WebSocket stream error: $error');
+      },
+      onDone: () {
+        debugPrint('⚠️ WebSocket stream closed');
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -31,13 +101,12 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
       ),
       body: Container(
         width: double.infinity,
-        decoration: nagcarlanGradient, // Using your existing yellow/green gradient
+        decoration: nagcarlanGradient,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Spacer(flex: 3),
-            
-            // Large Checkmark Icon
+
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -50,9 +119,9 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
                 size: 120,
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             const Text(
               "Trip Started!",
               style: TextStyle(
@@ -61,20 +130,56 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
                 color: nagcarlanGreen,
               ),
             ),
-            
-            const SizedBox(height: 8),
-            
-            Text(
-              "Have a safe and comfortable ride.",
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.black.withOpacity(0.6),
+
+            const Spacer(flex: 1),
+
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 30),
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: CircularProgressIndicator(
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                            nagcarlanGreen),
+                        strokeWidth: 3,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          "Trip Status",
+                          style:
+                              TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          "TRIP IN PROGRESS",
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: nagcarlanGreen,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-            
+
             const Spacer(flex: 2),
 
-            // Refined Report Button
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40),
               child: OutlinedButton.icon(
@@ -95,14 +200,15 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.red[700],
                   side: BorderSide(color: Colors.red[700]!, width: 1.5),
-                  padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 15, horizontal: 20),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 40),
           ],
         ),
