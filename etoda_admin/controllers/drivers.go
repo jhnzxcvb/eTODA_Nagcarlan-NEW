@@ -111,8 +111,8 @@ func Drivers(w http.ResponseWriter, r *http.Request) {
 		var dID int
 		// FIXED: Changed 'name' column to 'first_name, middle_name, last_name'
 		err := DB.QueryRow(
-			`INSERT INTO drivers(driver_code, first_name, middle_name, last_name, franchise, body_no, contact, license_no, association, plate_number, status)
-			 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'Active') RETURNING id`,
+			`INSERT INTO drivers(driver_code, first_name, middle_name, last_name, franchise, body_no, contact, license_no, association, plate_number, status, is_active)
+			 VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'Inactive', false) RETURNING id`,
 			code, b.FirstName, b.MiddleName, b.LastName, b.Franchise, b.BodyNo, b.Contact, b.LicenseNo, b.Association, b.PlateNumber,
 		).Scan(&dID)
 		if err != nil {
@@ -155,7 +155,7 @@ func DriverByID(w http.ResponseWriter, r *http.Request) {
 		sets, args := []string{}, []interface{}{}
 
 		// Removed the weird "name" splitting logic since the JSON now uses first_name, last_name etc.
-		fields := []string{"username", "first_name", "middle_name", "last_name", "franchise", "body_no", "contact", "license_no", "association", "plate_number", "status"}
+		fields := []string{"username", "first_name", "middle_name", "last_name", "franchise", "body_no", "contact", "license_no", "association", "plate_number", "status", "is_active"}
 
 		for _, f := range fields {
 			if v, ok := b[f]; ok {

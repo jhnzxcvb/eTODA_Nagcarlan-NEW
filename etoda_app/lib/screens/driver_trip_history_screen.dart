@@ -82,13 +82,29 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(trip['started_at'] ?? '—', style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.bold)),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: nagcarlanGreen.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(trip['payment_method'] ?? 'Cash', style: const TextStyle(color: nagcarlanGreen, fontSize: 10, fontWeight: FontWeight.bold)),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: (trip['status']?.toString().toLowerCase() == 'cancelled' ? Colors.red : nagcarlanGreen).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          trip['status']?.toString().toUpperCase() ?? 'COMPLETED',
+                                          style: TextStyle(color: trip['status']?.toString().toLowerCase() == 'cancelled' ? Colors.red : nagcarlanGreen, fontSize: 10, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: nagcarlanGreen.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(trip['payment_method'] ?? 'Cash', style: const TextStyle(color: nagcarlanGreen, fontSize: 10, fontWeight: FontWeight.bold)),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),

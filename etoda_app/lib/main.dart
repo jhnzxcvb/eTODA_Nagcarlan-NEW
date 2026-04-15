@@ -17,6 +17,9 @@ import 'package:etoda_nagcarlan/screens/trip_started_screen.dart';
 import 'package:etoda_nagcarlan/screens/passenger_trip_history_screen.dart';
 import 'package:etoda_nagcarlan/screens/passenger_trip_details_screen.dart';
 import 'package:etoda_nagcarlan/screens/driver_trip_details_screen.dart';
+import 'package:etoda_nagcarlan/screens/trip_ended_screen.dart';
+import 'package:etoda_nagcarlan/screens/trip_cancelled_screen.dart';
+import 'package:etoda_nagcarlan/screens/driver_trip_ended_screen.dart';
 
 void main() {
   runApp(const EtodaApp());
@@ -83,6 +86,9 @@ class EtodaApp extends StatelessWidget {
         '/passenger_trip_history': (context) => const PassengerTripHistoryScreen(),
         '/passenger_trip_details': (context) => const PassengerTripDetailsScreen(),
         '/driver_trip_details': (context) => const DriverTripDetailsScreen(),
+        '/trip_ended': (context) => const TripEndedScreen(),
+        '/trip_cancelled': (context) => const TripCancelledScreen(),
+        '/driver_trip_ended': (context) => const DriverTripEndedScreen(),
       },
     );
   }

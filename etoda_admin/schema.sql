@@ -119,7 +119,9 @@ CREATE TABLE public.trip_logs (
     fare_amount numeric(8,2),
     payment_method character varying(20),
     duration_min integer,
-    started_at timestamp without time zone DEFAULT now()
+    status character varying(20) DEFAULT 'ongoing',
+    started_at timestamp without time zone DEFAULT now(),
+    ended_at timestamp without time zone
 );
 
 CREATE TABLE public.audit_logs (

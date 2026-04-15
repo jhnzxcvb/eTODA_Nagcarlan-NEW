@@ -2,9 +2,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faRoute, faSearch, faFilter, faEye,
-  faChevronLeft, faChevronRight, faRefresh,
-  faMoneyBillWave, faCreditCard, faMobileAlt
+  faRoute, faSearch, faFilter, faEye, 
+  faChevronLeft, faChevronRight, faRefresh
 } from '@fortawesome/free-solid-svg-icons';
 import { api } from '../../lib/api';
 import Loading from '../ui/Loading';
@@ -27,24 +26,29 @@ function Trips({ notify }) {
   const [viewItem, setViewItem] = useState(null);
 
   // ── Filters & Pagination ──
-  const [methodFilter, setMethodFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
   const load = useCallback(async () => {
-    setLoading(true);
     const r = await api('/api/trips');
     if (r.success) setData(r.data || []);
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => { setCurrentPage(1); }, [methodFilter, pageSize, search]);
+  useEffect(() => {
+    load();
+    // Poll every 15 seconds to keep the admin side updated "real-time" with driver activity
+    const poll = setInterval(load, 15000);
+    return () => clearInterval(poll);
+  }, [load]);
+
+  useEffect(() => { setCurrentPage(1); }, [statusFilter, pageSize, search]);
 
   const filtered = useMemo(() => {
     let rows = data;
-    if (methodFilter !== 'All') {
-      rows = rows.filter(t => t.payment_method === methodFilter);
+    if (statusFilter !== 'All') {
+      rows = rows.filter(t => t.status === statusFilter.toLowerCase());
     }
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -56,19 +60,17 @@ function Trips({ notify }) {
       );
     }
     return rows;
-  }, [data, methodFilter, search]);
+  }, [data, statusFilter, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginated  = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const pageWindow = buildPageWindow(currentPage, totalPages);
 
-  const MethodIcon = ({ method }) => {
-    let icon = faMoneyBillWave;
-    let color = 'var(--green)';
-    if (method === 'Card')  { icon = faCreditCard; color = '#3b82f6'; }
-    if (method === 'GCash') { icon = faMobileAlt;  color = '#007bff'; }
-    if (method === 'Maya')  { icon = faMobileAlt;  color = '#4ade80'; }
-    return <FontAwesomeIcon icon={icon} style={{ color, marginRight: 6 }} />;
+  const StatusBadge = ({ status }) => {
+    let cls = 'badge-inactive'; // default for cancelled or unknown
+    if (status === 'completed') cls = 'badge-active';
+    if (status === 'ongoing') cls = 'badge-pending';
+    return <span className={`badge ${cls}`}>{status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Completed'}</span>;
   };
 
   return (
@@ -100,16 +102,16 @@ function Trips({ notify }) {
         <div style={{ padding: '10px 18px 0', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <FontAwesomeIcon icon={faFilter} style={{ color: 'var(--gray)', fontSize: 12 }} />
           <span style={{ fontSize: '.8rem', color: 'var(--gray)', marginRight: 4 }}>Filter:</span>
-          {['All', 'Cash', 'GCash', 'Maya', 'Card'].map(m => (
-            <button key={m} onClick={() => setMethodFilter(m)} style={{
+          {['All', 'Completed', 'Cancelled'].map(m => (
+            <button key={m} onClick={() => setStatusFilter(m)} style={{
               padding: '4px 12px', borderRadius: 20,
-              border: methodFilter === m ? '1.5px solid var(--green)' : '1.5px solid var(--gray2)',
-              background: methodFilter === m ? 'var(--green)' : 'transparent',
-              color: methodFilter === m ? '#fff' : 'var(--gray)',
-              fontSize: '.78rem', fontWeight: methodFilter === m ? 700 : 400,
+              border: statusFilter === m ? '1.5px solid var(--green)' : '1.5px solid var(--gray2)',
+              background: statusFilter === m ? 'var(--green)' : 'transparent',
+              color: statusFilter === m ? '#fff' : 'var(--gray)',
+              fontSize: '.78rem', fontWeight: statusFilter === m ? 700 : 400,
               cursor: 'pointer', transition: 'all 0.15s',
             }}>
-              {m === 'All' ? `All (${data.length})` : `${m} (${data.filter(t => t.payment_method === m).length})`}
+              {m === 'All' ? `All (${data.length})` : `${m} (${data.filter(t => t.status === m.toLowerCase()).length})`}
             </button>
           ))}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -137,8 +139,7 @@ function Trips({ notify }) {
                     <th>Passenger</th>
                     <th>Driver</th>
                     <th>Route</th>
-                    <th>Fare</th>
-                    <th>Method</th>
+                    <th>Status</th>
                     <th>Duration</th>
                     <th>Date</th>
                     <th>Actions</th>
@@ -155,8 +156,7 @@ function Trips({ notify }) {
                       <td>{t.passenger_name}</td>
                       <td>{t.driver_name}</td>
                       <td style={{ fontSize: '.85rem', color: 'var(--gray)' }}>{t.route}</td>
-                      <td><strong>₱{Number(t.fare_amount).toFixed(2)}</strong></td>
-                      <td style={{ fontSize: '.85rem' }}><MethodIcon method={t.payment_method} />{t.payment_method}</td>
+                      <td><StatusBadge status={t.status} /></td>
                       <td style={{ fontSize: '.85rem' }}>{t.duration_min} min</td>
                       <td style={{ fontSize: '.85rem' }}>{formatDate(t.started_at)}</td>
                       <td>
@@ -218,8 +218,7 @@ function Trips({ notify }) {
             ['Driver',    viewItem.driver_name],
             ['Contact',   viewItem.driver_contact],
             ['Route',     viewItem.route],
-            ['Fare',      `₱${Number(viewItem.fare_amount).toFixed(2)}`],
-            ['Method',    viewItem.payment_method],
+            ['Status',    viewItem.status],
             ['Duration',  `${viewItem.duration_min} min`],
             ['Date',      formatDate(viewItem.started_at)]
           ]} />

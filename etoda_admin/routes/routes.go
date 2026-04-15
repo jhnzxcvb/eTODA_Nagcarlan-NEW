@@ -2,6 +2,7 @@ package routes
 
 import (
 	"net/http"
+	"strings"
 
 	"etoda_admin/controllers"
 	"etoda_admin/middleware"
@@ -26,6 +27,12 @@ func SetupRoutes(mux *http.ServeMux) {
 		http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))).ServeHTTP(w, r)
 	})
 
+	// --- 1.5 WEBSOCKET ENDPOINTS (Real-Time Driver and Passenger Notifications) ---
+	// Driver app connects here when shift starts: ws://host:port/ws/driver?driverID=<id>
+	mux.HandleFunc("/ws/driver", controllers.DriverWebSocketHandler)
+	// Passenger app connects here when trip starts: ws://host:port/ws/passenger?passengerID=<id>
+	mux.HandleFunc("/ws/passenger", controllers.PassengerWebSocketHandler)
+
 	// --- 2. UNIFIED AUTH & SIGNUP (Mobile & Web) ---
 	mux.HandleFunc("/api/login", middleware.CORS(middleware.JSONContentTypeMiddleware(controllers.UnifiedLogin)))
 	mux.HandleFunc("/api/signup", middleware.CORS(middleware.JSONContentTypeMiddleware(controllers.PassengerSignup)))
@@ -49,7 +56,13 @@ func SetupRoutes(mux *http.ServeMux) {
 
 	// Drivers Management
 	mux.HandleFunc("/api/drivers", middleware.CORS(controllers.Drivers))
-	mux.HandleFunc("/api/drivers/", middleware.CORS(controllers.DriverByID))
+	mux.HandleFunc("/api/drivers/", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/rating") {
+			controllers.GetDriverRating(w, r)
+			return
+		}
+		controllers.DriverByID(w, r)
+	}))
 
 	// Passengers Management
 	mux.HandleFunc("/api/passengers", middleware.CORS(controllers.Passengers))
@@ -77,12 +90,17 @@ func SetupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/qrcodes", middleware.CORS(controllers.QRCodes))
 	mux.HandleFunc("/api/qrcodes/", middleware.CORS(controllers.QRCodeByID))
 
+	// Ratings
+	mux.HandleFunc("/api/ratings", middleware.CORS(middleware.JSONContentTypeMiddleware(controllers.AddRating)))
+
 	// Complaints Management
 	mux.HandleFunc("/api/complaints", middleware.CORS(controllers.Complaints))
 	mux.HandleFunc("/api/complaints/", middleware.CORS(controllers.ComplaintByID))
 
 	// Trips
 	mux.HandleFunc("/api/trips", middleware.CORS(controllers.Trips))
+	mux.HandleFunc("/api/trips/complete", middleware.CORS(controllers.CompleteTrip))
+	mux.HandleFunc("/api/trips/cancel", middleware.CORS(controllers.CancelTrip))
 
 	// TODA Stations Management
 	mux.HandleFunc("/api/stations", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {

@@ -34,6 +34,7 @@ class DriverTripDetailsScreen extends StatelessWidget {
                       items: {
                         "Date": trip['started_at'] ?? 'N/A',
                         "Route": trip['route'] ?? 'N/A',
+                        "Status": trip['status']?.toString().toUpperCase() ?? 'COMPLETED',
                         "Fare Collected": "₱${fare.toStringAsFixed(2)}",
                         "Payment Method": trip['payment_method'] ?? 'N/A',
                         "Reference": trip['trip_code'] ?? 'N/A',

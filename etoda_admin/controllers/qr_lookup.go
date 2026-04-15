@@ -39,28 +39,34 @@ func QRLookup(w http.ResponseWriter, r *http.Request) {
 			COALESCE(d.plate_number, '')      AS plate_number,
 			COALESCE(d.association, '')       AS association,
 			COALESCE(d.status, '')            AS status,
-			COALESCE(to_char(d.created_at, 'YYYY-MM-DD'), '') AS created_at
+			COALESCE(to_char(d.created_at, 'YYYY-MM-DD'), '') AS created_at,
+			COALESCE(d.profile_pic, '')       AS profile_pic,
+			(SELECT COALESCE(AVG(rating), 0.0) FROM ratings WHERE driver_id = d.id) AS average_rating,
+			(SELECT COUNT(id) FROM ratings WHERE driver_id = d.id) AS total_ratings
 		FROM qr_codes qr
 		JOIN drivers d ON qr.driver_id = d.id
 		WHERE qr.qr_id = $1
 	`, qrID)
 
 	var result struct {
-		QRId        string `json:"qr_id"`
-		QRStatus    string `json:"qr_status"`
-		ID          int    `json:"id"`
-		DriverCode  string `json:"driver_code"`
-		FirstName   string `json:"first_name"`
-		MiddleName  string `json:"middle_name"`
-		LastName    string `json:"last_name"`
-		Franchise   string `json:"franchise"`
-		BodyNo      string `json:"body_no"`
-		Contact     string `json:"contact"`
-		LicenseNo   string `json:"license_no"`
-		PlateNumber string `json:"plate_number"`
-		Association string `json:"association"`
-		Status      string `json:"status"`
-		CreatedAt   string `json:"created_at"`
+		QRId         string  `json:"qr_id"`
+		QRStatus     string  `json:"qr_status"`
+		ID           int     `json:"id"`
+		DriverCode   string  `json:"driver_code"`
+		FirstName    string  `json:"first_name"`
+		MiddleName   string  `json:"middle_name"`
+		LastName     string  `json:"last_name"`
+		Franchise    string  `json:"franchise"`
+		BodyNo       string  `json:"body_no"`
+		Contact      string  `json:"contact"`
+		LicenseNo    string  `json:"license_no"`
+		PlateNumber  string  `json:"plate_number"`
+		Association  string  `json:"association"`
+		Status       string  `json:"status"`
+		CreatedAt    string  `json:"created_at"`
+		ProfilePic   string  `json:"profile_pic"`
+		AvgRating    float64 `json:"average_rating"`
+		TotalRatings int     `json:"total_ratings"`
 	}
 
 	err := row.Scan(
@@ -70,6 +76,7 @@ func QRLookup(w http.ResponseWriter, r *http.Request) {
 		&result.Franchise, &result.BodyNo, &result.Contact,
 		&result.LicenseNo, &result.PlateNumber, &result.Association,
 		&result.Status, &result.CreatedAt,
+		&result.ProfilePic, &result.AvgRating, &result.TotalRatings,
 	)
 
 	if err != nil {

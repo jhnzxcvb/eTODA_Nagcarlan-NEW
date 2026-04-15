@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:etoda_nagcarlan/main.dart';
 import 'package:etoda_nagcarlan/services/api_service.dart';
 import 'package:etoda_nagcarlan/widgets/branding_footer.dart';
+import 'package:etoda_nagcarlan/widgets/ongoing_trip_card.dart';
 
 class DriverHomeScreen extends StatefulWidget {
   const DriverHomeScreen({super.key});
@@ -17,11 +18,13 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
   bool _isLoadingShift = false;
   bool _isInitialized = false;
   Timer? _uiRefreshTimer;
+  StreamSubscription? _wsSubscription;
   final ApiService _apiService = ApiService();
 
   @override
   void dispose() {
     _uiRefreshTimer?.cancel();
+    _wsSubscription?.cancel();
     super.dispose();
   }
 
@@ -34,12 +37,28 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
       _isShiftActive = ApiService.isDriverOnline;
       _isTripActive = ApiService.activeTrip != null;
 
+      // Re-attach listener and polling if already online (e.g. returning from completion screen)
+      if (_isShiftActive) {
+        final Map<String, dynamic>? driverData =
+            ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+        final String driverId = (driverData?['id'] ?? driverData?['driver_id'] ?? '').toString();
+        
+        if (driverId.isNotEmpty) {
+          _setupWebSocketListener();
+          // Ensure background polling is active
+          ApiService.startDriverPolling(driverId);
+        }
+      }
+
       // Start a small UI timer to watch for changes caught by the background poller
       _uiRefreshTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
-        if (mounted && ApiService.activeTrip != null && !_isTripActive) {
-          setState(() {
-            _isTripActive = true;
-          });
+        if (mounted) {
+          bool hasActiveTrip = ApiService.activeTrip != null;
+          if (hasActiveTrip != _isTripActive) {
+            setState(() {
+              _isTripActive = hasActiveTrip;
+            });
+          }
         }
       });
 
@@ -51,29 +70,53 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
     final Map<String, dynamic>? driverData =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final String driverId = (driverData?['id'] ?? driverData?['driver_id'] ?? '').toString();
+    final int idInt = int.tryParse(driverId) ?? 0;
 
     if (!_isShiftActive) {
       setState(() => _isLoadingShift = true);
-      Timer(const Duration(seconds: 2), () {
-        if (mounted) {
+      Timer(const Duration(seconds: 2), () async {
+        // Sync status with the Database so passengers can see the driver is "Active"
+        final success = await _apiService.updateDriverStatus(idInt, true); // Status becomes 'Active'
+
+        if (mounted && success) {
           setState(() {
             _isLoadingShift = false;
             _isShiftActive = true;
             ApiService.isDriverOnline = true;
           });
+
+          // Connect to WebSocket for real-time trip notifications
+          await ApiService.connectWebSocket(driverId);
+          _setupWebSocketListener();
+
+          // Keep polling as fallback for potential WebSocket failures
           ApiService.startDriverPolling(driverId);
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("You are now ONLINE."), backgroundColor: Colors.green),
+          );
+        } else if (mounted && !success) {
+          setState(() => _isLoadingShift = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Connection error. Could not start shift."), backgroundColor: Colors.red),
           );
         }
       });
     } else {
+      // Update database to "Inactive" so passengers can no longer start trips
+      _apiService.updateDriverStatus(idInt, false); // Status becomes 'Inactive'
+
       setState(() {
         _isShiftActive = false;
         _isTripActive = false;
         ApiService.isDriverOnline = false;
         ApiService.activeTrip = null;
       });
+      
+      // Disconnect WebSocket when shift ends
+      ApiService.disconnectWebSocket();
+      _wsSubscription?.cancel();
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text("Shift ended. You are now offline."),
@@ -83,17 +126,123 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
     }
   }
 
-  void _endTrip() {
-    setState(() {
-      _isTripActive = false;
-      ApiService.activeTrip = null;
-    });
+  /// Set up WebSocket listener for real-time trip notifications
+  void _setupWebSocketListener() {
+    _wsSubscription?.cancel();
+    final wsStream = ApiService.getWebSocketStream();
     
+    if (wsStream == null) {
+      debugPrint('⚠️ WebSocket stream not available');
+      return;
+    }
+
+    _wsSubscription = wsStream.listen(
+      (message) {
+        if (message['event'] == 'trip_started') {
+          final tripData = message['trip'] as Map<String, dynamic>?;
+          if (tripData != null) {
+            debugPrint('✓ Real-time trip received: ${tripData['passenger_name']}');
+            if (mounted) {
+              setState(() {
+                ApiService.activeTrip = tripData;
+                _isTripActive = true;
+              });
+            }
+          }
+        }
+      },
+      onError: (error) {
+        debugPrint('⚠️ WebSocket stream error: $error');
+      },
+      onDone: () {
+        debugPrint('⚠️ WebSocket stream closed');
+      },
+    );
+  }
+
+  void _endTrip() async {
     final Map<String, dynamic>? driverData =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final String driverId = (driverData?['id'] ?? driverData?['driver_id'] ?? '').toString();
 
-    // Pass the driver data to the completion screen
-    Navigator.of(context).pushNamed('/driver_trip_ended', arguments: driverData);
+    if (ApiService.activeTrip == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No active trip to end")),
+      );
+      return;
+    }
+
+    try {
+      // Call the backend to complete the trip
+      final tripData = ApiService.activeTrip != null 
+          ? Map<String, dynamic>.from(ApiService.activeTrip!) 
+          : null;
+          
+      final response = await ApiService().post('/api/trips/complete', {
+        'trip_code': tripData?['trip_code'],
+        'driver_id': int.parse(driverId),
+      });
+
+      if (response.containsKey('message')) {
+        // Clear local trip state
+        setState(() {
+          _isTripActive = false;
+          ApiService.activeTrip = null;
+        });
+
+        // Navigate to the driver-specific completion screen and pass driver profile data
+        // so it can return to the dashboard successfully.
+        Navigator.of(context).pushReplacementNamed('/driver_trip_ended', arguments: driverData);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to complete trip")),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error completing trip: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error completing trip")),
+      );
+    }
+  }
+
+  void _cancelTrip() async {
+    final Map<String, dynamic>? driverData =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final String driverId =
+        (driverData?['id'] ?? driverData?['driver_id'] ?? '').toString();
+    final String tripCode = ApiService.activeTrip?['trip_code'] ?? '';
+
+    if (tripCode.isEmpty) return;
+
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Cancel Trip"),
+        content: const Text("Are you sure you want to cancel this trip?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("NO")),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("YES", style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final success = await _apiService.cancelTrip(tripCode, int.parse(driverId));
+    if (success) {
+      setState(() {
+        _isTripActive = false;
+        ApiService.activeTrip = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Trip cancelled. Returning to dashboard."), backgroundColor: Colors.orange),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to cancel trip."), backgroundColor: Colors.red),
+      );
+    }
   }
 
   void _showTripDetailsModal() {
@@ -258,7 +407,11 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                 const Spacer(),
                 
                 if (_isTripActive && _isShiftActive) ...[
-                   _buildActiveTripCard(),
+                   OngoingTripCard(
+                     tripData: ApiService.activeTrip ?? {},
+                     onCompleteTap: _endTrip,
+                     onCancelTap: _cancelTrip,
+                   ),
                    const SizedBox(height: 20),
                 ],
 

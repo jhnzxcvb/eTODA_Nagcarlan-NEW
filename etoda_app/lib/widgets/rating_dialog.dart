@@ -1,11 +1,19 @@
-
 import 'dart:async';
 import 'package:etoda_nagcarlan/main.dart';
+import 'package:etoda_nagcarlan/services/api_service.dart';
 import 'package:flutter/material.dart';
 
 class RatingDialog extends StatefulWidget {
   final VoidCallback onSubmitted;
-  const RatingDialog({super.key, required this.onSubmitted});
+  final int passengerId;
+  final int driverId;
+
+  const RatingDialog({
+    super.key, 
+    required this.onSubmitted,
+    required this.passengerId,
+    required this.driverId,
+  });
 
   @override
   State<RatingDialog> createState() => _RatingDialogState();
@@ -15,12 +23,21 @@ class _RatingDialogState extends State<RatingDialog> {
   int _rating = 0;
   bool _isSubmitted = false;
 
-  void _submitRating() {
+  void _submitRating() async {
     if (_rating == 0) return;
 
     setState(() {
       _isSubmitted = true;
     });
+
+    // Save to database via ApiService
+    final response = await ApiService().post('/api/ratings', {
+      'passenger_id': widget.passengerId,
+      'driver_id': widget.driverId,
+      'rating': _rating,
+    });
+
+    debugPrint('📩 Rating Submission Response: $response');
 
     Timer(const Duration(seconds: 2), () {
       if (mounted) {

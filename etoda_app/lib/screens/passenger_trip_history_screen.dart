@@ -76,6 +76,22 @@ class _PassengerTripHistoryScreenState extends State<PassengerTripHistoryScreen>
                             children: [
                               Text("Driver: ${trip['driver_name']}"),
                               Text(trip['started_at'] ?? ''),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: (trip['status']?.toString().toLowerCase() == 'cancelled' ? Colors.red : nagcarlanGreen).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  (trip['status']?.toString().toUpperCase() ?? 'COMPLETED'),
+                                  style: TextStyle(
+                                    fontSize: 10, 
+                                    fontWeight: FontWeight.bold,
+                                    color: trip['status']?.toString().toLowerCase() == 'cancelled' ? Colors.red : nagcarlanGreen,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                           trailing: Column(
