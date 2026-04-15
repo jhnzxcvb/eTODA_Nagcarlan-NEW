@@ -27,7 +27,7 @@ const ACTION_BADGE = {
   RESTORE: 'badge-restore',
 };
 
-const ENTITY_LIST = ['All', 'Driver', 'Passenger', 'Fare', 'Payment', 'QRCode', 'Complaint'];
+const ENTITY_LIST = ['All', 'Driver', 'Passenger', 'Fare', 'Payment', 'QRCode', 'Complaint', 'Trip'];
 
 const PAGE_SIZES = [10, 25, 50];
 
@@ -100,11 +100,15 @@ const presetToRange = (preset) => {
 };
 
 const resolveActor = (log) => {
-  if (log.actor_type) return log.actor_type;
-  if ((log.action === 'INSERT' || log.action === 'CREATE') && log.entity === 'Payment') {
-    return 'System';
+  let name = log.performed_by || '—';
+  
+  // Strip out Go's <nil> formatting artifacts if they leaked into the database
+  name = name.replace(':<nil>', '').replace(':nil', '').trim();
+
+  if (name === '—' || name === 'Admin' || name === 'User' || name === 'System') {
+    return log.actor_type || name;
   }
-  return log.performed_by || '—';
+  return name;
 };
 
 const ActorBadge = ({ log }) => {
@@ -159,10 +163,11 @@ const entityPath = (entity) => {
   const map = {
     Driver:    'drivers',
     Passenger: 'passengers',
-    Fare:      'fares',
+    Fare:      'fare',
     Payment:   'payments',
     QRCode:    'qrcodes',
     Complaint: 'complaints',
+    Trip:      'trips',
   };
   return map[entity] || null;
 };
@@ -248,9 +253,12 @@ function Audit({ notify, navigate }) {
       isPaginating.current = false;
 
       // Restore scroll position only when paginating
+      // Double requestAnimationFrame ensures the DOM has updated and layout is stable
       if (wasPaginating) {
         requestAnimationFrame(() => {
-          window.scrollTo({ top: savedScrollY, behavior: 'instant' });
+          requestAnimationFrame(() => {
+            window.scrollTo({ top: savedScrollY, behavior: 'instant' });
+          });
         });
       }
     }
@@ -450,7 +458,7 @@ function Audit({ notify, navigate }) {
             {PAGE_SIZES.map(n => (
               <button
                 key={n}
-                onClick={() => setPageSize(n)}
+                onClick={() => { isPaginating.current = true; setPageSize(n); }}
                 style={{
                   padding: '3px 10px', borderRadius: 6,
                   border: pageSize === n ? '1.5px solid var(--green)' : '1.5px solid var(--gray2)',
@@ -464,6 +472,7 @@ function Audit({ notify, navigate }) {
           </div>
         </div>
 
+        <div style={{ minHeight: '500px' }}>
         {loading ? <Loading /> : data.length === 0 && total === 0 ? <Empty msg="No audit logs found" /> : (
           <>
             <div className="tbl-wrap">
@@ -606,6 +615,7 @@ function Audit({ notify, navigate }) {
             )}
           </>
         )}
+        </div>
       </div>
 
       {/* ── View Modal ── */}
