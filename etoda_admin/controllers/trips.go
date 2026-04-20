@@ -23,7 +23,7 @@ func Trips(w http.ResponseWriter, r *http.Request) {
 	// Only fetch from trip_logs to show finalized trip history.
 	baseQuery := `
 		SELECT 
-			trip_code, p_name, d_name, d_contact, d_plate, d_body, route, fare_amount, payment_method, status, started_at, duration, passenger_id, driver_id, id
+			trip_code, p_name, d_name, d_contact, d_plate, d_body, route, fare_amount, payment_method, status, started_at, ended_at, passenger_id, driver_id, id
 		FROM (
 			SELECT 
 				tl.trip_code, 
@@ -33,7 +33,7 @@ func Trips(w http.ResponseWriter, r *http.Request) {
 				COALESCE(tl.route, '—') as route,
 				tl.fare_amount, tl.payment_method, tl.status,
 				tl.started_at as started_at,
-				COALESCE(tl.duration_min, 0) as duration,
+				tl.ended_at as ended_at,
 				tl.passenger_id, tl.driver_id, tl.id
 			FROM trip_logs tl
 			LEFT JOIN users u ON tl.passenger_id = u.user_id
@@ -62,12 +62,28 @@ func Trips(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var code, pName, dName, contact, plate, body, route, method, status string
 		var startedAt time.Time
+		var endedAt sql.NullTime
 		var amount float64
-		var duration, pID, dID, id int
-		if err := rows.Scan(&code, &pName, &dName, &contact, &plate, &body, &route, &amount, &method, &status, &startedAt, &duration, &pID, &dID, &id); err != nil {
+		var pID, dID, id int
+		if err := rows.Scan(&code, &pName, &dName, &contact, &plate, &body, &route, &amount, &method, &status, &startedAt, &endedAt, &pID, &dID, &id); err != nil {
 			continue
 		}
 		count++
+
+		// Calculate duration in minutes based on actual timestamps
+		var duration int
+		if endedAt.Valid && !endedAt.Time.IsZero() {
+			// For completed trips, calculate from started_at to ended_at
+			duration = int(endedAt.Time.Sub(startedAt).Minutes())
+		} else if status == "ongoing" {
+			// For ongoing trips, calculate from started_at to now
+			duration = int(time.Since(startedAt).Minutes())
+		} else {
+			// For other statuses, use stored duration or 0
+			duration = 0
+		}
+
+		// Ensure duration is not negative
 		if duration < 0 {
 			duration = 0
 		}

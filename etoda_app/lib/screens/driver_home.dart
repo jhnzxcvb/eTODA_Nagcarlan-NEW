@@ -150,12 +150,140 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
             }
           }
         }
+
+        if (message['event'] == 'trip_request') {
+          final request = message['request'] as Map<String, dynamic>?;
+          if (request != null && mounted) {
+            _showTripRequestModal(request);
+          }
+        }
       },
       onError: (error) {
         debugPrint('⚠️ WebSocket stream error: $error');
       },
       onDone: () {
         debugPrint('⚠️ WebSocket stream closed');
+      },
+    );
+  }
+
+  void _showTripRequestModal(Map<String, dynamic> request) {
+    final Map<String, dynamic>? driverData =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final String driverId = (driverData?['id'] ?? driverData?['driver_id'] ?? '').toString();
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: nagcarlanGreen.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.hail_rounded, color: nagcarlanGreen, size: 24),
+              ),
+              const SizedBox(width: 12),
+              const Text('New Trip Request', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 12),
+              _buildDetailRow(Icons.person_outline, "Passenger", request['passenger_name'] ?? 'Unknown'),
+              const SizedBox(height: 16),
+              _buildDetailRow(Icons.route_outlined, "Route", request['route'] ?? 'N/A'),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      "FARE AMOUNT",
+                      style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "₱${(request['fare'] as num?)?.toStringAsFixed(2) ?? '0.00'}",
+                      style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: nagcarlanGreen),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          actions: [
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red[700],
+                      side: BorderSide(color: Colors.red[700]!, width: 1.5),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      ApiService().respondTripRequest({
+                        'request_id': request['request_id'],
+                        'driver_id': int.tryParse(driverId) ?? 0,
+                        'passenger_id': (request['passenger_id'] as num?)?.toInt() ?? 0,
+                        'accepted': false,
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Trip request declined')), 
+                      );
+                    },
+                    child: const Text('Decline', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: nagcarlanGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      ApiService().respondTripRequest({
+                        'request_id': request['request_id'],
+                        'driver_id': int.tryParse(driverId) ?? 0,
+                        'passenger_id': (request['passenger_id'] as num?)?.toInt() ?? 0,
+                        'accepted': true,
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Trip request accepted')), 
+                      );
+                    },
+                    child: const Text('Accept', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
       },
     );
   }
@@ -180,10 +308,10 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
           
       final response = await ApiService().post('/api/trips/complete', {
         'trip_code': tripData?['trip_code'],
-        'driver_id': int.parse(driverId),
+        'driver_id': int.tryParse(driverId) ?? 0,
       });
 
-      if (response.containsKey('message')) {
+      if (response.isNotEmpty) {
         // Clear local trip state
         setState(() {
           _isTripActive = false;
@@ -202,45 +330,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
       debugPrint('Error completing trip: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Error completing trip")),
-      );
-    }
-  }
-
-  void _cancelTrip() async {
-    final Map<String, dynamic>? driverData =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final String driverId =
-        (driverData?['id'] ?? driverData?['driver_id'] ?? '').toString();
-    final String tripCode = ApiService.activeTrip?['trip_code'] ?? '';
-
-    if (tripCode.isEmpty) return;
-
-    bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Cancel Trip"),
-        content: const Text("Are you sure you want to cancel this trip?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("NO")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("YES", style: TextStyle(color: Colors.red))),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    final success = await _apiService.cancelTrip(tripCode, int.parse(driverId));
-    if (success) {
-      setState(() {
-        _isTripActive = false;
-        ApiService.activeTrip = null;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Trip cancelled. Returning to dashboard."), backgroundColor: Colors.orange),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to cancel trip."), backgroundColor: Colors.red),
       );
     }
   }
@@ -410,7 +499,6 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                    OngoingTripCard(
                      tripData: ApiService.activeTrip ?? {},
                      onCompleteTap: _endTrip,
-                     onCancelTap: _cancelTrip,
                    ),
                    const SizedBox(height: 20),
                 ],

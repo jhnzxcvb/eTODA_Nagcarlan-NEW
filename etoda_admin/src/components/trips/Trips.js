@@ -26,7 +26,14 @@ const formatDate = (str) => {
   if (!str) return '—';
   const d = new Date(str);
   if (isNaN(d)) return str;
-  return d.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString('en-PH', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric', 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: true 
+  });
 };
 
 function Trips({ notify }) {

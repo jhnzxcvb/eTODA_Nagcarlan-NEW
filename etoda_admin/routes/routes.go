@@ -99,8 +99,11 @@ func SetupRoutes(mux *http.ServeMux) {
 
 	// Trips
 	mux.HandleFunc("/api/trips", middleware.CORS(controllers.Trips))
+	mux.HandleFunc("/api/trips/active", middleware.CORS(controllers.ActiveTrip))
 	mux.HandleFunc("/api/trips/complete", middleware.CORS(controllers.CompleteTrip))
 	mux.HandleFunc("/api/trips/cancel", middleware.CORS(controllers.CancelTrip))
+	mux.HandleFunc("/api/trip_requests", middleware.CORS(controllers.CreateTripRequest))
+	mux.HandleFunc("/api/trip_requests/respond", middleware.CORS(controllers.RespondTripRequest))
 
 	// TODA Stations Management
 	mux.HandleFunc("/api/stations", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {

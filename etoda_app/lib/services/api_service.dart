@@ -218,6 +218,14 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> createTripRequest(Map<String, dynamic> body) async {
+    return await post('/api/trip_requests', body);
+  }
+
+  Future<Map<String, dynamic>> respondTripRequest(Map<String, dynamic> body) async {
+    return await post('/api/trip_requests/respond', body);
+  }
+
   Future<Map<String, dynamic>> fetchStations() async {
     final response = await http.get(Uri.parse('$baseUrl/api/stations'));
 

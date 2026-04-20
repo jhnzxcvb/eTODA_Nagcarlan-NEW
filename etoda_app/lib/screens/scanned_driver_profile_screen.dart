@@ -263,7 +263,7 @@ class _ScannedDriverProfileScreenState
                     _statusPill(label: "SUSPENDED", icon: Icons.block, color: Colors.red)
                   else
                     _statusPill(
-                    label: isOnline ? "ACTIVE" : "INACTIVE",
+                    label: isOnline ? "ACTIVE" : "OFFLINE",
                     icon: isOnline ? Icons.check_circle_rounded : Icons.power_settings_new_rounded,
                     color: isOnline ? Colors.green : Colors.grey,
                   ),
@@ -322,6 +322,7 @@ class _ScannedDriverProfileScreenState
                   onPressed: () {
                     if (isOnline && !isSuspended) {
                       _showFareCalculator(context, {
+                          ...d,  // Include all driver data from QR lookup
                           'passenger_id': passengerId,
                           'driver_id': driverId,
                           'full_name': fullName,
@@ -339,7 +340,7 @@ class _ScannedDriverProfileScreenState
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: const Text("OFFLINE: This driver has not started their shift yet."),
+                          content: const Text("The driver is currently offline"),
                           backgroundColor: Colors.orange[800],
                           behavior: SnackBarBehavior.floating,
                         ),

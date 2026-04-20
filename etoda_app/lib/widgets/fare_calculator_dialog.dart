@@ -20,6 +20,8 @@ class FareCalculatorDialog extends StatefulWidget {
 
 class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
   final ApiService _apiService = ApiService();
+  StreamSubscription? _wsSubscription;
+  String? _currentRequestId;
   
   final List<String> passengers = ["Regular", "Student", "Senior Citizen", "PWD"];
   final List<String> tripTypes = ["Regular Trip", "Special Trip"];
@@ -40,6 +42,12 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
   void initState() {
     super.initState();
     _fetchData();
+  }
+
+  @override
+  void dispose() {
+    _wsSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchData() async {
@@ -117,14 +125,134 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
 
   Future<void> _handlePayment() async {
     if (fare <= 0) return;
-    
+    if (fromLocation == null || toLocation == null) {
+      _showSnackbar("Please select a pick-up and drop-off location.");
+      return;
+    }
+
+    debugPrint('📋 Full driverData: $widget.driverData');
+
+    final String driverStatusRaw = widget.driverData['status']?.toString() ?? widget.driverData['driver_status']?.toString() ?? '';
+    final String driverStatus = driverStatusRaw.toLowerCase().trim();
+    final bool driverIsOnline = RegExp(r'\b(active|online|available)\b').hasMatch(driverStatus) ||
+        widget.driverData['is_active']?.toString().toLowerCase() == 'true' ||
+        widget.driverData['active'] == true ||
+        widget.driverData['qr_status']?.toString().toLowerCase().trim() == 'active';
+
+    debugPrint('Driver status check - Raw: "$driverStatusRaw", Normalized: "$driverStatus", is_active: ${widget.driverData['is_active']}, active: ${widget.driverData['active']}, qr_status: ${widget.driverData['qr_status']}, driverIsOnline: $driverIsOnline');
+
+    if (!driverIsOnline) {
+      _showSnackbar("Driver is currently offline. Please choose another driver or try again later.");
+      return;
+    }
+
+    final int passengerId = (widget.driverData['passenger_id'] as num?)?.toInt() ?? 0;
+    if (passengerId == 0) {
+      _showSnackbar("Unable to determine passenger identity.");
+      return;
+    }
+
     setState(() => _isProcessing = true);
-    await Future.delayed(const Duration(milliseconds: 600));
+    await Future.delayed(const Duration(milliseconds: 400));
+
+    await _ensurePassengerSocket(passengerId);
+    _listenForApprovalResponse();
+
+    final route = [fromLocation, toLocation]
+        .where((e) => e != null && e.toString().trim().isNotEmpty)
+        .join(' → ');
+
+    final result = await _apiService.createTripRequest({
+      'passenger_id': passengerId,
+      'driver_id': (widget.driverData['driver_id'] as num?)?.toInt() ?? 0,
+      'passenger_name': widget.driverData['passenger_name'] ?? 'Passenger',
+      'route': route,
+      'fare': fare,
+      'from_location': fromLocation,
+      'to_location': toLocation,
+    });
 
     if (!mounted) return;
-    
-    // We don't pop FareCalculatorDialog yet. 
-    // We show PaymentMethodDialog on top of it.
+
+    if (result['request_id'] == null) {
+      _showSnackbar("Could not send request to driver. Please try again.");
+      setState(() => _isProcessing = false);
+      return;
+    }
+
+    _currentRequestId = result['request_id'].toString();
+    setState(() => _isProcessing = false);
+    _showWaitingApprovalDialog();
+  }
+
+  Future<void> _ensurePassengerSocket(int passengerId) async {
+    if (ApiService.getWebSocketStream() == null) {
+      await ApiService.connectPassengerWebSocket(passengerId.toString());
+    }
+  }
+
+  void _listenForApprovalResponse() {
+    _wsSubscription?.cancel();
+    final wsStream = ApiService.getWebSocketStream();
+    if (wsStream == null) return;
+
+    _wsSubscription = wsStream.listen((message) {
+      final event = message['event']?.toString();
+      final request = message['request'] as Map<String, dynamic>?;
+      if (request == null || request['request_id'] != _currentRequestId) return;
+
+      if (event == 'trip_approved') {
+        _closeWaitingDialog();
+        _showSnackbar("Driver accepted your request. Proceeding to payment.");
+        _showPaymentDialog();
+      } else if (event == 'trip_rejected') {
+        _closeWaitingDialog();
+        _showSnackbar("Driver rejected the request. Please try another driver.");
+      }
+    }, onError: (error) {
+      debugPrint('Passenger WebSocket error: $error');
+    });
+  }
+
+  void _showWaitingApprovalDialog() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Waiting for Driver Approval'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            CircularProgressIndicator(color: nagcarlanGreen),
+            SizedBox(height: 16),
+            Text(
+              'Please wait while the driver reviews your trip request.',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _currentRequestId = null;
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _closeWaitingDialog() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  void _showPaymentDialog() {
+    if (!mounted) return;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -138,13 +266,7 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
           'to_location': toLocation,
         },
         onPaymentConfirmed: () {
-          // 1. Pop the FareCalculatorDialog (which is underneath)
-          // Since the PaymentMethodDialog has already popped itself (and its loading dialog) 
-          // in its own confirm logic, we use the 'context' of FareCalculatorDialog here.
           Navigator.of(context).pop();
-
-          // 2. Navigate to Trip Started Screen and remove the Profile Screen
-          // This replaces '/driver_profile_scanned' with '/trip_started'
           Navigator.of(context).pushNamedAndRemoveUntil(
             '/trip_started',
             ModalRoute.withName('/passenger_home'),
@@ -158,6 +280,13 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
     ).then((_) {
       if (mounted) setState(() => _isProcessing = false);
     });
+  }
+
+  void _showSnackbar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -313,7 +442,7 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
                       ),
                       child: _isProcessing
                           ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                          : const Text("Confirm & Pay", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          : const Text("Request Driver Approval", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     ),
                   ),
                 ],
