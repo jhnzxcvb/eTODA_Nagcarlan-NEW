@@ -40,7 +40,12 @@ func AddRating(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.LogAudit(DB, "CREATE", "Rating", strconv.Itoa(b.DriverID),
+	var driverCode string
+	if err := DB.QueryRow("SELECT driver_code FROM drivers WHERE id = $1", b.DriverID).Scan(&driverCode); err != nil {
+		driverCode = strconv.Itoa(b.DriverID)
+	}
+
+	utils.LogAudit(DB, "CREATE", "Rating", driverCode,
 		"Driver rated "+strconv.Itoa(b.Rating)+" stars", "Passenger:"+strconv.Itoa(b.PassengerID), "User")
 
 	utils.JSONOK(w, map[string]string{"message": "Rating submitted successfully"})

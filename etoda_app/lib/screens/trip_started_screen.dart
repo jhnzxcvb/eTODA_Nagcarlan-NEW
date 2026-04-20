@@ -21,18 +21,48 @@ class TripStartedScreen extends StatefulWidget {
 class _TripStartedScreenState extends State<TripStartedScreen> {
   StreamSubscription? _wsSubscription;
   final ApiService _apiService = ApiService();
+  DateTime? _startTime;
+  int _elapsedMinutes = 0;
+  Timer? _durationTimer;
 
   @override
   void initState() {
     super.initState();
     _connectWebSocket();
+    _fetchStartTime();
+    _startTimer();
   }
 
   @override
   void dispose() {
     _wsSubscription?.cancel();
+    _durationTimer?.cancel();
     ApiService.disconnectWebSocket();
     super.dispose();
+  }
+  
+  void _fetchStartTime() async {
+    final trip = await _apiService.fetchActiveTrip(widget.driverId.toString());
+    if (trip != null && trip['started_at'] != null) {
+      if (mounted) {
+        setState(() {
+          _startTime = DateTime.parse(trip['started_at']).toLocal();
+          final diff = DateTime.now().difference(_startTime!);
+          _elapsedMinutes = diff.inMinutes >= 0 ? diff.inMinutes : 0;
+        });
+      }
+    }
+  }
+
+  void _startTimer() {
+    _durationTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+      if (mounted && _startTime != null) {
+        setState(() {
+          final diff = DateTime.now().difference(_startTime!);
+          _elapsedMinutes = diff.inMinutes >= 0 ? diff.inMinutes : 0;
+        });
+      }
+    });
   }
 
   void _connectWebSocket() async {
@@ -163,10 +193,10 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
                               TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                         const SizedBox(height: 2),
-                        const Text(
-                          "TRIP IN PROGRESS",
-                          style: TextStyle(
-                            fontSize: 15,
+                        Text(
+                          "IN PROGRESS (${_elapsedMinutes}m)",
+                          style: const TextStyle(
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: nagcarlanGreen,
                           ),

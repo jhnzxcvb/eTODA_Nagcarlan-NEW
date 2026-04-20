@@ -5,7 +5,8 @@ import {
   faHome, faUsers, faUser, faDollarSign, faCreditCard,
   faMobileAlt, faExclamationTriangle, faCar, faClipboard,
   faChevronUp, faSignOutAlt, faCog, faUserCircle, faBell,
-  faUserPlus, faIdCard, faQrcode, faMapMarkerAlt,
+  faUserPlus, faIdCard, faQrcode, faMapMarkerAlt, faLock,
+  faEnvelope, faUserShield, faSave, faToggleOn, faToggleOff,
 } from '@fortawesome/free-solid-svg-icons';
 import Auth from '../Auth';
 import Dashboard from './dashboard/Dashboard';
@@ -19,6 +20,7 @@ import Fare from './fare/Fare';
 import QRCodes from './qrcodes/QRCodes';
 import Audit from './audit/Audit';
 import { Toasts, useToast } from './ui/Toast';
+import { api } from '../lib/api';
 
 const BASE = 'http://localhost:8080';
 
@@ -122,6 +124,40 @@ export default function App() {
     if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
     return `${Math.floor(diff/86400)}d ago`;
   };
+
+  // ── Profile Update Logic ──
+  const [profileForm, setProfileForm] = useState({ full_name: '', email: '', username: '', password: '' });
+  useEffect(() => {
+    if (auth && panel === 'profile') {
+      setProfileForm({
+        full_name: auth.full_name || '',
+        email: auth.email || '',
+        username: auth.username || '',
+        password: ''
+      });
+    }
+  }, [auth, panel]);
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    const res = await api('/api/profile', 'PATCH', profileForm);
+    if (res.success) {
+      const updated = { ...auth, ...profileForm };
+      delete updated.password;
+      setAuth(updated);
+      localStorage.setItem('adminUser', JSON.stringify(updated));
+      notify('Profile updated successfully', 'success');
+    } else {
+      notify(res.error || 'Failed to update profile', 'error');
+    }
+  };
+
+  // ── Settings Placeholder Logic ──
+  const [settings, setSettings] = useState({
+    notifications: true,
+    maintenance: false,
+    autoLogout: false
+  });
 
   if (!auth) {
     return (
@@ -328,6 +364,93 @@ export default function App() {
           {panel === 'complaints' && <Complaints   notify={notify} setPanel={setPanel} initialSearch={searchParam} />}
           {panel === 'trips'      && <Trips        notify={notify} setPanel={setPanel} initialSearch={searchParam} />}
           {panel === 'audit'      && <Audit        notify={notify} navigate={auditNavigate} />}
+
+          {/* ── Admin Profile Panel ── */}
+          {panel === 'profile' && (
+            <div className="card animate-fade-in" style={{ maxWidth: 600, margin: '0 auto' }}>
+              <div className="card-head">
+                <div className="card-title">
+                  <FontAwesomeIcon icon={faUserCircle} style={{ marginRight: 10, color: 'var(--gold)' }} />
+                  Administrator Profile
+                </div>
+              </div>
+              <form onSubmit={handleUpdateProfile} style={{ padding: '20px' }}>
+                <div className="field">
+                  <label><FontAwesomeIcon icon={faIdCard} style={{ marginRight: 8 }} />Full Name</label>
+                  <input 
+                    value={profileForm.full_name} 
+                    onChange={e => setProfileForm({...profileForm, full_name: e.target.value})} 
+                    placeholder="Enter your full name"
+                  />
+                </div>
+                <div className="field">
+                  <label><FontAwesomeIcon icon={faEnvelope} style={{ marginRight: 8 }} />Email Address</label>
+                  <input 
+                    type="email" 
+                    value={profileForm.email} 
+                    onChange={e => setProfileForm({...profileForm, email: e.target.value})} 
+                    placeholder="admin@etoda.gov"
+                  />
+                </div>
+                <div className="field">
+                  <label><FontAwesomeIcon icon={faUserShield} style={{ marginRight: 8 }} />Username</label>
+                  <input 
+                    value={profileForm.username} 
+                    onChange={e => setProfileForm({...profileForm, username: e.target.value})} 
+                  />
+                </div>
+                <div className="field">
+                  <label><FontAwesomeIcon icon={faLock} style={{ marginRight: 8 }} />New Password</label>
+                  <input 
+                    type="password" 
+                    value={profileForm.password} 
+                    onChange={e => setProfileForm({...profileForm, password: e.target.value})} 
+                    placeholder="Leave blank to keep current password"
+                  />
+                </div>
+                <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end' }}>
+                  <button type="submit" className="btn btn-green">
+                    <FontAwesomeIcon icon={faSave} style={{ marginRight: 8 }} />
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* ── Settings Panel ── */}
+          {panel === 'settings' && (
+            <div className="card animate-fade-in" style={{ maxWidth: 600, margin: '0 auto' }}>
+              <div className="card-head">
+                <div className="card-title">
+                  <FontAwesomeIcon icon={faCog} style={{ marginRight: 10, color: 'var(--gold)' }} />
+                  System Settings
+                </div>
+              </div>
+              <div style={{ padding: '10px 0' }}>
+                {[
+                  { id: 'notifications', label: 'Push Notifications', sub: 'Receive alerts for new driver enrollments', icon: faBell },
+                  { id: 'maintenance', label: 'Maintenance Mode', sub: 'Disable mobile app access temporarily', icon: faCog },
+                  { id: 'autoLogout', label: 'Security Timeout', sub: 'Automatically logout after 30 mins of inactivity', icon: faLock },
+                ].map((s) => (
+                  <div key={s.id} onClick={() => toggleSetting(s.id)}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid #f0f0f0', cursor: 'pointer' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <FontAwesomeIcon icon={s.icon} style={{ color: 'var(--gold)' }} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: '700' }}>{s.label}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#888' }}>{s.sub}</div>
+                      </div>
+                    </div>
+                    <FontAwesomeIcon icon={settings[s.id] ? faToggleOn : faToggleOff} style={{ fontSize: 24, color: settings[s.id] ? 'var(--green)' : '#ccc' }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <Toasts toasts={toasts} dismiss={dismiss} />

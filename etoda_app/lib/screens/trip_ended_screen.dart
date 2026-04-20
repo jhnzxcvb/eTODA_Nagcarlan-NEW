@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:etoda_nagcarlan/main.dart';
 import 'package:etoda_nagcarlan/widgets/rating_dialog.dart';
+import 'package:etoda_nagcarlan/widgets/report_dialog.dart';
 
 class TripEndedScreen extends StatelessWidget {
   const TripEndedScreen({super.key});
@@ -16,25 +17,26 @@ class TripEndedScreen extends StatelessWidget {
     final bool isCancelled = status == 'cancelled';
     final Color themeColor = isCancelled ? Colors.red : nagcarlanGreen;
 
-    // Extract and format the end time from the WebSocket payload if available
-    String formattedEndTime = "Just now";
-    try {
-      // Use payload timestamp or fallback to current system time for a "real-time" finish clock
-      // prioritize 'ended_at' from the database logs
-      final timestamp = tripData?['ended_at'] ?? 
+    // Extract and format the end time. 
+    // We check if the backend already sent a pre-formatted string (e.g. "03:04 PM")
+    String formattedEndTime = TimeOfDay.fromDateTime(DateTime.now()).format(context);
+    final rawTimestamp = tripData?['ended_at'] ?? 
                         tripData?['completed_at'] ?? 
-                        tripData?['cancelled_at'] ??
-                        DateTime.now().toIso8601String();
+                        tripData?['cancelled_at'];
 
-      if (timestamp != null) {
-        final DateTime endTime = DateTime.parse(timestamp.toString()).toLocal();
-        final int hour = endTime.hour > 12 ? endTime.hour - 12 : (endTime.hour == 0 ? 12 : endTime.hour);
-        final String period = endTime.hour >= 12 ? 'PM' : 'AM';
-        final String minutes = endTime.minute.toString().padLeft(2, '0');
-        formattedEndTime = "$hour:$minutes $period";
+    if (rawTimestamp != null) {
+      final String tsStr = rawTimestamp.toString();
+      // If the string already contains AM/PM, it's pre-formatted by the backend.
+      if (tsStr.contains(RegExp(r'(AM|PM)'))) {
+        formattedEndTime = tsStr;
+      } else {
+        try {
+          final DateTime parsedTime = DateTime.parse(tsStr).toLocal();
+          formattedEndTime = TimeOfDay.fromDateTime(parsedTime).format(context);
+        } catch (e) {
+          debugPrint("Error parsing ended_at: $e");
+        }
       }
-    } catch (e) {
-      debugPrint("Error parsing ended_at: $e");
     }
 
     return Scaffold(
@@ -138,7 +140,25 @@ class TripEndedScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
+                if (tripData != null)
+                  TextButton.icon(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (dialogContext) => ReportDialog(
+                          passengerId: (tripData['passenger_id'] as num?)?.toInt() ?? 0,
+                          driverId: (tripData['driver_id'] as num?)?.toInt() ?? 0,
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.report_problem_outlined, color: Colors.redAccent, size: 20),
+                    label: const Text(
+                      "REPORT AN ISSUE",
+                      style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ),
+                const SizedBox(height: 16),
               ],
             ),
           ),

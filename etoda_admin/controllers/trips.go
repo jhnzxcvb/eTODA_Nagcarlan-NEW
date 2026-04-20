@@ -19,32 +19,49 @@ func Trips(w http.ResponseWriter, r *http.Request) {
 	passengerID := r.URL.Query().Get("passenger_id")
 	driverID := r.URL.Query().Get("driver_id")
 
+	// We use a UNION to show both completed trips (history) and ongoing trips (real-time).
+	// The permanent log is only created at the end, but the admin sees active payments as "ongoing".
 	baseQuery := `
 		SELECT 
-			t.trip_code, 
-			COALESCE(u.first_name || ' ' || u.last_name, 'Guest') as p_name,
-			COALESCE(d.first_name || ' ' || d.last_name, 'Driver') as d_name,
-			COALESCE(d.contact, '—') as d_contact,
-			COALESCE(d.plate_number, '—') as d_plate,
-			COALESCE(d.body_no, '—') as d_body,
-			COALESCE(t.route, '—') as route,
-			t.fare_amount, 
-			t.payment_method, 
-			t.status,
-			to_char(t.started_at, 'YYYY-MM-DD HH24:MI') as started_at,
-			COALESCE(t.duration_min, 0) as duration
-		FROM trip_logs t
-		LEFT JOIN users u ON t.passenger_id = u.user_id
-		LEFT JOIN drivers d ON t.driver_id = d.id`
+			trip_code, p_name, d_name, d_contact, d_plate, d_body, route, fare_amount, payment_method, status, started_at, duration, passenger_id, driver_id, id
+		FROM (
+			SELECT 
+				tl.trip_code, 
+				COALESCE(u.first_name || ' ' || u.last_name, 'Guest') as p_name,
+				COALESCE(d.first_name || ' ' || d.last_name, 'Driver') as d_name,
+				COALESCE(d.contact, '—') as d_contact, COALESCE(d.plate_number, '—') as d_plate, COALESCE(d.body_no, '—') as d_body,
+				COALESCE(tl.route, '—') as route,
+				tl.fare_amount, tl.payment_method, tl.status,
+				to_char(tl.started_at, 'YYYY-MM-DD HH24:MI') as started_at,
+				COALESCE(tl.duration_min, 0) as duration,
+				tl.passenger_id, tl.driver_id, tl.id
+			FROM trip_logs tl
+			LEFT JOIN users u ON tl.passenger_id = u.user_id
+			LEFT JOIN drivers d ON tl.driver_id = d.id
+			UNION ALL
+			SELECT 
+				p.ref_code, 
+				COALESCE(u.first_name || ' ' || u.last_name, 'Guest'),
+				COALESCE(d.first_name || ' ' || d.last_name, 'Driver'),
+				COALESCE(d.contact, '—'), COALESCE(d.plate_number, '—'), COALESCE(d.body_no, '—'),
+				COALESCE(p.route, '—'), p.amount, p.method, 'ongoing',
+				to_char(p.paid_at, 'YYYY-MM-DD HH24:MI'),
+				CAST(EXTRACT(EPOCH FROM (NOW() - p.paid_at))/60 AS INTEGER),
+				p.passenger_id, p.driver_id, p.id + 1000000
+			FROM payments p
+			LEFT JOIN users u ON p.passenger_id = u.user_id
+			LEFT JOIN drivers d ON p.driver_id = d.id
+			WHERE NOT EXISTS (SELECT 1 FROM trip_logs tl WHERE tl.trip_code = p.ref_code)
+		) sub`
 
 	var rows *sql.Rows
 	var err error
 	if passengerID != "" {
-		rows, err = DB.Query(baseQuery+" WHERE t.passenger_id = $1 ORDER BY t.id DESC", passengerID)
+		rows, err = DB.Query(baseQuery+" WHERE sub.passenger_id = $1 ORDER BY sub.id DESC", passengerID)
 	} else if driverID != "" {
-		rows, err = DB.Query(baseQuery+" WHERE t.driver_id = $1 ORDER BY t.id DESC", driverID)
+		rows, err = DB.Query(baseQuery+" WHERE sub.driver_id = $1 ORDER BY sub.id DESC", driverID)
 	} else {
-		rows, err = DB.Query(baseQuery + " ORDER BY t.id DESC")
+		rows, err = DB.Query(baseQuery + " ORDER BY sub.id DESC")
 	}
 
 	if err != nil {
@@ -58,12 +75,16 @@ func Trips(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var code, pName, dName, contact, plate, body, route, method, status, date string
 		var amount float64
-		var duration int
-		if err := rows.Scan(&code, &pName, &dName, &contact, &plate, &body, &route, &amount, &method, &status, &date, &duration); err != nil {
+		var duration, pID, dID, id int
+		if err := rows.Scan(&code, &pName, &dName, &contact, &plate, &body, &route, &amount, &method, &status, &date, &duration, &pID, &dID, &id); err != nil {
 			continue
+		}
+		if duration < 0 {
+			duration = 0
 		}
 
 		list = append(list, map[string]interface{}{
+			"id":             id,
 			"trip_code":      code,
 			"passenger_name": pName,
 			"driver_name":    dName,
@@ -104,7 +125,8 @@ func ActiveTrip(w http.ResponseWriter, r *http.Request) {
 			COALESCE(u.first_name || ' ' || u.last_name, 'Guest'),
 			COALESCE(p.route, '—'),
 			p.amount, 
-			p.method
+			p.method,
+			p.paid_at
 		FROM payments p
 		LEFT JOIN users u ON p.passenger_id = u.user_id
 		WHERE p.driver_id = $1 
@@ -114,13 +136,18 @@ func ActiveTrip(w http.ResponseWriter, r *http.Request) {
 	var t struct {
 		Code, Passenger, Route, Method string
 		Amount                         float64
-		Duration                       int
+		StartedAt                      time.Time
 	}
 
-	err := DB.QueryRow(query, driverID).Scan(&t.Code, &t.Passenger, &t.Route, &t.Amount, &t.Method)
+	err := DB.QueryRow(query, driverID).Scan(&t.Code, &t.Passenger, &t.Route, &t.Amount, &t.Method, &t.StartedAt)
 	if err != nil {
 		utils.JSONOK(w, nil) // Return null if no active trip
 		return
+	}
+
+	duration := int(time.Since(t.StartedAt).Minutes())
+	if duration < 0 {
+		duration = 0
 	}
 
 	utils.JSONOK(w, map[string]interface{}{
@@ -129,7 +156,8 @@ func ActiveTrip(w http.ResponseWriter, r *http.Request) {
 		"route":          t.Route,
 		"fare_amount":    t.Amount,
 		"payment_method": t.Method,
-		"duration_min":   0,
+		"duration_min":   duration,
+		"started_at":     t.StartedAt.Format(time.RFC3339),
 		"status":         "ongoing",
 	})
 }
@@ -175,14 +203,15 @@ func CompleteTrip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	duration := int(time.Since(startedAt).Minutes())
-
-	// Insert into logs as completed
-	_, err = DB.Exec(`
+	// Insert into logs as completed and retrieve the actual database timestamp
+	var endedAt time.Time
+	var duration int
+	err = DB.QueryRow(`
 		INSERT INTO trip_logs 
 			(trip_code, passenger_id, driver_id, route, fare_amount, payment_method, duration_min, started_at, ended_at, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'completed')`,
-		b.TripCode, pID, b.DriverID, route, amount, method, duration, startedAt)
+		VALUES ($1, $2, $3, $4, $5, $6, GREATEST(1, ROUND(EXTRACT(EPOCH FROM (NOW() - $7))/60)), $7, NOW(), 'completed')
+		RETURNING ended_at, duration_min`,
+		b.TripCode, pID, b.DriverID, route, amount, method, startedAt).Scan(&endedAt, &duration)
 
 	if err != nil {
 		utils.JSONErr(w, "Database error: "+err.Error(), 500)
@@ -201,7 +230,7 @@ func CompleteTrip(w http.ResponseWriter, r *http.Request) {
 				"driver_name":    dName,
 				"route":          route,
 				"fare_amount":    amount,
-				"ended_at":       time.Now().Format(time.RFC3339),
+				"ended_at":       endedAt.Format("03:04 PM"),
 			},
 		}
 		WSHub.NotifyPassenger(strconv.Itoa(pID), payload)
@@ -250,12 +279,14 @@ func CancelTrip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Insert into logs as cancelled
-	_, err = DB.Exec(`
+	// Insert into logs as cancelled and retrieve the actual database timestamp
+	var endedAt time.Time
+	err = DB.QueryRow(`
 		INSERT INTO trip_logs 
 			(trip_code, passenger_id, driver_id, route, fare_amount, payment_method, duration_min, started_at, ended_at, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'cancelled')`,
-		b.TripCode, pID, b.DriverID, route, amount, method, 0, startedAt)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'cancelled')
+		RETURNING ended_at`,
+		b.TripCode, pID, b.DriverID, route, amount, method, 0, startedAt).Scan(&endedAt)
 
 	if err != nil {
 		utils.JSONErr(w, "Database error: "+err.Error(), 500)
@@ -274,7 +305,7 @@ func CancelTrip(w http.ResponseWriter, r *http.Request) {
 				"driver_name":    dName,
 				"route":          route,
 				"fare_amount":    amount,
-				"cancelled_at":   time.Now().Format(time.RFC3339),
+				"cancelled_at":   endedAt.Format("03:04 PM"),
 			},
 		}
 		WSHub.NotifyPassenger(strconv.Itoa(pID), payload)

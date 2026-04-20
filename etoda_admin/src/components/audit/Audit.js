@@ -27,7 +27,7 @@ const ACTION_BADGE = {
   RESTORE: 'badge-restore',
 };
 
-const ENTITY_LIST = ['All', 'Driver', 'Passenger', 'Fare', 'Payment', 'QRCode', 'Complaint', 'Trip'];
+const ENTITY_LIST = ['All', 'Driver', 'Passenger', 'Fare', 'Payment', 'QRCode', 'Complaint', 'Trip', 'Rating'];
 
 const PAGE_SIZES = [10, 25, 50];
 
@@ -168,6 +168,7 @@ const entityPath = (entity) => {
     QRCode:    'qrcodes',
     Complaint: 'complaints',
     Trip:      'trips',
+    Rating:    'drivers',
   };
   return map[entity] || null;
 };
