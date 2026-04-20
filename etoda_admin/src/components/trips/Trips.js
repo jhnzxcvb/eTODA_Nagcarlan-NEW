@@ -5,12 +5,22 @@ import {
   faRoute, faSearch, faFilter, faEye, 
   faChevronLeft, faChevronRight, faRefresh
 } from '@fortawesome/free-solid-svg-icons';
-import { api } from '../../lib/api';
 import Loading from '../ui/Loading';
 import Empty from '../ui/Empty';
 import Modal from '../ui/Modal';
 import DG from '../ui/DetailGrid';
 import { buildPageWindow } from '../../lib/pagination';
+
+const api = async (endpoint) => {
+  try {
+    const response = await fetch(`http://localhost:8080${endpoint}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+    });
+    return await response.json();
+  } catch (err) {
+    return { success: false, error: 'Connection failed' };
+  }
+};
 
 const formatDate = (str) => {
   if (!str) return '—';
@@ -102,7 +112,7 @@ function Trips({ notify }) {
         <div style={{ padding: '10px 18px 0', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <FontAwesomeIcon icon={faFilter} style={{ color: 'var(--gray)', fontSize: 12 }} />
           <span style={{ fontSize: '.8rem', color: 'var(--gray)', marginRight: 4 }}>Filter:</span>
-          {['All', 'Ongoing', 'Completed', 'Cancelled'].map(m => (
+          {['All', 'Completed', 'Cancelled'].map(m => (
             <button key={m} onClick={() => setStatusFilter(m)} style={{
               padding: '4px 12px', borderRadius: 20,
               border: statusFilter === m ? '1.5px solid var(--green)' : '1.5px solid var(--gray2)',

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:etoda_nagcarlan/main.dart';
+import 'dart:async';
 
 /// OngoingTripCard displays an active trip with passenger details, route, and fare.
-/// 
+///
 /// Constructor parameters:
 /// - tripData: Map containing trip information (passenger_name, origin, destination, fare, status)
 /// - onCompleteTap: Callback when "Complete Trip" button is tapped
-class OngoingTripCard extends StatelessWidget {
+class OngoingTripCard extends StatefulWidget {
   final Map<String, dynamic> tripData;
   final VoidCallback onCompleteTap;
   final VoidCallback onCancelTap;
@@ -19,28 +20,54 @@ class OngoingTripCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final String passengerName = tripData['passenger_name'] ?? 'Passenger';
-    final String origin = tripData['origin'] ?? '—';
-    final String destination = tripData['destination'] ?? '—';
-    final double fare = (tripData['fare'] is num) 
-        ? (tripData['fare'] as num).toDouble() 
-        : (tripData['fare_amount'] is num) 
-            ? (tripData['fare_amount'] as num).toDouble()
-            : 0.0;
-    final String status = tripData['status']?.toString().toLowerCase() ?? 'ongoing';
-    
-    // Calculate elapsed time
-    int duration = (tripData['duration_min'] as num?)?.toInt() ?? 0;
-    if (tripData['started_at'] != null) {
-      DateTime start = DateTime.parse(tripData['started_at']).toLocal();
+  State<OngoingTripCard> createState() => _OngoingTripCardState();
+}
+
+class _OngoingTripCardState extends State<OngoingTripCard> {
+  Timer? _timer;
+  int _elapsedSeconds = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateInitialElapsed();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        _calculateInitialElapsed();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _calculateInitialElapsed() {
+    if (widget.tripData['started_at'] != null) {
+      DateTime start = DateTime.parse(widget.tripData['started_at']).toLocal();
       final diff = DateTime.now().difference(start);
-      duration = diff.inMinutes >= 0 ? diff.inMinutes : 0;
+      setState(() {
+        _elapsedSeconds = diff.inSeconds >= 0 ? diff.inSeconds : 0;
+      });
     }
-    // Fallback if calculated duration is 0 but backend has a value
-    if (duration == 0 && (tripData['duration_min'] as num?) != null) {
-       duration = (tripData['duration_min'] as num).toInt();
-    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String passengerName = widget.tripData['passenger_name'] ?? 'Passenger';
+    final String origin = widget.tripData['origin'] ?? '—';
+    final String destination = widget.tripData['destination'] ?? '—';
+    final double fare = (widget.tripData['fare'] is num)
+        ? (widget.tripData['fare'] as num).toDouble()
+        : (widget.tripData['fare_amount'] is num)
+            ? (widget.tripData['fare_amount'] as num).toDouble()
+            : 0.0;
+    final String status = widget.tripData['status']?.toString().toLowerCase() ?? 'ongoing';
+
+    final int minutes = _elapsedSeconds ~/ 60;
+    final int seconds = _elapsedSeconds % 60;
 
     return Card(
       elevation: 8,
@@ -163,7 +190,7 @@ class OngoingTripCard extends StatelessWidget {
                   style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
                 Text(
-                  '$duration mins elapsed',
+                  '${minutes}m ${seconds}s',
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.orange),
                 ),
               ],
@@ -227,7 +254,7 @@ class OngoingTripCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: onCancelTap,
+                    onPressed: widget.onCancelTap,
                     icon: const Icon(Icons.cancel_outlined),
                     label: const Text(
                       'CANCEL',
@@ -246,7 +273,7 @@ class OngoingTripCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: onCompleteTap,
+                    onPressed: widget.onCompleteTap,
                     icon: const Icon(Icons.check_circle_outline),
                     label: const Text(
                       'END TRIP',
