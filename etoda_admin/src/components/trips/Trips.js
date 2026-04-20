@@ -102,7 +102,7 @@ function Trips({ notify }) {
         <div style={{ padding: '10px 18px 0', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <FontAwesomeIcon icon={faFilter} style={{ color: 'var(--gray)', fontSize: 12 }} />
           <span style={{ fontSize: '.8rem', color: 'var(--gray)', marginRight: 4 }}>Filter:</span>
-          {['All', 'Completed', 'Cancelled'].map(m => (
+          {['All', 'Ongoing', 'Completed', 'Cancelled'].map(m => (
             <button key={m} onClick={() => setStatusFilter(m)} style={{
               padding: '4px 12px', borderRadius: 20,
               border: statusFilter === m ? '1.5px solid var(--green)' : '1.5px solid var(--gray2)',
@@ -157,7 +157,7 @@ function Trips({ notify }) {
                       <td>{t.driver_name}</td>
                       <td style={{ fontSize: '.85rem', color: 'var(--gray)' }}>{t.route}</td>
                       <td><StatusBadge status={t.status} /></td>
-                      <td style={{ fontSize: '.85rem' }}>{t.duration_min} min</td>
+                      <td style={{ fontSize: '.85rem' }}>{Math.max(0, t.duration_min)} min</td>
                       <td style={{ fontSize: '.85rem' }}>{formatDate(t.started_at)}</td>
                       <td>
                         <button className="ib ib-view" onClick={() => setViewItem(t)} style={{ minWidth: 60 }}>
@@ -219,7 +219,7 @@ function Trips({ notify }) {
             ['Contact',   viewItem.driver_contact],
             ['Route',     viewItem.route],
             ['Status',    viewItem.status],
-            ['Duration',  `${viewItem.duration_min} min`],
+            ['Duration',  `${Math.max(0, viewItem.duration_min)} min`],
             ['Date',      formatDate(viewItem.started_at)]
           ]} />
           <div className="modal-footer">

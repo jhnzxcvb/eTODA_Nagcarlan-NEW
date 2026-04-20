@@ -29,6 +29,18 @@ class OngoingTripCard extends StatelessWidget {
             ? (tripData['fare_amount'] as num).toDouble()
             : 0.0;
     final String status = tripData['status']?.toString().toLowerCase() ?? 'ongoing';
+    
+    // Calculate elapsed time
+    int duration = (tripData['duration_min'] as num?)?.toInt() ?? 0;
+    if (tripData['started_at'] != null) {
+      DateTime start = DateTime.parse(tripData['started_at']).toLocal();
+      final diff = DateTime.now().difference(start);
+      duration = diff.inMinutes >= 0 ? diff.inMinutes : 0;
+    }
+    // Fallback if calculated duration is 0 but backend has a value
+    if (duration == 0 && (tripData['duration_min'] as num?) != null) {
+       duration = (tripData['duration_min'] as num).toInt();
+    }
 
     return Card(
       elevation: 8,
@@ -139,7 +151,25 @@ class OngoingTripCard extends StatelessWidget {
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+
+            // Duration
+            Row(
+              children: [
+                const Icon(Icons.timer_outlined, color: Colors.orange, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Duration: ',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                ),
+                Text(
+                  '$duration mins elapsed',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.orange),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
 
             // Divider
             Container(

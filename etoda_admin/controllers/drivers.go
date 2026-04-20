@@ -140,7 +140,7 @@ func Drivers(w http.ResponseWriter, r *http.Request) {
 		utils.JSONOK(w, d)
 
 	default:
-		utils.JSONErr(w, "Method not allowed", 405)
+		utils.JSONErr(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
@@ -152,6 +152,14 @@ func DriverByID(w http.ResponseWriter, r *http.Request) {
 		var b map[string]interface{}
 		utils.Decode(r, &b)
 
+		// Fetch driver_code for audit logging before potential update
+		// Fetch driver_code for audit logging before potential update
+		var driverCode string
+		err := DB.QueryRow("SELECT driver_code FROM drivers WHERE id=$1", id).Scan(&driverCode)
+		if err != nil {
+			utils.JSONErr(w, "Driver not found", http.StatusNotFound)
+			return
+		}
 		sets, args := []string{}, []interface{}{}
 
 		// Removed the weird "name" splitting logic since the JSON now uses first_name, last_name etc.
@@ -170,20 +178,20 @@ func DriverByID(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if len(sets) == 0 {
-			utils.JSONErr(w, "Nothing to update", 400)
+			utils.JSONErr(w, "Nothing to update", http.StatusBadRequest)
 			return
 		}
 
 		args = append(args, id)
 		query := fmt.Sprintf("UPDATE drivers SET %s WHERE id=$%d", strings.Join(sets, ","), len(args))
-		_, err := DB.Exec(query, args...)
-		if err != nil {
+		_, err = DB.Exec(query, args...)
+		if err != nil { // Use the 'err' declared above
 			utils.JSONErr(w, err.Error(), 500)
 			return
 		}
 
 		adminID := fmt.Sprintf("%v", r.Context().Value("admin_id"))
-		utils.LogAudit(DB, "UPDATE", "Driver", id, "Updated driver details", "Admin:"+adminID, "Admin")
+		utils.LogAudit(DB, "UPDATE", "Driver", driverCode, "Updated driver details", "Admin:"+adminID, "Admin")
 		utils.JSONOK(w, map[string]string{"message": "Updated"})
 
 	case "DELETE":
@@ -195,6 +203,6 @@ func DriverByID(w http.ResponseWriter, r *http.Request) {
 		utils.JSONOK(w, map[string]string{"message": "Driver removed"})
 
 	default:
-		utils.JSONErr(w, "Method not allowed", 405)
+		utils.JSONErr(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
