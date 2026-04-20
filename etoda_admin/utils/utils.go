@@ -3,6 +3,7 @@ package utils
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -77,4 +78,9 @@ func LogAudit(db *sql.DB, action, entity, entityID, detail, performedBy, actorTy
 		`INSERT INTO audit_logs (action, entity, entity_id, detail, performed_by, actor_type, created_at) VALUES ($1,$2,$3,$4,$5,$6,NOW())`,
 		action, entity, entityID, detail, performedBy, actorType,
 	)
+}
+
+// LogInfo prints an informational message to the standard logger.
+func LogInfo(prefix, msg string) {
+	log.Printf("[INFO] %s: %s", prefix, msg)
 }

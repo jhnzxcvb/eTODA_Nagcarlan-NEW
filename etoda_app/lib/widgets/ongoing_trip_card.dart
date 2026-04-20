@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:etoda_nagcarlan/main.dart';
+import 'dart:async';
 
-/// OngoingTripCard displays an active trip with route and status.
+/// OngoingTripCard displays an active trip with passenger details, route, and fare.
 /// Click to view full trip details in a modal.
-/// 
-/// Constructor parameters:
+///
 /// - tripData: Map containing trip information
 /// - onCompleteTap: Callback when "Complete Trip" button is tapped
 /// - onCancelTap: Callback when "Cancel Trip" button is tapped
-class OngoingTripCard extends StatelessWidget {
+class OngoingTripCard extends StatefulWidget {
   final Map<String, dynamic> tripData;
   final VoidCallback onCompleteTap;
   final VoidCallback onCancelTap;
@@ -20,26 +20,50 @@ class OngoingTripCard extends StatelessWidget {
     required this.onCancelTap,
   });
 
-  void _showTripDetailsModal(BuildContext context) {
-    final String passengerName = tripData['passenger_name'] ?? 'Passenger';
-    final String route = tripData['route'] ?? 'Unknown Route';
-    final double fare = (tripData['fare'] is num) 
-        ? (tripData['fare'] as num).toDouble() 
-        : (tripData['fare_amount'] is num) 
-            ? (tripData['fare_amount'] as num).toDouble()
-            : 0.0;
-    final String status = tripData['status']?.toString().toLowerCase() ?? 'ongoing';
-    
-    // Calculate elapsed time
-    int duration = (tripData['duration_min'] as num?)?.toInt() ?? 0;
-    if (tripData['started_at'] != null) {
-      DateTime start = DateTime.parse(tripData['started_at']).toLocal();
+  @override
+  State<OngoingTripCard> createState() => _OngoingTripCardState();
+}
+
+class _OngoingTripCardState extends State<OngoingTripCard> {
+  Timer? _timer;
+  int _elapsedSeconds = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateInitialElapsed();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        _calculateInitialElapsed();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _calculateInitialElapsed() {
+    if (widget.tripData['started_at'] != null) {
+      DateTime start = DateTime.parse(widget.tripData['started_at']).toLocal();
       final diff = DateTime.now().difference(start);
-      duration = diff.inMinutes >= 0 ? diff.inMinutes : 0;
+      setState(() {
+        _elapsedSeconds = diff.inSeconds >= 0 ? diff.inSeconds : 0;
+      });
     }
-    if (duration == 0 && (tripData['duration_min'] as num?) != null) {
-       duration = (tripData['duration_min'] as num).toInt();
-    }
+  }
+
+  void _showTripDetailsModal(BuildContext context) {
+    final String passengerName = widget.tripData['passenger_name'] ?? 'Passenger';
+    final String route = widget.tripData['route'] ?? 'Unknown Route';
+    final double fare = (widget.tripData['fare'] is num)
+        ? (widget.tripData['fare'] as num).toDouble()
+        : (widget.tripData['fare_amount'] is num)
+            ? (widget.tripData['fare_amount'] as num).toDouble()
+            : 0.0;
+    final String status = widget.tripData['status']?.toString().toLowerCase() ?? 'ongoing';
 
     showModalBottomSheet(
       context: context,
@@ -175,7 +199,7 @@ class OngoingTripCard extends StatelessWidget {
                       _buildDetailSection(
                         icon: Icons.location_on_outlined,
                         label: 'Route',
-                        value: route,
+                        value: widget.tripData['route'] ?? '—',
                         iconColor: nagcarlanGreen,
                       ),
                       const SizedBox(height: 12),
@@ -183,8 +207,8 @@ class OngoingTripCard extends StatelessWidget {
                       // Duration
                       _buildDetailSection(
                         icon: Icons.timer_outlined,
-                        label: 'Duration',
-                        value: '$duration mins elapsed',
+                        label: 'Live Duration',
+                        value: '${_elapsedSeconds ~/ 60}m ${_elapsedSeconds % 60}s',
                         iconColor: Colors.orange,
                       ),
                       const SizedBox(height: 12),
@@ -205,7 +229,7 @@ class OngoingTripCard extends StatelessWidget {
                             child: OutlinedButton.icon(
                               onPressed: () {
                                 Navigator.pop(context);
-                                onCancelTap();
+                                widget.onCancelTap();
                               },
                               icon: const Icon(Icons.cancel_outlined),
                               label: const Text(
@@ -227,7 +251,7 @@ class OngoingTripCard extends StatelessWidget {
                             child: ElevatedButton.icon(
                               onPressed: () {
                                 Navigator.pop(context);
-                                onCompleteTap();
+                                widget.onCompleteTap();
                               },
                               icon: const Icon(Icons.check_circle_outline),
                               label: const Text(
@@ -308,8 +332,8 @@ class OngoingTripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String route = tripData['route'] ?? 'Unknown Route';
-    final String status = tripData['status']?.toString().toLowerCase() ?? 'ongoing';
+    final String route = widget.tripData['route'] ?? 'Unknown Route';
+    final String status = widget.tripData['status']?.toString().toLowerCase() ?? 'ongoing';
 
     return GestureDetector(
       onTap: () => _showTripDetailsModal(context),
@@ -398,7 +422,7 @@ class OngoingTripCard extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: onCompleteTap,
+                  onPressed: widget.onCompleteTap,
                   icon: const Icon(Icons.check_circle_outline, size: 18),
                   label: const Text(
                     'END TRIP',

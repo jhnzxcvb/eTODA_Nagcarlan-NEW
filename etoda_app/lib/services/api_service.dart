@@ -180,6 +180,28 @@ class ApiService {
     }
   }
 
+  /// Marks a trip as completed in the database and records the final duration.
+  Future<bool> completeTrip(String tripCode, int driverId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/trips/complete'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'trip_code': tripCode,
+          'driver_id': driverId,
+        }),
+      );
+      if (response.statusCode == 200) {
+        activeTrip = null; // Clear local active trip state
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('⚠️ Error completing trip: $e');
+      return false;
+    }
+  }
+
   Future<bool> cancelTrip(String tripCode, int driverId) async {
     try {
       final response = await http.post(

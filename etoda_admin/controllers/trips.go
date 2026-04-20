@@ -3,6 +3,7 @@ package controllers
 import (
 	"database/sql"
 	"etoda_admin/utils"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -19,8 +20,7 @@ func Trips(w http.ResponseWriter, r *http.Request) {
 	passengerID := r.URL.Query().Get("passenger_id")
 	driverID := r.URL.Query().Get("driver_id")
 
-	// We use a UNION to show both completed trips (history) and ongoing trips (real-time).
-	// The permanent log is only created at the end, but the admin sees active payments as "ongoing".
+	// Only fetch from trip_logs to show finalized trip history.
 	baseQuery := `
 		SELECT 
 			trip_code, p_name, d_name, d_contact, d_plate, d_body, route, fare_amount, payment_method, status, started_at, duration, passenger_id, driver_id, id
@@ -32,36 +32,22 @@ func Trips(w http.ResponseWriter, r *http.Request) {
 				COALESCE(d.contact, '—') as d_contact, COALESCE(d.plate_number, '—') as d_plate, COALESCE(d.body_no, '—') as d_body,
 				COALESCE(tl.route, '—') as route,
 				tl.fare_amount, tl.payment_method, tl.status,
-				to_char(tl.started_at, 'YYYY-MM-DD HH24:MI') as started_at,
+				tl.started_at as started_at,
 				COALESCE(tl.duration_min, 0) as duration,
 				tl.passenger_id, tl.driver_id, tl.id
 			FROM trip_logs tl
 			LEFT JOIN users u ON tl.passenger_id = u.user_id
 			LEFT JOIN drivers d ON tl.driver_id = d.id
-			UNION ALL
-			SELECT 
-				p.ref_code, 
-				COALESCE(u.first_name || ' ' || u.last_name, 'Guest'),
-				COALESCE(d.first_name || ' ' || d.last_name, 'Driver'),
-				COALESCE(d.contact, '—'), COALESCE(d.plate_number, '—'), COALESCE(d.body_no, '—'),
-				COALESCE(p.route, '—'), p.amount, p.method, 'ongoing',
-				to_char(p.paid_at, 'YYYY-MM-DD HH24:MI'),
-				CAST(EXTRACT(EPOCH FROM (NOW() - p.paid_at))/60 AS INTEGER),
-				p.passenger_id, p.driver_id, p.id + 1000000
-			FROM payments p
-			LEFT JOIN users u ON p.passenger_id = u.user_id
-			LEFT JOIN drivers d ON p.driver_id = d.id
-			WHERE NOT EXISTS (SELECT 1 FROM trip_logs tl WHERE tl.trip_code = p.ref_code)
 		) sub`
 
 	var rows *sql.Rows
 	var err error
 	if passengerID != "" {
-		rows, err = DB.Query(baseQuery+" WHERE sub.passenger_id = $1 ORDER BY sub.id DESC", passengerID)
+		rows, err = DB.Query(baseQuery+" WHERE sub.passenger_id = $1 ORDER BY sub.id DESC ", passengerID)
 	} else if driverID != "" {
-		rows, err = DB.Query(baseQuery+" WHERE sub.driver_id = $1 ORDER BY sub.id DESC", driverID)
+		rows, err = DB.Query(baseQuery+" WHERE sub.driver_id = $1 ORDER BY sub.id DESC ", driverID)
 	} else {
-		rows, err = DB.Query(baseQuery + " ORDER BY sub.id DESC")
+		rows, err = DB.Query(baseQuery + " ORDER BY sub.id DESC ")
 	}
 
 	if err != nil {
@@ -70,15 +56,18 @@ func Trips(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
+	count := 0
 	// We use a map to match the specific keys expected by the Admin dashboard React code.
 	list := []map[string]interface{}{}
 	for rows.Next() {
-		var code, pName, dName, contact, plate, body, route, method, status, date string
+		var code, pName, dName, contact, plate, body, route, method, status string
+		var startedAt time.Time
 		var amount float64
 		var duration, pID, dID, id int
-		if err := rows.Scan(&code, &pName, &dName, &contact, &plate, &body, &route, &amount, &method, &status, &date, &duration, &pID, &dID, &id); err != nil {
+		if err := rows.Scan(&code, &pName, &dName, &contact, &plate, &body, &route, &amount, &method, &status, &startedAt, &duration, &pID, &dID, &id); err != nil {
 			continue
 		}
+		count++
 		if duration < 0 {
 			duration = 0
 		}
@@ -96,9 +85,10 @@ func Trips(w http.ResponseWriter, r *http.Request) {
 			"payment_method": method,
 			"status":         status,
 			"duration_min":   duration,
-			"started_at":     date,
+			"started_at":     startedAt.Format(time.RFC3339),
 		})
 	}
+	utils.LogInfo("Trips", fmt.Sprintf("Fetched %d trip records for admin dashboard", count))
 
 	if err := rows.Err(); err != nil {
 		utils.JSONErr(w, "Error iterating rows: "+err.Error(), 500)
@@ -205,13 +195,15 @@ func CompleteTrip(w http.ResponseWriter, r *http.Request) {
 
 	// Insert into logs as completed and retrieve the actual database timestamp
 	var endedAt time.Time
-	var duration int
+	var finalDuration int
+
+	// Calculate duration in minutes (minimum 1)
 	err = DB.QueryRow(`
 		INSERT INTO trip_logs 
 			(trip_code, passenger_id, driver_id, route, fare_amount, payment_method, duration_min, started_at, ended_at, status)
-		VALUES ($1, $2, $3, $4, $5, $6, GREATEST(1, ROUND(EXTRACT(EPOCH FROM (NOW() - $7))/60)), $7, NOW(), 'completed')
+		VALUES ($1, $2, $3, $4, $5, $6, GREATEST(1, CAST(EXTRACT(EPOCH FROM (NOW() - $7))/60 AS INTEGER)), $7, NOW(), 'completed')
 		RETURNING ended_at, duration_min`,
-		b.TripCode, pID, b.DriverID, route, amount, method, startedAt).Scan(&endedAt, &duration)
+		b.TripCode, pID, b.DriverID, route, amount, method, startedAt).Scan(&endedAt, &finalDuration)
 
 	if err != nil {
 		utils.JSONErr(w, "Database error: "+err.Error(), 500)
@@ -230,6 +222,7 @@ func CompleteTrip(w http.ResponseWriter, r *http.Request) {
 				"driver_name":    dName,
 				"route":          route,
 				"fare_amount":    amount,
+				"duration_min":   finalDuration,
 				"ended_at":       endedAt.Format("03:04 PM"),
 			},
 		}

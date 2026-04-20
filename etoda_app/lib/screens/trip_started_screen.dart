@@ -22,7 +22,7 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
   StreamSubscription? _wsSubscription;
   final ApiService _apiService = ApiService();
   DateTime? _startTime;
-  int _elapsedMinutes = 0;
+  int _elapsedSeconds = 0;
   Timer? _durationTimer;
 
   @override
@@ -47,19 +47,18 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
       if (mounted) {
         setState(() {
           _startTime = DateTime.parse(trip['started_at']).toLocal();
-          final diff = DateTime.now().difference(_startTime!);
-          _elapsedMinutes = diff.inMinutes >= 0 ? diff.inMinutes : 0;
+          _elapsedSeconds = DateTime.now().difference(_startTime!).inSeconds;
         });
       }
     }
   }
 
   void _startTimer() {
-    _durationTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+    _durationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted && _startTime != null) {
+        final diff = DateTime.now().difference(_startTime!);
         setState(() {
-          final diff = DateTime.now().difference(_startTime!);
-          _elapsedMinutes = diff.inMinutes >= 0 ? diff.inMinutes : 0;
+          _elapsedSeconds = diff.inSeconds >= 0 ? diff.inSeconds : 0;
         });
       }
     });
@@ -193,10 +192,10 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
                               TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                         const SizedBox(height: 2),
-                        Text(
-                          "IN PROGRESS (${_elapsedMinutes}m)",
+                        Text( // Display elapsed time in minutes and seconds
+                          "IN PROGRESS (${_elapsedSeconds ~/ 60}m ${_elapsedSeconds % 60}s)",
                           style: const TextStyle(
-                            fontSize: 14,
+                            fontSize: 15,
                             fontWeight: FontWeight.bold,
                             color: nagcarlanGreen,
                           ),
