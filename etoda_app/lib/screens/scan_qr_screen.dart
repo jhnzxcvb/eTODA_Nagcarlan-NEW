@@ -106,7 +106,13 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
         return;
       }
 
-      // 5. Prepare arguments for the Profile Screen.
+      // 5. Check if driver is active/online
+      if (data['status'] != 'Active') {
+        _showError("Driver Not Available",
+            "This driver is currently offline or not available for trips. Please choose another driver.",
+            icon: Icons.person_off, iconColor: Colors.red);
+        return;
+      }
       // We create a clean map with just the driver data and the passenger ID
       // to avoid confusion with nested 'data' keys.
       final Map<String, dynamic> profileArgs = Map<String, dynamic>.from(data);
