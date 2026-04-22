@@ -28,7 +28,7 @@ function Payments({ notify }) {
   const [loading, setLoading] = useState(true);
   const [viewItem, setViewItem] = useState(null);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
+  const [methodFilter, setMethodFilter] = useState('All');
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -40,11 +40,11 @@ function Payments({ notify }) {
   };
 
   useEffect(() => { load(); }, []);
-  useEffect(() => { setCurrentPage(1); }, [statusFilter, pageSize, search]);
+  useEffect(() => { setCurrentPage(1); }, [methodFilter, pageSize, search]);
 
   const filtered = useMemo(() => {
     let rows = data;
-    if (statusFilter !== 'All') rows = rows.filter(p => p.status === statusFilter);
+    if (methodFilter !== 'All') rows = rows.filter(p => p.method === methodFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
       rows = rows.filter(p =>
@@ -55,7 +55,7 @@ function Payments({ notify }) {
       );
     }
     return rows;
-  }, [data, statusFilter, search]);
+  }, [data, methodFilter, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginated  = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -104,18 +104,18 @@ function Payments({ notify }) {
         <div style={{ padding: '10px 18px 0', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <FontAwesomeIcon icon={faFilter} style={{ color: 'var(--gray)', fontSize: 12 }} />
           <span style={{ fontSize: '.8rem', color: 'var(--gray)', marginRight: 4 }}>Filter:</span>
-          {['All', 'Pending', 'Settled', 'Refunded'].map(s => (
-            <button key={s} onClick={() => setStatusFilter(s)} style={{
+          {['All', 'Cash', 'GCash', 'Maya', 'Konek2CARD', 'Card'].map(m => (
+            <button key={m} onClick={() => setMethodFilter(m)} style={{
               padding: '4px 12px', borderRadius: 20,
-              border: statusFilter === s ? '1.5px solid var(--green)' : '1.5px solid var(--gray2)',
-              background: statusFilter === s ? 'var(--green)' : 'transparent',
-              color: statusFilter === s ? '#fff' : 'var(--gray)',
-              fontSize: '.78rem', fontWeight: statusFilter === s ? 700 : 400,
+              border: methodFilter === m ? '1.5px solid var(--green)' : '1.5px solid var(--gray2)',
+              background: methodFilter === m ? 'var(--green)' : 'transparent',
+              color: methodFilter === m ? '#fff' : 'var(--gray)',
+              fontSize: '.78rem', fontWeight: methodFilter === m ? 700 : 400,
               cursor: 'pointer', transition: 'all 0.15s',
             }}>
-              {s === 'All'
+              {m === 'All'
                 ? `All (${data.length})`
-                : `${s} (${data.filter(p => p.status === s).length})`}
+                : `${m} (${data.filter(p => p.method === m).length})`}
             </button>
           ))}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>

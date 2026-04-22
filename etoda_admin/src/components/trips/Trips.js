@@ -3,7 +3,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faRoute, faSearch, faFilter, faEye, 
-  faChevronLeft, faChevronRight, faRefresh
+  faChevronLeft, faChevronRight, faRefresh,
+  faCalendar, faTimes
 } from '@fortawesome/free-solid-svg-icons';
 import Loading from '../ui/Loading';
 import Empty from '../ui/Empty';
@@ -22,18 +23,88 @@ const api = async (endpoint) => {
   }
 };
 
+const DATE_PRESETS = [
+  { label: 'Today',      value: 'today' },
+  { label: 'Yesterday',  value: 'yesterday' },
+  { label: 'This week',  value: 'week' },
+  { label: 'This month', value: 'month' },
+];
+
+const presetToRange = (preset) => {
+  const now   = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  switch (preset) {
+    case 'today':
+      return {
+        dateFrom: today.toISOString(),
+        dateTo:   new Date(today.getTime() + 86400000 - 1).toISOString(),
+      };
+    case 'yesterday': {
+      const yd = new Date(today.getTime() - 86400000);
+      return {
+        dateFrom: yd.toISOString(),
+        dateTo:   new Date(today.getTime() - 1).toISOString(),
+      };
+    }
+    case 'week': {
+      const day  = today.getDay();
+      const mon  = new Date(today.getTime() - day * 86400000);
+      return {
+        dateFrom: mon.toISOString(),
+        dateTo:   new Date(today.getTime() + 86400000 - 1).toISOString(),
+      };
+    }
+    case 'month': {
+      const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      return {
+        dateFrom: firstOfMonth.toISOString(),
+        dateTo:   new Date(today.getTime() + 86400000 - 1).toISOString(),
+      };
+    }
+    default:
+      return { dateFrom: '', dateTo: '' };
+  }
+};
+
 const formatDate = (str) => {
   if (!str) return '—';
+  
+  // If the string is already formatted by the server (e.g. "Oct 27, 2023, 02:30 PM"),
+  // return it as is to prevent browser timezone logic from shifting the time.
+  if (typeof str === 'string' && str.includes(',') && (str.includes('AM') || str.includes('PM'))) {
+    return str;
+  }
+
   const d = new Date(str);
-  if (isNaN(d)) return str;
-  return d.toLocaleString('en-PH', { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric', 
-    hour: '2-digit', 
+  if (isNaN(d.getTime())) return str;
+  return d.toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
     minute: '2-digit',
-    hour12: true 
+    hour12: true
   });
+};
+
+const formatDuration = (mins) => {
+  mins = Math.max(0, mins);
+  if (mins >= 60) {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m === 0 ? `${h}hr` : `${h}hr ${m}m`;
+  }
+  return `${mins} min`;
+};
+
+const StatusBadge = ({ status }) => {
+  const colorMap = {
+    'completed': 'badge-settled',
+    'cancelled': 'badge-refunded',
+  };
+  return <span className={`badge ${colorMap[status.toLowerCase()] || 'badge-pending'}`}>{status}</span>;
 };
 
 function Trips({ notify }) {
@@ -42,8 +113,12 @@ function Trips({ notify }) {
   const [search, setSearch] = useState('');
   const [viewItem, setViewItem] = useState(null);
 
+  const [datePreset, setDatePreset] = useState('');
+  const [dateFrom,   setDateFrom]   = useState('');
+  const [dateTo,     setDateTo]     = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
   // ── Filters & Pagination ──
-  const [statusFilter, setStatusFilter] = useState('All');
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -55,17 +130,23 @@ function Trips({ notify }) {
 
   useEffect(() => {
     load();
-    // Poll every 15 seconds to keep the admin side updated "real-time" with driver activity
-    const poll = setInterval(load, 15000);
-    return () => clearInterval(poll);
   }, [load]);
 
-  useEffect(() => { setCurrentPage(1); }, [statusFilter, pageSize, search]);
+  useEffect(() => { setCurrentPage(1); }, [pageSize, search, dateFrom, dateTo]);
 
   const filtered = useMemo(() => {
     let rows = data;
-    if (statusFilter !== 'All') {
-      rows = rows.filter(t => t.status === statusFilter.toLowerCase());
+
+    if (dateFrom || dateTo) {
+      const fromTime = dateFrom ? new Date(dateFrom).getTime() : -Infinity;
+      const toTime = dateTo ? new Date(dateTo).getTime() : Infinity;
+
+      rows = rows.filter(t => {
+        if (!t.ended_at) return false;
+        const tripTime = new Date(t.ended_at).getTime();
+        if (isNaN(tripTime)) return true;
+        return tripTime >= fromTime && tripTime <= toTime;
+      });
     }
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -77,18 +158,31 @@ function Trips({ notify }) {
       );
     }
     return rows;
-  }, [data, statusFilter, search]);
+  }, [data, search, dateFrom, dateTo]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paginated  = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const pageWindow = buildPageWindow(currentPage, totalPages);
 
-  const StatusBadge = ({ status }) => {
-    let cls = 'badge-inactive'; // default for cancelled or unknown
-    if (status === 'completed') cls = 'badge-active';
-    if (status === 'ongoing') cls = 'badge-pending';
-    return <span className={`badge ${cls}`}>{status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Completed'}</span>;
+  const applyPreset = (preset) => {
+    setDatePreset(preset);
+    const { dateFrom: df, dateTo: dt } = presetToRange(preset);
+    setDateFrom(df);
+    setDateTo(dt);
+    setShowDatePicker(false);
   };
+
+  const clearDateFilter = () => {
+    setDatePreset('');
+    setDateFrom('');
+    setDateTo('');
+  };
+
+  const activeDateLabel = datePreset
+    ? DATE_PRESETS.find(p => p.value === datePreset)?.label
+    : dateFrom
+      ? 'Custom range'
+      : null;
 
   return (
     <div>
@@ -99,38 +193,111 @@ function Trips({ notify }) {
             Trip Logs <span>({filtered.length})</span>
           </div>
           <div className="card-actions">
-            <div style={{ position: 'relative' }}>
-              <FontAwesomeIcon icon={faSearch} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#aaa', fontSize: 12, pointerEvents: 'none' }} />
+            <div style={{ position: 'relative', flex: 1, minWidth: 0, maxWidth: 360 }}>
+              <FontAwesomeIcon icon={faSearch} style={{
+                position: 'absolute', left: 10, top: '50%',
+                transform: 'translateY(-50%)', color: '#aaa', fontSize: 12, pointerEvents: 'none',
+              }} />
               <input
                 className="search-box"
-                style={{ width: 230, paddingLeft: 30 }}
-                placeholder="Search trip, passenger, driver..."
+                style={{ width: '100%', paddingLeft: 30 }}
+                placeholder="Search code, passenger, driver, route..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
+
+            <div style={{ position: 'relative' }}>
+              <button
+                className={`btn btn-ghost btn-sm${activeDateLabel ? ' btn-active' : ''}`}
+                onClick={() => setShowDatePicker(v => !v)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  ...(activeDateLabel && {
+                    background: 'var(--green)', color: '#fff',
+                    borderColor: 'var(--green)',
+                  }),
+                }}
+              >
+                <FontAwesomeIcon icon={faCalendar} />
+                {activeDateLabel || 'Date'}
+              </button>
+
+              {showDatePicker && (
+                <div style={{
+                  position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 100,
+                  background: '#fff', border: '1px solid var(--gray2)',
+                  borderRadius: 10, boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
+                  padding: 16, minWidth: 240,
+                }}>
+                  <div style={{ fontSize: '.75rem', color: 'var(--gray)', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px' }}>
+                    Quick Select
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 14 }}>
+                    {DATE_PRESETS.map(p => (
+                      <button
+                        key={p.value}
+                        onClick={() => applyPreset(p.value)}
+                        style={{
+                          textAlign: 'left', padding: '7px 12px', borderRadius: 7,
+                          border: 'none', cursor: 'pointer', fontSize: '.82rem',
+                          background: datePreset === p.value ? 'var(--green)' : 'var(--bg)',
+                          color: datePreset === p.value ? '#fff' : 'var(--dark)',
+                          fontWeight: datePreset === p.value ? 700 : 400,
+                          transition: 'all 0.1s',
+                        }}
+                      >{p.label}</button>
+                    ))}
+                  </div>
+
+                  <div style={{ fontSize: '.75rem', color: 'var(--gray)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px' }}>
+                    Custom Range
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <input
+                      type="date"
+                      value={dateFrom ? dateFrom.slice(0, 10) : ''}
+                      onChange={e => { setDatePreset(''); setDateFrom(e.target.value ? new Date(e.target.value).toISOString() : ''); }}
+                      style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--gray2)', fontSize: '.82rem', width: '100%' }}
+                    />
+                    <input
+                      type="date"
+                      value={dateTo ? dateTo.slice(0, 10) : ''}
+                      onChange={e => { setDatePreset(''); setDateTo(e.target.value ? new Date(e.target.value + 'T23:59:59').toISOString() : ''); }}
+                      style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--gray2)', fontSize: '.82rem', width: '100%' }}
+                    />
+                  </div>
+
+                  {activeDateLabel && (
+                    <button
+                      onClick={() => { clearDateFilter(); setShowDatePicker(false); }}
+                      style={{
+                        marginTop: 10, width: '100%', padding: '7px', borderRadius: 7,
+                        border: '1px solid var(--red)', background: 'transparent',
+                        color: 'var(--red)', fontSize: '.8rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faTimes} /> Clear filter
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
             <button className="btn btn-ghost btn-sm" onClick={load}>
               <FontAwesomeIcon icon={faRefresh} style={{ marginRight: 6 }} />Refresh
             </button>
           </div>
         </div>
 
-        {/* ── FILTERS ── */}
+        {/* ── FILTER STATUS ── */}
         <div style={{ padding: '10px 18px 0', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <FontAwesomeIcon icon={faFilter} style={{ color: 'var(--gray)', fontSize: 12 }} />
           <span style={{ fontSize: '.8rem', color: 'var(--gray)', marginRight: 4 }}>Filter:</span>
-          {['All', 'Completed', 'Cancelled'].map(m => (
-            <button key={m} onClick={() => setStatusFilter(m)} style={{
-              padding: '4px 12px', borderRadius: 20,
-              border: statusFilter === m ? '1.5px solid var(--green)' : '1.5px solid var(--gray2)',
-              background: statusFilter === m ? 'var(--green)' : 'transparent',
-              color: statusFilter === m ? '#fff' : 'var(--gray)',
-              fontSize: '.78rem', fontWeight: statusFilter === m ? 700 : 400,
-              cursor: 'pointer', transition: 'all 0.15s',
-            }}>
-              {m === 'All' ? `All (${data.length})` : `${m} (${data.filter(t => t.status === m.toLowerCase()).length})`}
-            </button>
-          ))}
+          <span style={{ fontSize: '.82rem', fontWeight: 600, color: 'var(--dark)' }}>
+            {activeDateLabel ? `Filtered: ${activeDateLabel}` : 'All Records'}
+          </span>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: '.78rem', color: 'var(--gray)' }}>Show</span>
             {[10, 25, 50].map(n => (
@@ -174,8 +341,8 @@ function Trips({ notify }) {
                       <td>{t.driver_name}</td>
                       <td style={{ fontSize: '.85rem', color: 'var(--gray)' }}>{t.route}</td>
                       <td><StatusBadge status={t.status} /></td>
-                      <td style={{ fontSize: '.85rem' }}>{Math.max(0, t.duration_min)} min</td>
-                      <td style={{ fontSize: '.85rem' }}>{formatDate(t.started_at)}</td>
+                      <td style={{ fontSize: '.85rem' }}>{formatDuration(t.duration_min)}</td>
+                      <td style={{ fontSize: '.85rem' }}>{formatDate(t.ended_at)}</td>
                       <td>
                         <button className="ib ib-view" onClick={() => setViewItem(t)} style={{ minWidth: 60 }}>
                           <FontAwesomeIcon icon={faEye} style={{ marginRight: 4, fontSize: 11 }} />View
@@ -236,8 +403,8 @@ function Trips({ notify }) {
             ['Contact',   viewItem.driver_contact],
             ['Route',     viewItem.route],
             ['Status',    viewItem.status],
-            ['Duration',  `${Math.max(0, viewItem.duration_min)} min`],
-            ['Date',      formatDate(viewItem.started_at)]
+            ['Duration',  formatDuration(viewItem.duration_min)],
+            ['Date',      formatDate(viewItem.ended_at)]
           ]} />
           <div className="modal-footer">
             <button className="btn btn-ghost" onClick={() => setViewItem(null)}>Close</button>

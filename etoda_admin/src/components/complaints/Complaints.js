@@ -113,10 +113,6 @@ function Complaints({ notify }) {
   };
 
   const vBadge = v => {
-    const high = ['Reckless Driving','Driver Under the Influence','Physical Assault','Theft / Lost Item'];
-    const med  = ['Overcharging','Discourteous Behavior','Unauthorized Route Deviation'];
-    if (high.includes(v)) return 'badge-delete';
-    if (med.includes(v))  return 'badge-pending';
     return 'badge-inactive';
   };
 
@@ -251,7 +247,19 @@ function Complaints({ notify }) {
                       <td>{c.passenger_name}</td>
                       <td>{c.driver_name}</td>
                       <td><span className={`badge ${vBadge(c.violation_type)}`}>{c.violation_type}</span></td>
-                      <td style={{ fontSize: '.8rem', color: 'var(--gray)' }}>{c.details || '—'}</td>
+                      <td 
+                        style={{ 
+                          fontSize: '.8rem', 
+                          color: 'var(--gray)',
+                          maxWidth: '250px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}
+                        title={c.details}
+                      >
+                        {c.details || '—'}
+                      </td>
                       <td>
                         <span className={`badge ${SB[c.status] || 'badge-pending'}`}>
                           {c.status}
@@ -330,9 +338,27 @@ function Complaints({ notify }) {
             ['Driver', viewItem.driver_name],
             ['Franchise', viewItem.franchise],
             ['Violation', viewItem.violation_type],
-            ['Details', viewItem.details],
             ['Date Filed', formatDate(viewItem.reported_at)],
           ]} />
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: '.7rem', color: 'var(--gray)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>
+              Complaint Details
+            </div>
+            <div style={{
+              background: '#fff',
+              border: '1.5px solid var(--gray2)',
+              borderRadius: 8,
+              padding: '12px 14px',
+              fontSize: '.88rem',
+              lineHeight: 1.5,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              maxHeight: '160px',
+              overflowY: 'auto'
+            }}>
+              {viewItem.details || '—'}
+            </div>
+          </div>
           <div className="field">
             <label>Update Status</label>
             <select value={viewStatus} onChange={e => setViewStatus(e.target.value)}>
