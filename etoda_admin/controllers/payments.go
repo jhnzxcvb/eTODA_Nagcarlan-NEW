@@ -105,7 +105,7 @@ func CreatePayment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if b.Status == "" {
-		b.Status = "Settled"
+		b.Status = "Paid"
 	}
 
 	// Generate unique ref code: PYYMMDD-Tail (Shortened to fit VARCHAR(15) columns)

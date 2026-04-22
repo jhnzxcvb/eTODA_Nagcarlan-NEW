@@ -1,11 +1,12 @@
 // src/components/dashboard/Dashboard.js
 import React, { useState, useEffect, useRef } from 'react';
-import { api } from '../../lib/api';
+import { api, BASE } from '../../lib/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faUserPlus, faExclamationTriangle, faDollarSign,
-  faQrcode, faCheckCircle,
+  faQrcode, faCheckCircle, faUsers, faRoute, faWallet,
+  faExclamationCircle, faIdCard,
 } from '@fortawesome/free-solid-svg-icons';
 import Loading from '../ui/Loading';
 import Empty from '../ui/Empty';
@@ -74,14 +75,38 @@ function Dashboard({ notify, setPanel }) {
   };
 
   const loadActivity = async () => {
-    const mockActivity = [
-      { type: 'driver',    desc: 'Juan dela Cruz enrolled as driver',        time: '2 min ago' },
-      { type: 'violation', desc: 'Violation reported against Body No. 042',  time: '5 min ago' },
-      { type: 'fare',      desc: 'Fare matrix updated by Admin',             time: '10 min ago' },
-      { type: 'qrcode',    desc: 'QR Code issued to Body No. 018',           time: '15 min ago' },
-      { type: 'resolved',  desc: 'Complaint #005 marked as resolved',        time: '20 min ago' },
-    ];
-    setActivity(mockActivity);
+    const r = await api('/api/audit?pageSize=6');
+    if (r.success) {
+      const mapped = (r.data || []).map(log => {
+        let type = 'driver';
+        const entity = log.entity.toLowerCase();
+        const detail = log.detail.toLowerCase();
+
+        // Map audit entities to dashboard activity types/icons
+        if (entity === 'driver') type = 'driver';
+        else if (entity === 'complaint') type = detail.includes('resolved') ? 'resolved' : 'violation';
+        else if (entity === 'fare' || entity === 'payment') type = 'fare';
+        else if (entity === 'qrcode') type = 'qrcode';
+
+        return {
+          type,
+          desc: log.detail,
+          time: formatTimeAgo(log.created_at)
+        };
+      });
+      setActivity(mapped);
+    }
+  };
+
+  const formatTimeAgo = (dateStr) => {
+    const date = new Date(dateStr.replace(' ', 'T'));
+    const seconds = Math.floor((new Date() - date) / 1000);
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return date.toLocaleDateString();
   };
 
   // Initial load
@@ -118,17 +143,68 @@ function Dashboard({ notify, setPanel }) {
     refresh();
   }, [dateRange]);
 
-  const { faUsers, faRoute, faWallet, faExclamationCircle, faIdCard, faQrcode } = require('@fortawesome/free-solid-svg-icons');
+  const handleGenerateReport = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch(`${BASE}/api/dashboard/report`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error('Download failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `etoda_dashboard_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      notify('Report generated and downloaded successfully', 'success');
+    } catch (err) {
+      notify('Failed to generate report: ' + err.message, 'error');
+    }
+  };
+
+// Helper function to calculate trend string and color
+const getTrendInfo = (currentValue, yesterdayValue, prefix = '', suffix = '') => {
+  const yesterday = yesterdayValue || 0; // Handle cases where yesterday's data might be null/undefined
+  const diff = currentValue - yesterday;
+
+  let trendString;
+  if (diff === 0) {
+    trendString = `0 from yesterday`;
+  } else {
+    const arrow = diff > 0 ? '▲' : '▼';
+    const mathSign = diff > 0 ? '+' : '-';
+    const absDiff = Math.abs(diff);
+    trendString = `${arrow} ${mathSign}${prefix}${absDiff.toLocaleString()}${suffix} from yesterday`;
+  }
+
+  const trendColor = diff >= 0 ? 'green' : 'red';
+
+  return { trend: trendString, trendColor };
+};
 
   const CARDS = stats ? [
-    { val: stats.active_drivers,    lbl: 'Active Drivers',   sub: 'Registered',            icon: faUsers, trend: '▲ +1 from yesterday',  trendColor: 'green', color: '#2d5a1b' },
-    { val: stats.trips_today,       lbl: 'Trips Today',      sub: 'Completed',             icon: faRoute, trend: '▼ -2 from yesterday',  trendColor: 'red',   color: '#0284c7' },
-    { val: `₱${Number(stats.revenue_today).toLocaleString()}`, lbl: 'Revenue Today', sub: `${stats.revenue_count || 0} transactions`, icon: faWallet, trend: '▲ +₱500 from yesterday', trendColor: 'green', color: '#d97706' },
-    { val: stats.pending_complaints, lbl: 'Open Complaints', sub: 'Needs action',          icon: faExclamationCircle, trend: '▲ +3 from yesterday',  trendColor: 'red',   color: '#dc2626' },
-    { val: stats.total_drivers,     lbl: 'Total Drivers',    sub: 'All enrolled',          icon: faIdCard, trend: '▲ +2 from yesterday',  trendColor: 'green', color: '#16a34a' },
-    { val: stats.passengers,        lbl: 'Total Passengers', sub: 'Registered',            icon: faUsers, trend: '▲ +5 from yesterday',  trendColor: 'green', color: '#8e44ad' },
-    { val: stats.total_trips,       lbl: 'Total Trips',      sub: 'All time',              icon: faCheckCircle, trend: '▲ +10 from yesterday', trendColor: 'green', color: '#0369a1' },
-    { val: stats.active_qr,         lbl: 'Active QR Codes',  sub: 'AES-256',               icon: faQrcode, trend: '▼ -1 from yesterday',  trendColor: 'red',   color: '#0f172a' },
+    { val: stats.active_drivers,    lbl: 'Active Drivers',   sub: 'Registered',            icon: faUsers, color: '#2d5a1b', ...getTrendInfo(stats.active_drivers, stats.active_drivers_yesterday) },
+    { val: stats.trips_today,       lbl: 'Trips Today',      sub: 'Completed',             icon: faRoute, color: '#0284c7', ...getTrendInfo(stats.trips_today, stats.trips_yesterday) },
+    {
+      val: `₱${Number(stats.revenue_today || 0).toLocaleString()}`,
+      lbl: 'Revenue Today',
+      sub: `${stats.revenue_count || 0} transactions`,
+      icon: faWallet,
+      color: '#d97706',
+      ...getTrendInfo(stats.revenue_today, stats.revenue_yesterday, '₱')
+    },
+    { val: stats.pending_complaints, lbl: 'Open Complaints', sub: 'Needs action',          icon: faExclamationCircle, color: '#dc2626', ...getTrendInfo(stats.pending_complaints, stats.pending_complaints_yesterday) },
+    { val: stats.total_drivers,     lbl: 'Total Drivers',    sub: 'All enrolled',          icon: faIdCard, color: '#16a34a', ...getTrendInfo(stats.total_drivers, stats.total_drivers_yesterday) },
+    { val: stats.passengers,        lbl: 'Total Passengers', sub: 'Registered',            icon: faUsers, color: '#8e44ad', ...getTrendInfo(stats.passengers, stats.passengers_yesterday) },
+    { val: stats.total_trips,       lbl: 'Total Trips',      sub: 'All time',              icon: faCheckCircle, color: '#0369a1', ...getTrendInfo(stats.total_trips, stats.total_trips_yesterday) },
+    { val: stats.active_qr,         lbl: 'Active QR Codes',  sub: 'AES-256',               icon: faQrcode, color: '#0f172a', ...getTrendInfo(stats.active_qr, stats.active_qr_yesterday) },
   ] : [];
 
   if (initialLoading) return <Loading />;
@@ -187,7 +263,7 @@ function Dashboard({ notify, setPanel }) {
         <button className="btn btn-outline" style={{ borderColor: '#1a4731', color: '#1a4731' }} onClick={() => setPanel('complaints')}>
           Review Complaints
         </button>
-        <button className="btn btn-outline" style={{ borderColor: '#1a4731', color: '#1a4731' }} onClick={() => notify('Report generated', 'success')}>
+        <button className="btn btn-outline" style={{ borderColor: '#1a4731', color: '#1a4731' }} onClick={handleGenerateReport}>
           Generate Report
         </button>
       </div>
