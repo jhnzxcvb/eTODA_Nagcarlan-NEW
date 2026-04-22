@@ -252,15 +252,38 @@ export default function App() {
     }
   };
 
-  // ── Settings Placeholder Logic ──
+  // ── Settings Logic ──
 
   const [settings, setSettings] = useState({
     notifications: true,
-
     maintenance: false,
-
     autoLogout: false,
   });
+
+  const fetchSettings = async () => {
+    const res = await api("/api/settings", "GET");
+    if (res.success) {
+      setSettings(res.data);
+    }
+  };
+
+  useEffect(() => {
+    if (auth && panel === "settings") {
+      fetchSettings();
+    }
+  }, [auth, panel]);
+
+  const toggleSetting = async (id) => {
+    const newVal = !settings[id];
+    setSettings((prev) => ({ ...prev, [id]: newVal }));
+    const res = await api("/api/settings", "PATCH", { [id]: newVal });
+    if (!res.success) {
+      notify(res.error || "Failed to update setting", "error");
+      setSettings((prev) => ({ ...prev, [id]: !newVal })); // Rollback on failure
+    } else {
+      notify("Preference updated", "success");
+    }
+  };
 
   if (!auth) {
     return (

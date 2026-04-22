@@ -1,5 +1,5 @@
 // src/lib/api.js
-const BASE = 'http://localhost:8080';
+export const BASE = 'http://localhost:8080';
 
 async function api(endpoint, method = 'GET', body = null) {
   try {
