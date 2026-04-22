@@ -118,15 +118,17 @@ function Dashboard({ notify, setPanel }) {
     refresh();
   }, [dateRange]);
 
+  const { faUsers, faRoute, faWallet, faExclamationCircle, faIdCard, faQrcode } = require('@fortawesome/free-solid-svg-icons');
+
   const CARDS = stats ? [
-    { val: stats.active_drivers,    lbl: 'Active Drivers',   sub: 'Registered',            trend: '▲ +1 from yesterday',  trendColor: 'green', color: 'var(--green)' },
-    { val: stats.trips_today,       lbl: 'Trips Today',      sub: 'Completed',             trend: '▼ -2 from yesterday',  trendColor: 'red',   color: 'var(--blue)' },
-    { val: `₱${Number(stats.revenue_today).toLocaleString()}`, lbl: 'Revenue Today', sub: '3 transactions · cash', trend: '▲ +₱500 from yesterday', trendColor: 'green', color: 'var(--ora)' },
-    { val: stats.pending_complaints, lbl: 'Open Complaints', sub: 'Needs action',          trend: '▲ +3 from yesterday',  trendColor: 'red',   color: 'var(--red)' },
-    { val: stats.total_drivers,     lbl: 'Total Drivers',    sub: 'All enrolled',          trend: '▲ +2 from yesterday',  trendColor: 'green', color: 'var(--green)' },
-    { val: stats.passengers,        lbl: 'Total Passengers', sub: 'Registered',            trend: '▲ +5 from yesterday',  trendColor: 'green', color: '#8e44ad' },
-    { val: stats.total_trips,       lbl: 'Total Trips',      sub: 'All time',              trend: '▲ +10 from yesterday', trendColor: 'green', color: 'var(--blue)' },
-    { val: stats.active_qr,         lbl: 'Active QR Codes',  sub: 'AES-256',               trend: '▼ -1 from yesterday',  trendColor: 'red',   color: 'var(--green3)' },
+    { val: stats.active_drivers,    lbl: 'Active Drivers',   sub: 'Registered',            icon: faUsers, trend: '▲ +1 from yesterday',  trendColor: 'green', color: '#2d5a1b' },
+    { val: stats.trips_today,       lbl: 'Trips Today',      sub: 'Completed',             icon: faRoute, trend: '▼ -2 from yesterday',  trendColor: 'red',   color: '#0284c7' },
+    { val: `₱${Number(stats.revenue_today).toLocaleString()}`, lbl: 'Revenue Today', sub: '3 transactions', icon: faWallet, trend: '▲ +₱500 from yesterday', trendColor: 'green', color: '#d97706' },
+    { val: stats.pending_complaints, lbl: 'Open Complaints', sub: 'Needs action',          icon: faExclamationCircle, trend: '▲ +3 from yesterday',  trendColor: 'red',   color: '#dc2626' },
+    { val: stats.total_drivers,     lbl: 'Total Drivers',    sub: 'All enrolled',          icon: faIdCard, trend: '▲ +2 from yesterday',  trendColor: 'green', color: '#16a34a' },
+    { val: stats.passengers,        lbl: 'Total Passengers', sub: 'Registered',            icon: faUsers, trend: '▲ +5 from yesterday',  trendColor: 'green', color: '#8e44ad' },
+    { val: stats.total_trips,       lbl: 'Total Trips',      sub: 'All time',              icon: faCheckCircle, trend: '▲ +10 from yesterday', trendColor: 'green', color: '#0369a1' },
+    { val: stats.active_qr,         lbl: 'Active QR Codes',  sub: 'AES-256',               icon: faQrcode, trend: '▼ -1 from yesterday',  trendColor: 'red',   color: '#0f172a' },
   ] : [];
 
   if (initialLoading) return <Loading />;

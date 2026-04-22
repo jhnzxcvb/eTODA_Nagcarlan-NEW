@@ -23,7 +23,7 @@ func Payments(w http.ResponseWriter, r *http.Request) {
 			COALESCE(d.first_name||' '||d.last_name,'—'),
 			COALESCE(py.route,''),
 			py.amount, py.method, py.status,
-			to_char(py.paid_at,'YYYY-MM-DD HH24:MI'),
+			py.paid_at,
 			COALESCE(py.passenger_type,''),
 			COALESCE(py.trip_type,''),
 			COALESCE(py.ewallet_account,''),
@@ -41,11 +41,17 @@ func Payments(w http.ResponseWriter, r *http.Request) {
 	list := []models.Payment{}
 	for rows.Next() {
 		var p models.Payment
-		rows.Scan(
+		var paidAt time.Time
+		if err := rows.Scan(
 			&p.ID, &p.RefCode, &p.PassengerName, &p.DriverName,
-			&p.Route, &p.Amount, &p.Method, &p.Status, &p.PaidAt,
+			&p.Route, &p.Amount, &p.Method, &p.Status, &paidAt,
 			&p.PassengerType, &p.TripType, &p.EwalletAccount, &p.ContactNumber,
-		)
+		); err != nil {
+			continue
+		}
+		loc, _ := time.LoadLocation("Asia/Manila")
+		// Format as RFC3339 to match trips.go and ensure correct frontend parsing
+		p.PaidAt = paidAt.In(loc).Format(time.RFC3339)
 		list = append(list, p)
 	}
 	if list == nil {
