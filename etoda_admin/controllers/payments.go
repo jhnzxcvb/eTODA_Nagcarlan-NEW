@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -19,11 +20,11 @@ func Payments(w http.ResponseWriter, r *http.Request) {
 	rows, err := DB.Query(`
 		SELECT
 			py.id, py.ref_code,
-			COALESCE(p.first_name||' '||COALESCE(p.middle_name,'')||' '||p.last_name,'—'),
-			COALESCE(d.first_name||' '||d.last_name,'—'),
+			COALESCE(NULLIF(TRIM(CONCAT_WS(' ', p.first_name, p.middle_name, p.last_name)), ''), '—'),
+			COALESCE(NULLIF(TRIM(CONCAT_WS(' ', d.first_name, d.last_name)), ''), '—'),
 			COALESCE(py.route,''),
 			py.amount, py.method, py.status,
-			py.paid_at,
+			to_char(py.paid_at, 'Mon DD, YYYY, HH12:MI AM') as paid_at,
 			COALESCE(py.passenger_type,''),
 			COALESCE(py.trip_type,''),
 			COALESCE(py.ewallet_account,''),
@@ -41,17 +42,20 @@ func Payments(w http.ResponseWriter, r *http.Request) {
 	list := []models.Payment{}
 	for rows.Next() {
 		var p models.Payment
-		var paidAt time.Time
+		var paidAt sql.NullString // Use sql.NullString for pre-formatted date
 		if err := rows.Scan(
 			&p.ID, &p.RefCode, &p.PassengerName, &p.DriverName,
 			&p.Route, &p.Amount, &p.Method, &p.Status, &paidAt,
 			&p.PassengerType, &p.TripType, &p.EwalletAccount, &p.ContactNumber,
 		); err != nil {
+			utils.LogInfo("Payments", "Scan error: "+err.Error())
 			continue
 		}
-		loc, _ := time.LoadLocation("Asia/Manila")
-		// Format as RFC3339 to match trips.go and ensure correct frontend parsing
-		p.PaidAt = paidAt.In(loc).Format(time.RFC3339)
+		if paidAt.Valid {
+			p.PaidAt = paidAt.String
+		} else {
+			p.PaidAt = "—"
+		}
 		list = append(list, p)
 	}
 	if list == nil {
@@ -101,7 +105,7 @@ func CreatePayment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if b.Status == "" {
-		b.Status = "Paid"
+		b.Status = "Settled"
 	}
 
 	// Generate unique ref code: PYYMMDD-Tail (Shortened to fit VARCHAR(15) columns)

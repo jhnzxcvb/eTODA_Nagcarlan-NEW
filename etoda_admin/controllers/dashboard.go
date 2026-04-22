@@ -17,7 +17,7 @@ func Dashboard(w http.ResponseWriter, r *http.Request) {
 	DB.QueryRow(`SELECT COUNT(*) FROM drivers WHERE status='Active'`).Scan(&s.ActiveDrivers)
 	DB.QueryRow(`SELECT COUNT(*) FROM drivers`).Scan(&s.TotalDrivers)
 	DB.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&s.Passengers)
-	DB.QueryRow(`SELECT COALESCE(SUM(amount),0) FROM payments WHERE status='Settled' AND paid_at::date=CURRENT_DATE`).Scan(&s.RevenueToday)
+	DB.QueryRow(`SELECT COALESCE(SUM(amount),0), COUNT(*) FROM payments WHERE status='Settled' AND paid_at::date=CURRENT_DATE`).Scan(&s.RevenueToday, &s.RevenueCount)
 	DB.QueryRow(`SELECT COUNT(*) FROM complaints WHERE status!='Resolved'`).Scan(&s.PendingComplaints)
 	DB.QueryRow(`SELECT COUNT(*) FROM trip_logs WHERE started_at::date=CURRENT_DATE`).Scan(&s.TripsToday)
 	DB.QueryRow(`SELECT COUNT(*) FROM trip_logs`).Scan(&s.TotalTrips)

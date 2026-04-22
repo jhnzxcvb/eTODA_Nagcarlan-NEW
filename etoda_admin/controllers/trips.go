@@ -28,7 +28,7 @@ func Trips(w http.ResponseWriter, r *http.Request) {
 			COALESCE(d.first_name || ' ' || d.last_name, 'Driver') as d_name,
 			COALESCE(d.contact, '—') as d_contact, COALESCE(d.plate_number, '—') as d_plate, COALESCE(d.body_no, '—') as d_body,
 			COALESCE(tl.route, '—') as route,
-			tl.fare_amount, tl.payment_method, tl.status,
+			COALESCE(tl.fare_amount, 0), COALESCE(tl.payment_method, '—'), COALESCE(tl.status, '—'),
 			to_char(COALESCE(p.paid_at, tl.started_at), 'Mon DD, YYYY, HH12:MI AM') as started_at,
 			to_char(tl.ended_at, 'Mon DD, YYYY, HH12:MI AM') as ended_at,
 			tl.duration_min,
@@ -37,7 +37,7 @@ func Trips(w http.ResponseWriter, r *http.Request) {
 		LEFT JOIN users u ON tl.passenger_id = u.user_id
 		LEFT JOIN drivers d ON tl.driver_id = d.id
 		LEFT JOIN payments p ON LOWER(TRIM(tl.trip_code)) = LOWER(TRIM(p.ref_code))
-		WHERE tl.status = 'completed'`
+		WHERE LOWER(tl.status) = 'completed'`
 
 	var rows *sql.Rows
 	var err error
@@ -65,6 +65,7 @@ func Trips(w http.ResponseWriter, r *http.Request) {
 		var amount float64
 		var pID, dID, id int
 		if err := rows.Scan(&code, &pName, &dName, &contact, &plate, &body, &route, &amount, &method, &status, &startedAt, &endedAt, &dbDurationMin, &pID, &dID, &id); err != nil {
+			utils.LogInfo("Trips", "Scan error for code "+code+": "+err.Error())
 			continue
 		}
 		count++

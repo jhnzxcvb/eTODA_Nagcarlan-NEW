@@ -6,6 +6,7 @@ type Stats struct {
 	ActiveDrivers     int     `json:"active_drivers"`
 	Passengers        int     `json:"passengers"`
 	RevenueToday      float64 `json:"revenue_today"`
+	RevenueCount      int     `json:"revenue_count"`
 	PendingComplaints int     `json:"pending_complaints"`
 	TripsToday        int     `json:"trips_today"`
 	TotalDrivers      int     `json:"total_drivers"`
