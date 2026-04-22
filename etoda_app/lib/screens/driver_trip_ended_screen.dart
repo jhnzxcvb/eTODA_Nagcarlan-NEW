@@ -25,7 +25,6 @@ class _DriverTripEndedScreenState extends State<DriverTripEndedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Get driver data passed from the home screen
     final Map<String, dynamic>? driverData =
     ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
@@ -38,38 +37,37 @@ class _DriverTripEndedScreenState extends State<DriverTripEndedScreen> {
               ? const Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(nagcarlanGreen)),
+                    CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(nagcarlanYellow)),
                     SizedBox(height: 16),
-                    Text("Finalizing Trip...", style: TextStyle(fontWeight: FontWeight.bold, color: nagcarlanGreen)),
+                    Text("Finalizing Trip...", style: TextStyle(fontWeight: FontWeight.bold, color: nagcarlanWhite)),
                   ],
                 )
               : Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.check_circle, color: nagcarlanGreen, size: 100),
+                    const Icon(Icons.check_circle, color: nagcarlanYellow, size: 100),
                     const SizedBox(height: 24),
                     const Text(
                       "Trip Completed!",
-                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: nagcarlanGreen),
+                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: nagcarlanYellow),
                     ),
                     const SizedBox(height: 8),
                     const Text(
                       "The passenger has been notified. You can now take your next trip.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16, color: Colors.black54),
+                      style: TextStyle(fontSize: 16, color: nagcarlanWhite),
                     ),
                     const SizedBox(height: 48),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: nagcarlanGreen,
-                          foregroundColor: Colors.white,
+                          backgroundColor: nagcarlanYellow,
+                          foregroundColor: nagcarlanGreen,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         onPressed: () {
-                          // Pass back the driver data and ensure shift is active
                           Navigator.of(context).pushNamedAndRemoveUntil(
                             '/driver_home', 
                             (route) => false,

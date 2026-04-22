@@ -38,7 +38,6 @@ class _ScannedDriverProfileScreenState
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>? ??
         {};
 
-    // If data is already bundled from QR scan, use it immediately
     if (d.containsKey('average_rating')) {
       if (mounted) {
         setState(() {
@@ -100,11 +99,12 @@ class _ScannedDriverProfileScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text("Driver Details"),
-        backgroundColor: nagcarlanGreen,
-        foregroundColor: Colors.white,
-        actions: const [PassengerProfileMenu()],
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        foregroundColor: nagcarlanWhite,
+        actions: const [PassengerProfileMenu()],
       ),
+      extendBodyBehindAppBar: true,
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -113,7 +113,7 @@ class _ScannedDriverProfileScreenState
           padding: const EdgeInsets.all(20.0),
           child: Column(
             children: [
-              const SizedBox(height: 20),
+              const SizedBox(height: 100),
 
               // ── Profile Photo ──────────────────────────────────────────
               Stack(
@@ -122,15 +122,8 @@ class _ScannedDriverProfileScreenState
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
-                      color: Colors.white,
+                      color: nagcarlanWhite,
                       shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 10,
-                          offset: Offset(0, 5),
-                        ),
-                      ],
                     ),
                     child: CircleAvatar(
                       radius: 65,
@@ -141,10 +134,10 @@ class _ScannedDriverProfileScreenState
                             )
                           : null,
                       child: profilePic.isEmpty
-                          ? Icon(
+                          ? const Icon(
                               Icons.person,
                               size: 85,
-                              color: Colors.green[200],
+                              color: Colors.grey,
                             )
                           : null,
                     ),
@@ -152,7 +145,7 @@ class _ScannedDriverProfileScreenState
                   if (isVerified)
                     Container(
                       decoration: const BoxDecoration(
-                        color: Colors.white,
+                        color: nagcarlanWhite,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -172,22 +165,22 @@ class _ScannedDriverProfileScreenState
                 style: const TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
-                  color: nagcarlanGreen,
+                  color: nagcarlanYellow,
                   letterSpacing: 0.8,
                 ),
               ),
               const SizedBox(height: 8),
 
-              // ── Rating (no background) ─────────────────────────────────
+              // ── Rating ─────────────────────────────────
               if (_isRatingLoading)
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.star_rounded, color: Colors.amber, size: 18),
+                    Icon(Icons.star_rounded, color: nagcarlanYellow, size: 18),
                     SizedBox(width: 5),
                     Text(
                       '...',
-                      style: TextStyle(fontSize: 14, color: Color(0xFF4E342E)),
+                      style: TextStyle(fontSize: 14, color: nagcarlanWhite),
                     ),
                   ],
                 )
@@ -197,7 +190,7 @@ class _ScannedDriverProfileScreenState
                   children: [
                     Icon(
                       Icons.star_rounded,
-                      color: Color(0xFFFFB300),
+                      color: nagcarlanYellow,
                       size: 18,
                     ),
                     SizedBox(width: 5),
@@ -206,7 +199,7 @@ class _ScannedDriverProfileScreenState
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF4E342E),
+                        color: nagcarlanWhite,
                       ),
                     ),
                   ],
@@ -217,7 +210,7 @@ class _ScannedDriverProfileScreenState
                   children: [
                     const Icon(
                       Icons.star_rounded,
-                      color: Colors.amber,
+                      color: nagcarlanYellow,
                       size: 18,
                     ),
                     const SizedBox(width: 5),
@@ -226,7 +219,7 @@ class _ScannedDriverProfileScreenState
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF33691E),
+                        color: nagcarlanYellow,
                       ),
                     ),
                     const SizedBox(width: 4),
@@ -235,20 +228,20 @@ class _ScannedDriverProfileScreenState
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF4E342E),
+                        color: nagcarlanWhite,
                       ),
                     ),
                     const SizedBox(width: 6),
                     const Text(
                       '·',
-                      style: TextStyle(color: Color(0xFF4E342E), fontSize: 14),
+                      style: TextStyle(color: nagcarlanWhite, fontSize: 14),
                     ),
                     const SizedBox(width: 6),
                     Text(
                       '$_totalRatings reviews',
                       style: const TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF4E342E),
+                        color: nagcarlanWhite,
                       ),
                     ),
                   ],
@@ -260,19 +253,19 @@ class _ScannedDriverProfileScreenState
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (isSuspended)
-                    _statusPill(label: "SUSPENDED", icon: Icons.block, color: Colors.red)
+                    _statusPill(label: "SUSPENDED", icon: Icons.block, color: Colors.redAccent)
                   else
                     _statusPill(
                     label: isOnline ? "ACTIVE" : "OFFLINE",
                     icon: isOnline ? Icons.check_circle_rounded : Icons.power_settings_new_rounded,
-                    color: isOnline ? Colors.green : Colors.grey,
+                    color: isOnline ? Colors.greenAccent : Colors.white70,
                   ),
                   if (isVerified) ...[
                     const SizedBox(width: 10),
                     _statusPill(
                       label: "VERIFIED",
                       icon: Icons.shield_rounded,
-                      color: Colors.blue,
+                      color: Colors.blueAccent,
                     ),
                   ],
                 ],
@@ -311,18 +304,17 @@ class _ScannedDriverProfileScreenState
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.play_circle_fill_rounded, size: 28),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1B5E20),
-                    foregroundColor: Colors.white,
+                    backgroundColor: nagcarlanYellow,
+                    foregroundColor: nagcarlanGreen,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    // Visually dim the button if inactive
                     disabledBackgroundColor: Colors.grey[400],
                   ),
                   onPressed: () {
                     if (isOnline && !isSuspended) {
                       _showFareCalculator(context, {
-                          ...d,  // Include all driver data from QR lookup
+                          ...d, 
                           'passenger_id': passengerId,
                           'driver_id': driverId,
                           'full_name': fullName,
@@ -339,17 +331,17 @@ class _ScannedDriverProfileScreenState
                       );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text("The driver is currently offline"),
-                          backgroundColor: Colors.orange[800],
+                        const SnackBar(
+                          content: Text("The driver is currently offline"),
+                          backgroundColor: Colors.black87,
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
                     }
                   },
-                  label: Text(
+                  label: const Text(
                     "START TRIP NOW",
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -373,7 +365,7 @@ class _ScannedDriverProfileScreenState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.85),
+        color: nagcarlanWhite.withOpacity(0.15),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: color.withOpacity(0.5), width: 1.5),
       ),

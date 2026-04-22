@@ -8,17 +8,13 @@ class TripEndedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Retrieve arguments passed via Navigator. 
-    // These contain the final details of the completed trip.
     final Map<String, dynamic>? tripData =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
     final String status = tripData?['status']?.toString().toLowerCase() ?? 'completed';
     final bool isCancelled = status == 'cancelled';
-    final Color themeColor = isCancelled ? Colors.red : nagcarlanGreen;
+    final Color themeColor = isCancelled ? Colors.redAccent : nagcarlanYellow;
 
-    // Extract and format the end time. 
-    // We check if the backend already sent a pre-formatted string (e.g. "03:04 PM")
     String formattedEndTime = TimeOfDay.fromDateTime(DateTime.now()).format(context);
     final rawTimestamp = tripData?['ended_at'] ?? 
                         tripData?['completed_at'] ?? 
@@ -26,7 +22,6 @@ class TripEndedScreen extends StatelessWidget {
 
     if (rawTimestamp != null) {
       final String tsStr = rawTimestamp.toString();
-      // If the string already contains AM/PM, it's pre-formatted by the backend.
       if (tsStr.contains(RegExp(r'(AM|PM)'))) {
         formattedEndTime = tsStr;
       } else {
@@ -69,7 +64,7 @@ class TripEndedScreen extends StatelessWidget {
                 Text(
                   isCancelled ? "This trip was cancelled by the driver." : "The trip has been successfully finalized.",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  style: const TextStyle(fontSize: 16, color: nagcarlanWhite),
                 ),
                 const SizedBox(height: 32),
                 
@@ -78,11 +73,11 @@ class TripEndedScreen extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: nagcarlanWhite.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
+                          color: Colors.black.withOpacity(0.1),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -96,11 +91,10 @@ class TripEndedScreen extends StatelessWidget {
                         const Divider(height: 32),
                         _buildSummaryRow(isCancelled ? "Cancelled At" : "Finished At", formattedEndTime),
                         const Divider(height: 32),
-                        // Handle both 'fare' and 'fare_amount' keys found in your logs
                         _buildSummaryRow(
                           "Total Fare", 
                           "₱${((tripData['fare'] ?? tripData['fare_amount']) as num?)?.toStringAsFixed(2) ?? '0.00'}",
-                          isTotal: true, color: themeColor,
+                          isTotal: true, color: nagcarlanGreen,
                         ),
                       ],
                     ),
@@ -130,7 +124,7 @@ class TripEndedScreen extends StatelessWidget {
                         },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: themeColor,
-                      foregroundColor: Colors.white,
+                      foregroundColor: isCancelled ? nagcarlanWhite : nagcarlanGreen,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       elevation: 0,
                     ),
@@ -184,7 +178,7 @@ class TripEndedScreen extends StatelessWidget {
           style: TextStyle(
             fontSize: isTotal ? 20 : 16,
             fontWeight: isTotal ? FontWeight.w900 : FontWeight.bold,
-            color: isTotal ? (color ?? nagcarlanGreen) : Colors.black87,
+            color: isTotal ? (color ?? nagcarlanGreen) : nagcarlanGreen,
           ),
         ),
       ],

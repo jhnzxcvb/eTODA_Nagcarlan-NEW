@@ -9,7 +9,7 @@ class PassengerProfileMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.account_circle, color: nagcarlanGreen, size: 28),
+      icon: const Icon(Icons.account_circle, color: nagcarlanWhite, size: 35),
       onSelected: (value) {
         switch (value) {
           case 'edit_profile':
@@ -46,7 +46,7 @@ class PassengerProfileMenu extends StatelessWidget {
       value: value,
       child: Row(
         children: [
-          Icon(icon, color: color ?? Colors.grey[700]),
+          Icon(icon, color: color ?? nagcarlanGreen),
           const SizedBox(width: 16),
           Text(title, style: TextStyle(color: color)),
         ],

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:etoda_nagcarlan/main.dart';
 import 'dart:async';
 
-/// TripDetailsModal displays the full trip details in a modal with live duration updates
 class TripDetailsModal extends StatefulWidget {
   final Map<String, dynamic> tripData;
   final int elapsedSeconds;
@@ -78,7 +77,6 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
 
     return Column(
       children: [
-        // Handle bar
         Container(
           margin: const EdgeInsets.only(top: 12),
           width: 40,
@@ -96,7 +94,6 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -105,7 +102,7 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: nagcarlanGreen,
                         ),
                       ),
                       GestureDetector(
@@ -123,7 +120,6 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Passenger name & status
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -146,7 +142,7 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.black87,
+                                color: nagcarlanGreen,
                               ),
                             ),
                           ],
@@ -155,8 +151,8 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.green[50],
-                          border: Border.all(color: Colors.green, width: 1.5),
+                          color: nagcarlanGreen.withOpacity(0.1),
+                          border: Border.all(color: nagcarlanGreen, width: 1.5),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -166,7 +162,7 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                               width: 8,
                               height: 8,
                               decoration: const BoxDecoration(
-                                color: Colors.green,
+                                color: nagcarlanGreen,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -176,7 +172,7 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.green,
+                                color: nagcarlanGreen,
                               ),
                             ),
                           ],
@@ -186,11 +182,9 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Divider
                   Container(height: 1, color: Colors.grey[200]),
                   const SizedBox(height: 12),
 
-                  // Route
                   _buildDetailSection(
                     icon: Icons.location_on_outlined,
                     label: 'Route',
@@ -199,16 +193,14 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Duration
                   _buildDetailSection(
                     icon: Icons.timer_outlined,
                     label: 'Live Duration',
                     value: '${widget.elapsedSeconds ~/ 60}m ${widget.elapsedSeconds % 60}s',
-                    iconColor: Colors.orange,
+                    iconColor: nagcarlanYellow,
                   ),
                   const SizedBox(height: 12),
 
-                  // Fare
                   _buildDetailSection(
                     icon: Icons.attach_money,
                     label: 'Fare Amount',
@@ -217,7 +209,6 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Action buttons
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -231,8 +222,8 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: nagcarlanGreen,
-                        foregroundColor: Colors.white,
+                        backgroundColor: nagcarlanYellow,
+                        foregroundColor: nagcarlanGreen,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -251,11 +242,6 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
   }
 }
 
-/// OngoingTripCard displays an active trip with passenger details, route, and fare.
-/// Click to view full trip details in a modal.
-///
-/// - tripData: Map containing trip information
-/// - onCompleteTap: Callback when "Complete Trip" button is tapped
 class OngoingTripCard extends StatefulWidget {
   final Map<String, dynamic> tripData;
   final VoidCallback onCompleteTap;
@@ -311,7 +297,6 @@ class _OngoingTripCardState extends State<OngoingTripCard> {
       ),
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
-          // Update modal state when elapsed seconds change
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
               setModalState(() {});
@@ -320,8 +305,8 @@ class _OngoingTripCardState extends State<OngoingTripCard> {
 
           return DraggableScrollableSheet(
             expand: false,
-            initialChildSize: 0.5, // Reduced from 0.6 to minimize white space
-            maxChildSize: 0.75, // Reduced from 0.85
+            initialChildSize: 0.5,
+            maxChildSize: 0.75,
             minChildSize: 0.4,
             builder: (context, scrollController) => TripDetailsModal(
               tripData: widget.tripData,
@@ -336,8 +321,6 @@ class _OngoingTripCardState extends State<OngoingTripCard> {
 
   @override
   Widget build(BuildContext context) {
-    final String status = widget.tripData['status']?.toString().toLowerCase() ?? 'ongoing';
-
     return GestureDetector(
       onTap: () => _showTripDetailsModal(context),
       child: Card(
@@ -346,118 +329,49 @@ class _OngoingTripCardState extends State<OngoingTripCard> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        color: Colors.white,
+        color: nagcarlanWhite.withOpacity(0.95),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              // Header: Status badge only
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.green[50],
-                  border: Border.all(color: Colors.green, width: 1.5),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+              const Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(nagcarlanYellow),
+                      strokeWidth: 3,
+                    ),
+                  ),
+                  Icon(Icons.directions_car, color: nagcarlanGreen, size: 20),
+                ],
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
+                    const Text(
+                      'TRIP IN PROGRESS',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: nagcarlanGreen,
                       ),
                     ),
-                    const SizedBox(width: 6),
                     Text(
-                      status.substring(0, 1).toUpperCase() + status.substring(1),
-                      style: const TextStyle(
+                      widget.tripData['route'] ?? '—',
+                      style: TextStyle(
                         fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
+                        color: Colors.grey[600],
                       ),
                     ),
                   ],
                 ),
               ),
-
-              const SizedBox(height: 12),
-
-              // Route display
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: nagcarlanGreen.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.route_outlined,
-                      color: nagcarlanGreen,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Route',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[500],
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.tripData['route'] ?? 'Unknown Route',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
-
-              // End Trip Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: widget.onCompleteTap,
-                  icon: const Icon(Icons.check_circle_outline, size: 18),
-                  label: const Text(
-                    'END TRIP',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: nagcarlanGreen,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                ),
-              ),
+              const Icon(Icons.chevron_right, color: nagcarlanGreen),
             ],
           ),
         ),

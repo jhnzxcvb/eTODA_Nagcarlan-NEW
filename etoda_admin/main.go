@@ -14,12 +14,11 @@ import (
 )
 
 func main() {
-	// build connection string using environment variables
 	host := utils.Env("DB_HOST", "localhost")
 	port := utils.Env("DB_PORT", "5432")
 	name := utils.Env("DB_NAME", "etoda_db")
 	user := utils.Env("DB_USER", "postgres")
-	pass := utils.Env("DB_PASSWORD", "123")
+	pass := utils.Env("DB_PASSWORD", "1")
 	if pass == "" {
 		log.Println("⚠️ DB_PASSWORD not set; connection may fail")
 	}

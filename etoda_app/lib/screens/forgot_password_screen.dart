@@ -82,7 +82,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (_otpController.text.isEmpty) return;
     setState(() => _isLoading = true);
 
-    // Simulated OTP check
     await Future.delayed(const Duration(seconds: 1));
 
     if (_otpController.text == "123456") {
@@ -145,11 +144,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text("Account Recovery", style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: nagcarlanGreen,
+        backgroundColor: Colors.transparent,
+        foregroundColor: nagcarlanWhite,
         elevation: 0,
       ),
       body: Container(
@@ -191,17 +191,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget _buildUsernameStep() {
     return Column(
       children: [
-        const Icon(Icons.person_search_rounded, size: 100, color: nagcarlanGreen),
+        const Icon(Icons.person_search_rounded, size: 100, color: nagcarlanYellow),
         const SizedBox(height: 32),
         const Text(
           "Find Your Account",
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: nagcarlanGreen),
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: nagcarlanYellow),
         ),
         const SizedBox(height: 12),
         const Text(
           "Enter your username and we'll help you recover your account access.",
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.black54, height: 1.5),
+          style: TextStyle(color: nagcarlanWhite, height: 1.5),
         ),
         const SizedBox(height: 40),
         _buildInputField(
@@ -219,22 +219,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget _buildOTPStep() {
     return Column(
       children: [
-        const Icon(Icons.mark_email_read_rounded, size: 100, color: nagcarlanGreen),
+        const Icon(Icons.mark_email_read_rounded, size: 100, color: nagcarlanYellow),
         const SizedBox(height: 32),
         const Text(
           "Verify Identity",
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: nagcarlanGreen),
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: nagcarlanYellow),
         ),
         const SizedBox(height: 12),
         RichText(
           textAlign: TextAlign.center,
           text: TextSpan(
-            style: const TextStyle(color: Colors.black54, height: 1.5, fontSize: 16),
+            style: const TextStyle(color: nagcarlanWhite, height: 1.5, fontSize: 16),
             children: [
               const TextSpan(text: "We sent a 6-digit OTP to your registered phone number ending in "),
               TextSpan(
                 text: _maskPhoneNumber(_contactNumber),
-                style: const TextStyle(fontWeight: FontWeight.bold, color: nagcarlanGreen),
+                style: const TextStyle(fontWeight: FontWeight.bold, color: nagcarlanYellow),
               ),
             ],
           ),
@@ -251,7 +251,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         _buildActionButton("VERIFY CODE", _verifyOTP),
         TextButton(
           onPressed: () => _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.ease),
-          child: const Text("Not your account? Go back", style: TextStyle(color: Colors.grey)),
+          child: const Text("Not your account? Go back", style: TextStyle(color: Colors.white70)),
         )
       ],
     );
@@ -260,17 +260,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget _buildResetStep() {
     return Column(
       children: [
-        const Icon(Icons.published_with_changes_rounded, size: 100, color: nagcarlanGreen),
+        const Icon(Icons.published_with_changes_rounded, size: 100, color: nagcarlanYellow),
         const SizedBox(height: 32),
         const Text(
           "Create New Password",
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: nagcarlanGreen),
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: nagcarlanYellow),
         ),
         const SizedBox(height: 12),
         const Text(
           "Almost done! Please choose a strong password for your account.",
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.black54, height: 1.5),
+          style: TextStyle(color: nagcarlanWhite, height: 1.5),
         ),
         const SizedBox(height: 40),
         _buildInputField(
@@ -308,13 +308,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black54, letterSpacing: 1),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: nagcarlanWhite, letterSpacing: 1),
         ),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
+          style: const TextStyle(color: nagcarlanGreen, fontWeight: FontWeight.bold),
           decoration: InputDecoration(
             prefixIcon: Icon(icon, color: nagcarlanGreen, size: 22),
             suffixIcon: onToggle != null
@@ -326,12 +327,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             hintText: hint,
             hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
             filled: true,
-            fillColor: Colors.white.withAlpha(230),
+            fillColor: nagcarlanWhite.withOpacity(0.9),
             contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15),
-              borderSide: const BorderSide(color: nagcarlanGreen, width: 1.5),
+              borderSide: const BorderSide(color: nagcarlanYellow, width: 2),
             ),
           ),
         ),
@@ -346,18 +347,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: nagcarlanGreen.withAlpha(60),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 12,
             offset: const Offset(0, 5),
           )
         ],
       ),
       child: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: nagcarlanGreen))
+          ? const Center(child: CircularProgressIndicator(color: nagcarlanYellow))
           : ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: nagcarlanGreen,
-                foregroundColor: Colors.white,
+                backgroundColor: nagcarlanYellow,
+                foregroundColor: nagcarlanGreen,
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 elevation: 0,

@@ -54,9 +54,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   void _handleSignup() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
-
     try {
       final response = await http.post(
         Uri.parse('${ApiService.baseUrl}/api/signup'),
@@ -71,7 +69,6 @@ class _SignupScreenState extends State<SignupScreen> {
           'password': _passwordController.text.trim(),
         }),
       );
-
       if (response.statusCode == 201) {
         _showSuccessDialog(_usernameController.text.trim());
       } else {
@@ -86,7 +83,7 @@ class _SignupScreenState extends State<SignupScreen> {
     } catch (e) {
       _showNotificationDialog(
         title: "Connection Error",
-        message: "Could not connect to the server. Please check your connection.",
+        message: "Could not connect to the server.",
         icon: Icons.wifi_off,
         color: Colors.red,
       );
@@ -103,7 +100,7 @@ class _SignupScreenState extends State<SignupScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
-            Icon(Icons.check_circle, color: Colors.green),
+            Icon(Icons.check_circle, color: nagcarlanGreen),
             SizedBox(width: 10),
             Text("Registration Success"),
           ],
@@ -159,7 +156,7 @@ class _SignupScreenState extends State<SignupScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: nagcarlanGreen,
+        foregroundColor: nagcarlanWhite,
       ),
       body: Container(
         width: double.infinity,
@@ -174,13 +171,13 @@ class _SignupScreenState extends State<SignupScreen> {
                 children: [
                   const Text(
                     "Create Account",
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: nagcarlanGreen),
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: nagcarlanYellow),
                   ),
                   const SizedBox(height: 8),
                   const Text(
                     "Join the eTODA community as a passenger",
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.black54, fontSize: 16),
+                    style: TextStyle(color: nagcarlanWhite, fontSize: 16),
                   ),
                   const SizedBox(height: 32),
                   _buildTextField(
@@ -267,11 +264,11 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   const SizedBox(height: 32),
                   _isLoading
-                      ? const CircularProgressIndicator(color: nagcarlanGreen)
+                      ? const CircularProgressIndicator(color: nagcarlanYellow)
                       : ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: nagcarlanGreen,
-                            foregroundColor: Colors.white,
+                            backgroundColor: nagcarlanYellow,
+                            foregroundColor: nagcarlanGreen,
                             minimumSize: const Size(double.infinity, 56),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                             elevation: 5,
@@ -283,18 +280,18 @@ class _SignupScreenState extends State<SignupScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.05),
+                      color: nagcarlanWhite.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.red.withOpacity(0.2)),
+                      border: Border.all(color: nagcarlanWhite.withOpacity(0.2)),
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.info_outline, color: Colors.redAccent, size: 20),
+                        Icon(Icons.info_outline, color: nagcarlanYellow, size: 20),
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             "Drivers must register through the eTODA administration office.",
-                            style: TextStyle(fontSize: 12, color: Colors.redAccent, fontWeight: FontWeight.w500),
+                            style: TextStyle(fontSize: 12, color: nagcarlanWhite, fontWeight: FontWeight.w500),
                           ),
                         ),
                       ],
@@ -328,13 +325,14 @@ class _SignupScreenState extends State<SignupScreen> {
       textCapitalization: textCapitalization,
       decoration: InputDecoration(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: nagcarlanWhite.withOpacity(0.9),
         labelText: label,
+        labelStyle: const TextStyle(color: nagcarlanGreen),
         hintText: hintText,
         prefixIcon: Icon(icon, color: nagcarlanGreen),
         suffixIcon: isPassword
             ? IconButton(
-                icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
+                icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, color: nagcarlanGreen),
                 onPressed: onToggleVisibility,
               )
             : null,
@@ -342,7 +340,7 @@ class _SignupScreenState extends State<SignupScreen> {
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: nagcarlanGreen, width: 2),
+          borderSide: const BorderSide(color: nagcarlanYellow, width: 2),
         ),
       ),
       validator: validator,
