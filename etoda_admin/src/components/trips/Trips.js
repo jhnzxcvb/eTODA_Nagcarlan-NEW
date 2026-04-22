@@ -6,22 +6,12 @@ import {
   faChevronLeft, faChevronRight, faRefresh,
   faCalendar, faTimes
 } from '@fortawesome/free-solid-svg-icons';
+import { api } from '../../lib/api';
 import Loading from '../ui/Loading';
 import Empty from '../ui/Empty';
 import Modal from '../ui/Modal';
 import DG from '../ui/DetailGrid';
 import { buildPageWindow } from '../../lib/pagination';
-
-const api = async (endpoint) => {
-  try {
-    const response = await fetch(`http://localhost:8080${endpoint}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
-    });
-    return await response.json();
-  } catch (err) {
-    return { success: false, error: 'Connection failed' };
-  }
-};
 
 const DATE_PRESETS = [
   { label: 'Today',      value: 'today' },

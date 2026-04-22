@@ -123,7 +123,7 @@ function Dashboard({ notify, setPanel }) {
   const CARDS = stats ? [
     { val: stats.active_drivers,    lbl: 'Active Drivers',   sub: 'Registered',            icon: faUsers, trend: '▲ +1 from yesterday',  trendColor: 'green', color: '#2d5a1b' },
     { val: stats.trips_today,       lbl: 'Trips Today',      sub: 'Completed',             icon: faRoute, trend: '▼ -2 from yesterday',  trendColor: 'red',   color: '#0284c7' },
-    { val: `₱${Number(stats.revenue_today).toLocaleString()}`, lbl: 'Revenue Today', sub: '3 transactions', icon: faWallet, trend: '▲ +₱500 from yesterday', trendColor: 'green', color: '#d97706' },
+    { val: `₱${Number(stats.revenue_today).toLocaleString()}`, lbl: 'Revenue Today', sub: `${stats.revenue_count || 0} transactions`, icon: faWallet, trend: '▲ +₱500 from yesterday', trendColor: 'green', color: '#d97706' },
     { val: stats.pending_complaints, lbl: 'Open Complaints', sub: 'Needs action',          icon: faExclamationCircle, trend: '▲ +3 from yesterday',  trendColor: 'red',   color: '#dc2626' },
     { val: stats.total_drivers,     lbl: 'Total Drivers',    sub: 'All enrolled',          icon: faIdCard, trend: '▲ +2 from yesterday',  trendColor: 'green', color: '#16a34a' },
     { val: stats.passengers,        lbl: 'Total Passengers', sub: 'Registered',            icon: faUsers, trend: '▲ +5 from yesterday',  trendColor: 'green', color: '#8e44ad' },

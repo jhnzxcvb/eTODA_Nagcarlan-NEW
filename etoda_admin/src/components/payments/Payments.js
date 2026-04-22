@@ -15,11 +15,23 @@ import { buildPageWindow } from '../../lib/pagination';
 
 const formatDate = (str) => {
   if (!str) return '—';
+  
+  // If the string is already formatted by the server (e.g. "Oct 27, 2023, 02:30 PM"),
+  // return it as is to prevent browser timezone logic from shifting the time.
+  if (typeof str === 'string' && str.includes(',') && (str.includes('AM') || str.includes('PM'))) {
+    return str;
+  }
+
   const d = new Date(str);
-  if (isNaN(d)) return str;
-  return d.toLocaleDateString('en-PH', {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+  if (isNaN(d.getTime())) return str;
+  return d.toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
   });
 };
 
@@ -40,6 +52,13 @@ function Payments({ notify }) {
   };
 
   useEffect(() => { load(); }, []);
+
+  // Auto-refresh payments list every 20 seconds to fetch new records from mobile app
+  useEffect(() => {
+    const timer = setInterval(() => load(), 20000);
+    return () => clearInterval(timer);
+  }, []);
+
   useEffect(() => { setCurrentPage(1); }, [methodFilter, pageSize, search]);
 
   const filtered = useMemo(() => {
