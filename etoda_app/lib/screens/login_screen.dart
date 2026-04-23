@@ -187,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Username Field
                   TextFormField(
                     controller: _usernameController,
-                    decoration: _inputDecoration("Username", Icons.person_outline, hint: "Enter your username"),
+                    decoration: _inputDecoration(Icons.person_outline, hint: "Username"),
                     validator: (v) => v!.isEmpty ? "Please enter your username" : null,
                   ),
                   const SizedBox(height: 20),
@@ -196,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    decoration: _inputDecoration("Password", Icons.lock_outline).copyWith(
+                    decoration: _inputDecoration(Icons.lock_outline, hint: "Password").copyWith(
                       suffixIcon: IconButton(
                         icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: nagcarlanGreen),
                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
@@ -300,13 +300,12 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  InputDecoration _inputDecoration(String label, IconData icon, {String? hint}) {
+  InputDecoration _inputDecoration(IconData icon, {String? hint}) {
     return InputDecoration(
       filled: true,
       fillColor: nagcarlanWhite.withOpacity(0.9),
-      labelText: label,
-      labelStyle: const TextStyle(color: nagcarlanGreen),
       hintText: hint,
+      hintStyle: const TextStyle(color: Colors.grey),
       prefixIcon: Icon(icon, color: nagcarlanGreen),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),

@@ -68,6 +68,11 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
   @override
   Widget build(BuildContext context) {
     final String passengerName = widget.tripData['passenger_name'] ?? 'Passenger';
+    
+    // In details pop up, we show the combined route.
+    final String route = widget.tripData['route'] ?? 
+        "${widget.tripData['origin'] ?? '—'} → ${widget.tripData['destination'] ?? '—'}";
+
     final double fare = (widget.tripData['fare'] is num)
         ? (widget.tripData['fare'] as num).toDouble()
         : (widget.tripData['fare_amount'] is num)
@@ -186,9 +191,9 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                   const SizedBox(height: 12),
 
                   _buildDetailSection(
-                    icon: Icons.location_on_outlined,
+                    icon: Icons.route_outlined,
                     label: 'Route',
-                    value: widget.tripData['route'] ?? '—',
+                    value: route,
                     iconColor: nagcarlanGreen,
                   ),
                   const SizedBox(height: 12),
@@ -216,19 +221,19 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                         Navigator.pop(context);
                         widget.onCompleteTap();
                       },
-                      icon: const Icon(Icons.check_circle_outline),
+                      icon: const Icon(Icons.check_circle_outline, size: 24),
                       label: const Text(
-                        'END TRIP',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                        'END TRIP NOW',
+                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: 1.2),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: nagcarlanYellow,
                         foregroundColor: nagcarlanGreen,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        elevation: 0,
+                        elevation: 4,
                       ),
                     ),
                   ),
@@ -244,11 +249,15 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
 
 class OngoingTripCard extends StatefulWidget {
   final Map<String, dynamic> tripData;
+  final int tripIndex;
+  final int totalTrips;
   final VoidCallback onCompleteTap;
 
   const OngoingTripCard({
     super.key,
     required this.tripData,
+    this.tripIndex = 0,
+    this.totalTrips = 1,
     required this.onCompleteTap,
   });
 
@@ -295,41 +304,36 @@ class _OngoingTripCardState extends State<OngoingTripCard> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              setModalState(() {});
-            }
-          });
-
-          return DraggableScrollableSheet(
-            expand: false,
-            initialChildSize: 0.5,
-            maxChildSize: 0.75,
-            minChildSize: 0.4,
-            builder: (context, scrollController) => TripDetailsModal(
-              tripData: widget.tripData,
-              elapsedSeconds: _elapsedSeconds,
-              onCompleteTap: widget.onCompleteTap,
-            ),
-          );
-        },
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.5,
+        maxChildSize: 0.75,
+        minChildSize: 0.4,
+        builder: (context, scrollController) => TripDetailsModal(
+          tripData: widget.tripData,
+          elapsedSeconds: _elapsedSeconds,
+          onCompleteTap: widget.onCompleteTap,
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Only display the destination on the trip card itself.
+    final String destination = widget.tripData['destination'] ?? '—';
+    final String passengerName = widget.tripData['passenger_name'] ?? 'Passenger';
+
     return GestureDetector(
       onTap: () => _showTripDetailsModal(context),
       child: Card(
-        elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.08),
+        elevation: 6,
+        shadowColor: nagcarlanGreen.withOpacity(0.15),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: nagcarlanGreen.withOpacity(0.15), width: 1.5),
         ),
-        color: nagcarlanWhite.withOpacity(0.95),
+        color: Colors.white,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
@@ -338,40 +342,49 @@ class _OngoingTripCardState extends State<OngoingTripCard> {
                 alignment: Alignment.center,
                 children: [
                   SizedBox(
-                    width: 40,
-                    height: 40,
+                    width: 44,
+                    height: 44,
                     child: CircularProgressIndicator(
                       valueColor: AlwaysStoppedAnimation<Color>(nagcarlanYellow),
-                      strokeWidth: 3,
+                      strokeWidth: 2,
                     ),
                   ),
-                  Icon(Icons.directions_car, color: nagcarlanGreen, size: 20),
+                  Icon(Icons.directions_car, color: nagcarlanGreen, size: 24),
                 ],
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'TRIP IN PROGRESS',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                    Text(
+                      widget.totalTrips > 1 ? "ONGOING TRIP (${widget.tripIndex + 1}/${widget.totalTrips})" : "ONGOING TRIP",
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
                         color: nagcarlanGreen,
+                        letterSpacing: 0.5,
                       ),
                     ),
                     Text(
-                      widget.tripData['route'] ?? '—',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
+                      destination,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      "Passenger: $passengerName",
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: nagcarlanGreen),
+              const Icon(Icons.chevron_right, color: Colors.grey),
             ],
           ),
         ),

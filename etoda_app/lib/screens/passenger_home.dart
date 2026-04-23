@@ -181,7 +181,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                     if (data != null && data['last_driver_name'] != null)
                       Text("You're riding with ${data['last_driver_name']}",
                           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
-                    Text("Tap to view details or report issues", 
+                    Text("Tap to view details", 
                         style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                   ],
                 ),

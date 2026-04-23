@@ -66,6 +66,7 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
 
   void _connectWebSocket() async {
     try {
+      // Connect to passenger WebSocket
       await ApiService.connectPassengerWebSocket(widget.passengerId.toString());
       _setupWebSocketListener();
     } catch (e) {
@@ -73,16 +74,22 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
     }
   }
 
+  /// Set up WebSocket listener for real-time trip updates
   void _setupWebSocketListener() {
     _wsSubscription?.cancel();
     final wsStream = ApiService.getWebSocketStream();
     
-    if (wsStream == null) return;
+    if (wsStream == null) {
+      debugPrint('⚠️ WebSocket stream not available');
+      return;
+    }
 
     _wsSubscription = wsStream.listen(
       (message) {
         if (message['event'] == 'trip_ended' || message['event'] == 'trip_cancelled') {
+          debugPrint('✓ Trip finalization notification received: ${message['event']}');
           if (mounted) {
+            // Bundle the event into the trip data
             final tripData = Map<String, dynamic>.from(message['trip'] ?? {});
             if (message['event'] == 'trip_cancelled') {
               tripData['status'] = 'cancelled';
@@ -100,6 +107,12 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
           }
         }
       },
+      onError: (error) {
+        debugPrint('⚠️ WebSocket stream error: $error');
+      },
+      onDone: () {
+        debugPrint('⚠️ WebSocket stream closed');
+      },
     );
   }
 
@@ -110,10 +123,7 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: nagcarlanWhite),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        automaticallyImplyLeading: false,
       ),
       body: Container(
         width: double.infinity,
@@ -151,8 +161,8 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
 
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 30),
-              elevation: 4,
-              color: nagcarlanWhite.withOpacity(0.9),
+              elevation: 0,
+              color: Colors.white.withOpacity(0.15),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16)),
               child: Padding(
@@ -160,32 +170,31 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SizedBox(
+                    const SizedBox(
                       width: 40,
                       height: 40,
                       child: CircularProgressIndicator(
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                            nagcarlanGreen),
+                        valueColor: AlwaysStoppedAnimation<Color>(nagcarlanYellow),
                         strokeWidth: 3,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 16),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text(
+                        Text(
                           "Trip Status",
-                          style:
-                              TextStyle(fontSize: 12, color: Colors.black54),
+                          style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.8)),
                         ),
                         const SizedBox(height: 2),
-                        Text( 
+                        Text(
                           "IN PROGRESS (${_elapsedSeconds ~/ 60}m ${_elapsedSeconds % 60}s)",
-                          style: const TextStyle(
-                            fontSize: 15,
+                          style: TextStyle(
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: nagcarlanGreen,
+                            color: nagcarlanYellow,
+                            letterSpacing: 1.5,
                           ),
                         ),
                       ],
@@ -215,7 +224,9 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold, color: nagcarlanWhite),
                 ),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: nagcarlanWhite, width: 1.5),
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.redAccent,
+                  side: const BorderSide(color: Colors.transparent),
                   padding: const EdgeInsets.symmetric(
                       vertical: 15, horizontal: 20),
                   shape: RoundedRectangleBorder(
