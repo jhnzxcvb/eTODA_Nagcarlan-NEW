@@ -26,15 +26,16 @@ void main() {
 }
 
 // Brand Colors
-const Color nagcarlanGreen = Color(0xFF16A34A);
-const Color nagcarlanYellow = Color(0xFFFACC15);
+const Color nagcarlanGreen = Color(0xFF14532D); // Primary: Deep green from admin sidebar
+const Color nagcarlanWhite = Colors.white; // Secondary
+const Color nagcarlanYellow = Color(0xFFFACC15); // Tertiary: Vibrant yellow accent
 
-// Modern Gradient for Nagcarlan Branding
+// Modern Gradient for Nagcarlan Branding (Main color green)
 const BoxDecoration nagcarlanGradient = BoxDecoration(
   gradient: LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [nagcarlanYellow, Colors.white, nagcarlanYellow],
+    colors: [nagcarlanGreen, Color(0xFF166534), nagcarlanGreen],
   ),
 );
 
@@ -48,7 +49,28 @@ class EtodaApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: nagcarlanGreen),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: nagcarlanGreen,
+          primary: nagcarlanGreen,
+          secondary: nagcarlanWhite,
+          tertiary: nagcarlanYellow,
+          surface: nagcarlanWhite,
+          onPrimary: Colors.white,
+          onSecondary: nagcarlanGreen,
+          onTertiary: Colors.black,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: nagcarlanGreen,
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: nagcarlanGreen,
+            foregroundColor: Colors.white,
+            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
       // Define initial route

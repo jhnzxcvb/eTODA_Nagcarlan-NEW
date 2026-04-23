@@ -66,7 +66,6 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
 
   void _connectWebSocket() async {
     try {
-      // Connect to passenger WebSocket
       await ApiService.connectPassengerWebSocket(widget.passengerId.toString());
       _setupWebSocketListener();
     } catch (e) {
@@ -74,22 +73,16 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
     }
   }
 
-  /// Set up WebSocket listener for real-time trip updates
   void _setupWebSocketListener() {
     _wsSubscription?.cancel();
     final wsStream = ApiService.getWebSocketStream();
     
-    if (wsStream == null) {
-      debugPrint('⚠️ WebSocket stream not available');
-      return;
-    }
+    if (wsStream == null) return;
 
     _wsSubscription = wsStream.listen(
       (message) {
         if (message['event'] == 'trip_ended' || message['event'] == 'trip_cancelled') {
-          debugPrint('✓ Trip finalization notification received: ${message['event']}');
           if (mounted) {
-            // Bundle the event into the trip data
             final tripData = Map<String, dynamic>.from(message['trip'] ?? {});
             if (message['event'] == 'trip_cancelled') {
               tripData['status'] = 'cancelled';
@@ -107,12 +100,6 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
           }
         }
       },
-      onError: (error) {
-        debugPrint('⚠️ WebSocket stream error: $error');
-      },
-      onDone: () {
-        debugPrint('⚠️ WebSocket stream closed');
-      },
     );
   }
 
@@ -124,7 +111,7 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: nagcarlanGreen),
+          icon: const Icon(Icons.arrow_back, color: nagcarlanWhite),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -139,12 +126,12 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: nagcarlanWhite.withOpacity(0.15),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.check_circle,
-                color: nagcarlanGreen,
+                color: nagcarlanYellow,
                 size: 120,
               ),
             ),
@@ -156,7 +143,7 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: nagcarlanGreen,
+                color: nagcarlanYellow,
               ),
             ),
 
@@ -165,6 +152,7 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 30),
               elevation: 4,
+              color: nagcarlanWhite.withOpacity(0.9),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16)),
               child: Padding(
@@ -189,10 +177,10 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
                         const Text(
                           "Trip Status",
                           style:
-                              TextStyle(fontSize: 12, color: Colors.grey),
+                              TextStyle(fontSize: 12, color: Colors.black54),
                         ),
                         const SizedBox(height: 2),
-                        Text( // Display elapsed time in minutes and seconds
+                        Text( 
                           "IN PROGRESS (${_elapsedSeconds ~/ 60}m ${_elapsedSeconds % 60}s)",
                           style: const TextStyle(
                             fontSize: 15,
@@ -221,14 +209,13 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
                     ),
                   );
                 },
-                icon: const Icon(Icons.warning_amber_rounded, size: 20),
+                icon: const Icon(Icons.warning_amber_rounded, size: 20, color: nagcarlanWhite),
                 label: const Text(
                   "Report an Issue",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: nagcarlanWhite),
                 ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red[700],
-                  side: BorderSide(color: Colors.red[700]!, width: 1.5),
+                  side: const BorderSide(color: nagcarlanWhite, width: 1.5),
                   padding: const EdgeInsets.symmetric(
                       vertical: 15, horizontal: 20),
                   shape: RoundedRectangleBorder(

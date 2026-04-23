@@ -30,12 +30,14 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text("Trip History"),
-        backgroundColor: nagcarlanGreen,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        foregroundColor: nagcarlanWhite,
+        elevation: 0,
         actions: [
-          IconButton(onPressed: _handleRefresh, icon: const Icon(Icons.refresh)),
+          IconButton(onPressed: _handleRefresh, icon: const Icon(Icons.refresh, color: nagcarlanWhite)),
         ],
       ),
       body: Container(
@@ -44,17 +46,18 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
           future: _historyFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator(color: Colors.white));
+              return const Center(child: CircularProgressIndicator(color: nagcarlanYellow));
             } else if (snapshot.hasError) {
-              return const Center(child: Text("Error loading trip history", style: TextStyle(color: Colors.white)));
+              return const Center(child: Text("Error loading trip history", style: TextStyle(color: nagcarlanWhite)));
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text("No trips found.", style: TextStyle(color: Colors.white, fontSize: 16)));
+              return const Center(child: Text("No trips found.", style: TextStyle(color: nagcarlanWhite, fontSize: 16)));
             }
 
             final trips = snapshot.data!;
 
             return Column(
               children: [
+                const SizedBox(height: 100),
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
@@ -62,9 +65,11 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
                     itemBuilder: (context, index) {
                       final trip = trips[index];
                       final fare = (trip['fare_amount'] as num?)?.toDouble() ?? 0.0;
+                      final isCancelled = trip['status']?.toString().toLowerCase() == 'cancelled';
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 16),
+                        color: nagcarlanWhite.withOpacity(0.9),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                         elevation: 2,
                         child: InkWell(
@@ -87,12 +92,12 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: (trip['status']?.toString().toLowerCase() == 'cancelled' ? Colors.red : nagcarlanGreen).withOpacity(0.1),
+                                          color: (isCancelled ? Colors.red : nagcarlanGreen).withOpacity(0.1),
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Text(
                                           trip['status']?.toString().toUpperCase() ?? 'COMPLETED',
-                                          style: TextStyle(color: trip['status']?.toString().toLowerCase() == 'cancelled' ? Colors.red : nagcarlanGreen, fontSize: 10, fontWeight: FontWeight.bold),
+                                          style: TextStyle(color: isCancelled ? Colors.red : nagcarlanGreen, fontSize: 10, fontWeight: FontWeight.bold),
                                         ),
                                       ),
                                       const SizedBox(width: 8),
@@ -113,7 +118,7 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
                                 children: [
                                   const Icon(Icons.person_outline, size: 18, color: nagcarlanGreen),
                                   const SizedBox(width: 8),
-                                  Text(trip['passenger_name'] ?? 'Guest', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                  Text(trip['passenger_name'] ?? 'Guest', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: nagcarlanGreen)),
                                 ],
                               ),
                               const SizedBox(height: 8),

@@ -14,15 +14,18 @@ class DriverTripDetailsScreen extends StatelessWidget {
     final fare = (trip['fare_amount'] as num?)?.toDouble() ?? 0.0;
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text('Trip Details'),
-        backgroundColor: nagcarlanGreen,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        foregroundColor: nagcarlanWhite,
+        elevation: 0,
       ),
       body: Container(
         decoration: nagcarlanGradient,
         child: Column(
           children: [
+            const SizedBox(height: 100),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20.0),
@@ -53,7 +56,7 @@ class DriverTripDetailsScreen extends StatelessWidget {
                     const Text(
                       "This trip record is saved in the official TODA ledger.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.black54, fontSize: 12),
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],
                 ),

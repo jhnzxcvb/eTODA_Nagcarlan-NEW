@@ -16,22 +16,18 @@ class DriverProfileScreen extends StatefulWidget {
 class _DriverProfileScreenState extends State<DriverProfileScreen> {
   bool _isLoading = true;
   Map<String, dynamic>? _driverData;
-  dynamic _driverId; // Changed to dynamic to handle both int and string
+  dynamic _driverId;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_driverData == null) {
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-      
-      // Try to get ID from different possible keys
       _driverId = args?['driver_id'] ?? args?['id'] ?? args?['ID'];
 
-      // If we already have the full data from login, use it first to avoid unnecessary loading
       if (args != null && args.containsKey('plate_number')) {
         _driverData = args;
         _isLoading = false;
-        // We still fetch in background to get the latest data
         if (_driverId != null) _fetchDriverProfile();
       } else if (_driverId != null) {
         _fetchDriverProfile();
@@ -43,7 +39,6 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
 
   Future<void> _fetchDriverProfile() async {
     try {
-      // Trying the /api/profile endpoint which is used in driver_edit_profile
       final url = '${ApiService.baseUrl}/api/profile?role=driver&id=$_driverId';
       debugPrint("Fetching driver profile from: $url");
       
@@ -61,7 +56,6 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
         }
       } else {
         logError("Server returned ${response.statusCode}: ${response.body}");
-        // If fetch fails but we already have data from args, stop loading
         if (_driverData != null) setState(() => _isLoading = false);
       }
     } catch (e) {
@@ -85,7 +79,6 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
       if (fullName.isEmpty) fullName = _driverData!['full_name'] ?? "DRIVER PROFILE";
     }
 
-    // Helper function to catch both null and empty string values
     String getVal(String key, String fallback) {
       final val = _driverData?[key];
       if (val == null) return fallback;
@@ -96,10 +89,11 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
     final String profilePic = getVal('profile_pic', '');
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text("My Driver Profile"),
-        backgroundColor: nagcarlanGreen,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        foregroundColor: nagcarlanWhite,
         elevation: 0,
       ),
       body: Container(
@@ -107,35 +101,42 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
         height: double.infinity,
         decoration: nagcarlanGradient,
         child: _isLoading && _driverData == null
-            ? const Center(child: CircularProgressIndicator(color: nagcarlanGreen))
+            ? const Center(child: CircularProgressIndicator(color: nagcarlanYellow))
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 24),
-                    CircleAvatar(
-                      radius: 65,
-                      backgroundColor: Colors.white,
-                      backgroundImage: profilePic.isNotEmpty
-                          ? NetworkImage('${ApiService.baseUrl}/uploads/$profilePic')
-                          : null,
-                      child: profilePic.isEmpty
-                          ? const Icon(Icons.person, size: 70, color: Color(0xFFA5D6A7))
-                          : null,
+                    const SizedBox(height: 100),
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: nagcarlanWhite,
+                        shape: BoxShape.circle,
+                      ),
+                      child: CircleAvatar(
+                        radius: 65,
+                        backgroundColor: Colors.white,
+                        backgroundImage: profilePic.isNotEmpty
+                            ? NetworkImage('${ApiService.baseUrl}/uploads/$profilePic')
+                            : null,
+                        child: profilePic.isEmpty
+                            ? const Icon(Icons.person, size: 70, color: Colors.grey)
+                            : null,
+                      ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     Text(
                       fullName.toUpperCase(),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: nagcarlanGreen),
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: nagcarlanYellow),
                     ),
                     if (_driverId != null)
                       Text(
                         "ID: DRV-${_driverId.toString().padLeft(4, '0')}",
-                        style: const TextStyle(fontSize: 14, color: Colors.black54),
+                        style: TextStyle(fontSize: 14, color: nagcarlanWhite.withOpacity(0.8)),
                       ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
                     InfoSectionCard(
                       title: "Contact & Vehicle",
                       icon: Icons.directions_car,

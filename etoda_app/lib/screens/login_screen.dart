@@ -19,7 +19,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  // Function to show custom alerts for Nagcarlan users
   void _showNotificationDialog({
     required String title,
     required String message,
@@ -61,14 +60,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
-
     String username = _usernameController.text.trim();
     String password = _passwordController.text.trim();
-
     setState(() => _isLoading = true);
-
     try {
-      // Single unified endpoint that checks both Users and Drivers tables
       final response = await http.post(
         Uri.parse('${ApiService.baseUrl}/api/login'),
         headers: {'Content-Type': 'application/json'},
@@ -77,18 +72,12 @@ class _LoginScreenState extends State<LoginScreen> {
           'password': password,
         }),
       );
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
-        // Backend identifies the role automatically
         String role = data['role'] ?? 'passenger';
-
         if (role == 'driver') {
-          // Navigate to Driver Dashboard and pass the driver data (Map)
           Navigator.pushReplacementNamed(context, '/driver_home', arguments: data);
         } else if (role == 'admin') {
-          // Admins should use web portal
           _showNotificationDialog(
             title: "Admin Login",
             message: "Please use the web-based admin portal to sign in.",
@@ -96,7 +85,6 @@ class _LoginScreenState extends State<LoginScreen> {
             color: nagcarlanGreen,
           );
         } else {
-          // Navigate to Passenger Dashboard and pass the passenger data (Map)
           Navigator.pushReplacementNamed(context, '/passenger_home', arguments: data);
         }
       } else if (response.statusCode == 401) {
@@ -117,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       _showNotificationDialog(
         title: "Connection Error",
-        message: "Unable to connect to the eTODA server. Please check if the backend is running.",
+        message: "Unable to connect to the eTODA server.",
         icon: Icons.cloud_off_outlined,
         color: Colors.blueGrey,
       );
@@ -127,7 +115,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleGuestLogin() {
-    // Navigate to Passenger Dashboard as a Guest
     Navigator.pushReplacementNamed(
       context, 
       '/passenger_home', 
@@ -154,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: nagcarlanGreen),
+          icon: const Icon(Icons.arrow_back, color: nagcarlanWhite),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -174,11 +161,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(200),
+                      color: nagcarlanWhite.withOpacity(0.9),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withAlpha(25),
+                          color: Colors.black.withOpacity(0.1),
                           blurRadius: 10,
                           spreadRadius: 2,
                         )
@@ -189,11 +176,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
                   const Text(
                     "eTODA Nagcarlan",
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: nagcarlanGreen),
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: nagcarlanYellow),
                   ),
                   const Text(
                     "Login to your account",
-                    style: TextStyle(color: Colors.black54, fontSize: 16),
+                    style: TextStyle(color: nagcarlanWhite, fontSize: 16),
                   ),
                   const SizedBox(height: 40),
 
@@ -211,7 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     obscureText: _obscurePassword,
                     decoration: _inputDecoration("Password", Icons.lock_outline).copyWith(
                       suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
+                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: nagcarlanGreen),
                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
                     ),
@@ -225,7 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () => Navigator.pushNamed(context, '/forgot_password'),
                       child: const Text(
                         "Forgot Password?",
-                        style: TextStyle(color: nagcarlanGreen, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: nagcarlanWhite, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -234,11 +221,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Login Button
                   _isLoading
-                      ? const CircularProgressIndicator(color: nagcarlanGreen)
+                      ? const CircularProgressIndicator(color: nagcarlanYellow)
                       : ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: nagcarlanGreen,
-                      foregroundColor: Colors.white,
+                      backgroundColor: nagcarlanYellow,
+                      foregroundColor: nagcarlanGreen,
                       minimumSize: const Size(double.infinity, 56),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       elevation: 5,
@@ -252,12 +239,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   // --- OR DIVIDER ---
                   Row(
                     children: [
-                      const Expanded(child: Divider(thickness: 1, color: Colors.black12)),
+                      const Expanded(child: Divider(thickness: 1, color: Colors.white30)),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: Text("OR", style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold)),
+                        child: Text("OR", style: TextStyle(color: nagcarlanWhite, fontWeight: FontWeight.bold)),
                       ),
-                      const Expanded(child: Divider(thickness: 1, color: Colors.black12)),
+                      const Expanded(child: Divider(thickness: 1, color: Colors.white30)),
                     ],
                   ),
 
@@ -266,15 +253,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Guest Login Button
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: nagcarlanGreen, width: 1.5),
+                      side: const BorderSide(color: nagcarlanWhite, width: 1.5),
                       minimumSize: const Size(double.infinity, 56),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     ),
                     onPressed: _handleGuestLogin,
-                    icon: const Icon(Icons.person_outline, color: nagcarlanGreen),
+                    icon: const Icon(Icons.person_outline, color: nagcarlanWhite),
                     label: const Text(
                       "CONTINUE AS GUEST", 
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: nagcarlanGreen)
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: nagcarlanWhite)
                     ),
                   ),
 
@@ -284,12 +271,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("Don't have a passenger account?"),
+                      const Text("Don't have a passenger account?", style: TextStyle(color: nagcarlanWhite)),
                       TextButton(
                         onPressed: () => Navigator.pushNamed(context, '/signup'),
                         child: const Text(
                           "Sign Up",
-                          style: TextStyle(color: nagcarlanGreen, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                          style: TextStyle(color: nagcarlanYellow, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
                         ),
                       ),
                     ],
@@ -301,7 +288,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Text(
                       "Drivers: Please contact the eTODA Admin office if you cannot access your account.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+                      style: TextStyle(fontSize: 12, color: Colors.white60, fontStyle: FontStyle.italic),
                     ),
                   ),
                 ],
@@ -316,15 +303,16 @@ class _LoginScreenState extends State<LoginScreen> {
   InputDecoration _inputDecoration(String label, IconData icon, {String? hint}) {
     return InputDecoration(
       filled: true,
-      fillColor: Colors.white,
+      fillColor: nagcarlanWhite.withOpacity(0.9),
       labelText: label,
+      labelStyle: const TextStyle(color: nagcarlanGreen),
       hintText: hint,
       prefixIcon: Icon(icon, color: nagcarlanGreen),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: const BorderSide(color: nagcarlanGreen, width: 2),
+        borderSide: const BorderSide(color: nagcarlanYellow, width: 2),
       ),
     );
   }

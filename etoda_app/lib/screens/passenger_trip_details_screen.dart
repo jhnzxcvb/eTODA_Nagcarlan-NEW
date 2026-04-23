@@ -1,4 +1,3 @@
-
 import 'package:etoda_nagcarlan/main.dart';
 import 'package:flutter/material.dart';
 import 'package:etoda_nagcarlan/widgets/info_cards.dart';
@@ -15,13 +14,18 @@ class PassengerTripDetailsScreen extends StatelessWidget {
     final fare = (trip['fare_amount'] as num?)?.toDouble() ?? 0.0;
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text('Trip Details'),
+        backgroundColor: Colors.transparent,
+        foregroundColor: nagcarlanWhite,
+        elevation: 0,
       ),
       body: Container(
         decoration: nagcarlanGradient,
         child: Column(
           children: [
+            const SizedBox(height: 100),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20.0),
@@ -51,7 +55,6 @@ class PassengerTripDetailsScreen extends StatelessWidget {
                       },
                     ),
                     const SizedBox(height: 24),
-                    // --- Contact Driver Button ---
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
@@ -64,8 +67,8 @@ class PassengerTripDetailsScreen extends StatelessWidget {
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: nagcarlanGreen,
-                          foregroundColor: Colors.white,
+                          backgroundColor: nagcarlanYellow,
+                          foregroundColor: nagcarlanGreen,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),

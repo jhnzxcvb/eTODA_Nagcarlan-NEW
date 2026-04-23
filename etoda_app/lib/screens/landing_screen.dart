@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:etoda_nagcarlan/main.dart';
 
@@ -21,11 +20,11 @@ class LandingScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
+                  color: nagcarlanWhite.withOpacity(0.95),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withOpacity(0.2),
                       blurRadius: 20,
                       spreadRadius: 5,
                     )
@@ -44,7 +43,7 @@ class LandingScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 56,
                   fontWeight: FontWeight.w900,
-                  color: nagcarlanGreen,
+                  color: nagcarlanYellow,
                   letterSpacing: -1,
                 ),
               ),
@@ -54,7 +53,7 @@ class LandingScreen extends StatelessWidget {
                   fontSize: 18,
                   letterSpacing: 8,
                   fontWeight: FontWeight.bold,
-                  color: nagcarlanGreen,
+                  color: nagcarlanWhite,
                 ),
               ),
               const SizedBox(height: 16),
@@ -62,7 +61,7 @@ class LandingScreen extends StatelessWidget {
                 "Your companion for tricycle transport in Nagcarlan.",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.black54,
+                  color: Colors.white70,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
@@ -76,8 +75,8 @@ class LandingScreen extends StatelessWidget {
                   children: [
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: nagcarlanGreen,
-                        foregroundColor: Colors.white,
+                        backgroundColor: nagcarlanYellow,
+                        foregroundColor: nagcarlanGreen,
                         minimumSize: const Size(double.infinity, 60),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
@@ -97,7 +96,7 @@ class LandingScreen extends StatelessWidget {
                     const SizedBox(height: 16),
                     OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: nagcarlanGreen, width: 2),
+                        side: const BorderSide(color: nagcarlanWhite, width: 2),
                         minimumSize: const Size(double.infinity, 60),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
@@ -107,7 +106,7 @@ class LandingScreen extends StatelessWidget {
                       child: const Text(
                         "SIGN UP",
                         style: TextStyle(
-                          color: nagcarlanGreen,
+                          color: nagcarlanWhite,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -125,7 +124,7 @@ class LandingScreen extends StatelessWidget {
                   "Drivers must register at the eTODA Admin office to activate their accounts.",
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.black45,
+                    color: Colors.white60,
                     fontSize: 12,
                     fontStyle: FontStyle.italic,
                   ),
