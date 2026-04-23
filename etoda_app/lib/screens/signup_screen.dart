@@ -185,9 +185,8 @@ class _SignupScreenState extends State<SignupScreen> {
                   const SizedBox(height: 32),
                   _buildTextField(
                     controller: _usernameController,
-                    label: "Username *",
+                    hintText: "Username *",
                     icon: Icons.badge_outlined,
-                    hintText: "Enter your username",
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) return "Username is required";
                       return null;
@@ -196,30 +195,29 @@ class _SignupScreenState extends State<SignupScreen> {
                   const SizedBox(height: 16),
                   _buildTextField(
                     controller: _firstNameController,
-                    label: "First Name *",
+                    hintText: "First Name *",
                     icon: Icons.person_outline,
                     validator: (value) => value!.trim().isEmpty ? "First name is required" : null,
                   ),
                   const SizedBox(height: 16),
                   _buildTextField(
                     controller: _middleNameController,
-                    label: "Middle Name (Optional)",
+                    hintText: "Middle Name (Optional)",
                     icon: Icons.person_outline,
                   ),
                   const SizedBox(height: 16),
                   _buildTextField(
                     controller: _lastNameController,
-                    label: "Last Name *",
+                    hintText: "Last Name *",
                     icon: Icons.person_outline,
                     validator: (value) => value!.trim().isEmpty ? "Last name is required" : null,
                   ),
                   const SizedBox(height: 16),
                   _buildTextField(
                     controller: _phoneController,
-                    label: "Phone Number *",
+                    hintText: "Phone Number *",
                     icon: Icons.phone_android_outlined,
                     keyboardType: TextInputType.phone,
-                    hintText: "e.g. 09123456789",
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) return "Phone number is required";
                       if (value.length < 11) return "Enter a valid 11-digit phone number";
@@ -229,7 +227,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   const SizedBox(height: 16),
                   _buildTextField(
                     controller: _emailController,
-                    label: "Email Address *",
+                    hintText: "Email Address *",
                     icon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
@@ -241,7 +239,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   const SizedBox(height: 16),
                   _buildTextField(
                     controller: _passwordController,
-                    label: "Password *",
+                    hintText: "Password *",
                     icon: Icons.lock_outline,
                     isPassword: true,
                     obscureText: _obscurePassword,
@@ -255,7 +253,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   const SizedBox(height: 16),
                   _buildTextField(
                     controller: _confirmPasswordController,
-                    label: "Confirm Password *",
+                    hintText: "Confirm Password *",
                     icon: Icons.lock_reset_outlined,
                     isPassword: true,
                     obscureText: _obscurePassword,
@@ -311,13 +309,12 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Widget _buildTextField({
     required TextEditingController controller,
-    required String label,
+    required String hintText,
     required IconData icon,
     bool isPassword = false,
     bool obscureText = false,
     VoidCallback? onToggleVisibility,
     TextInputType? keyboardType,
-    String? hintText,
     TextCapitalization textCapitalization = TextCapitalization.none,
     String? Function(String?)? validator,
   }) {
@@ -328,9 +325,14 @@ class _SignupScreenState extends State<SignupScreen> {
       textCapitalization: textCapitalization,
       decoration: InputDecoration(
         filled: true,
+<<<<<<< Updated upstream
         fillColor: Colors.white,
         labelText: label,
+=======
+        fillColor: nagcarlanWhite.withOpacity(0.9),
+>>>>>>> Stashed changes
         hintText: hintText,
+        hintStyle: const TextStyle(color: Colors.grey),
         prefixIcon: Icon(icon, color: nagcarlanGreen),
         suffixIcon: isPassword
             ? IconButton(

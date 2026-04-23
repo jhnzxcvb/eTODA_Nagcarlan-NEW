@@ -12,9 +12,25 @@ class DriverHomeScreen extends StatefulWidget {
 
 class _DriverHomeScreenState extends State<DriverHomeScreen> {
   bool _isShiftActive = false;
-  bool _isTripActive = false;
+  int _activeTripsCount = 0;
   bool _isLoadingShift = false;
   bool _isInitialized = false;
+<<<<<<< Updated upstream
+=======
+  Timer? _uiRefreshTimer;
+  StreamSubscription? _wsSubscription;
+  final ApiService _apiService = ApiService();
+
+  bool _isRequestModalOpen = false;
+  StateSetter? _requestModalSetState;
+
+  @override
+  void dispose() {
+    _uiRefreshTimer?.cancel();
+    _wsSubscription?.cancel();
+    super.dispose();
+  }
+>>>>>>> Stashed changes
 
   @override
   void didChangeDependencies() {
@@ -22,6 +38,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
     
     // Initialize state from arguments (e.g., when returning from a trip)
     if (!_isInitialized) {
+<<<<<<< Updated upstream
       final Map<String, dynamic>? args =
           ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       
@@ -30,6 +47,33 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
           _isShiftActive = true;
         });
       }
+=======
+      _isShiftActive = ApiService.isDriverOnline;
+      _activeTripsCount = ApiService.activeTrips.length;
+
+      if (_isShiftActive) {
+        final Map<String, dynamic>? driverData =
+            ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+        final String driverId = (driverData?['id'] ?? driverData?['driver_id'] ?? '').toString();
+        
+        if (driverId.isNotEmpty) {
+          _setupWebSocketListener();
+          ApiService.startDriverPolling(driverId);
+        }
+      }
+
+      _uiRefreshTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+        if (mounted) {
+          int currentCount = ApiService.activeTrips.length;
+          if (currentCount != _activeTripsCount) {
+            setState(() {
+              _activeTripsCount = currentCount;
+            });
+          }
+        }
+      });
+
+>>>>>>> Stashed changes
       _isInitialized = true;
     }
   }
@@ -58,10 +102,42 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
         }
       });
     } else {
+<<<<<<< Updated upstream
       // ENDING SHIFT
       setState(() {
         _isShiftActive = false;
         _isTripActive = false;
+=======
+      if (ApiService.activeTrips.isNotEmpty) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: nagcarlanWhite,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Row(
+              children: [
+                Icon(Icons.block, color: Colors.redAccent),
+                SizedBox(width: 10),
+                Text("Cannot End Shift", style: TextStyle(fontWeight: FontWeight.bold, color: nagcarlanGreen)),
+              ],
+            ),
+            content: const Text("You have ongoing trips. Please complete all trips before going offline."),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text("OK", style: TextStyle(color: nagcarlanGreen, fontWeight: FontWeight.bold))),
+            ],
+          ),
+        );
+        return;
+      }
+
+      _apiService.updateDriverStatus(idInt, false);
+
+      setState(() {
+        _isShiftActive = false;
+        _activeTripsCount = 0;
+        ApiService.isDriverOnline = false;
+        ApiService.activeTrips = [];
+>>>>>>> Stashed changes
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -77,14 +153,272 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
       _isTripActive = false;
     });
     
+<<<<<<< Updated upstream
+=======
+    if (wsStream == null) return;
+
+    _wsSubscription = wsStream.listen(
+      (message) async {
+        if (message['event'] == 'trip_started') {
+          final tripData = message['trip'] as Map<String, dynamic>?;
+          if (tripData != null && mounted) {
+            setState(() {
+              if (!ApiService.activeTrips.any((t) => t['trip_code'] == tripData['trip_code'])) {
+                ApiService.activeTrips.add(tripData);
+                _activeTripsCount = ApiService.activeTrips.length;
+              }
+            });
+          }
+        }
+        if (message['event'] == 'trip_request') {
+          final request = message['request'] as Map<String, dynamic>?;
+          if (request != null && mounted) {
+            // Dynamically fetch passenger name if it is missing from the payload
+            if (request['passenger_name'] == null && request['passenger_id'] != null) {
+              final pId = (request['passenger_id'] as num).toInt();
+              final pData = await _apiService.getPassengerById(pId);
+              if (pData != null && mounted) {
+                request['passenger_name'] = pData['first_name'] != null 
+                    ? '${pData['first_name']} ${pData['last_name'] ?? ''}'.trim()
+                    : (pData['name'] ?? 'Passenger');
+              }
+            }
+
+            setState(() {
+              if (!ApiService.pendingRequests.any((r) => r['request_id'] == request['request_id'])) {
+                ApiService.pendingRequests.add(request);
+              }
+            });
+            if (!_isRequestModalOpen) {
+              _showTripRequestsModal();
+            } else if (_requestModalSetState != null) {
+              _requestModalSetState!(() {});
+            }
+          }
+        }
+      },
+    );
+  }
+
+  void _showTripRequestsModal() {
+    _isRequestModalOpen = true;
+>>>>>>> Stashed changes
     final Map<String, dynamic>? driverData =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
+<<<<<<< Updated upstream
     // Pass the driver data to the completion screen
     Navigator.of(context).pushNamed('/driver_trip_ended', arguments: driverData);
+=======
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            _requestModalSetState = setModalState;
+
+            if (ApiService.pendingRequests.isEmpty) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (_isRequestModalOpen && mounted) {
+                  Navigator.of(ctx).pop();
+                  _isRequestModalOpen = false;
+                  _requestModalSetState = null;
+                }
+              });
+              return const SizedBox.shrink();
+            }
+
+            return AlertDialog(
+              backgroundColor: nagcarlanWhite,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: nagcarlanGreen.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.hail_rounded, color: nagcarlanGreen, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '${ApiService.pendingRequests.length} New Request(s)', 
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: nagcarlanGreen)
+                    )
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                height: 350,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: ApiService.pendingRequests.length,
+                  itemBuilder: (context, index) {
+                    final request = ApiService.pendingRequests[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          )
+                        ],
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                backgroundColor: nagcarlanGreen.withOpacity(0.1),
+                                radius: 24,
+                                child: const Icon(Icons.person, color: nagcarlanGreen),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text("Passenger", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                    Text(
+                                      request['passenger_name'] ?? 'Unknown',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: nagcarlanYellow.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  "₱${(request['fare'] as num?)?.toStringAsFixed(2) ?? '0.00'}",
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: nagcarlanGreen),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 14),
+                            child: Divider(height: 1),
+                          ),
+                          _buildDetailRow(Icons.route_outlined, "Route", request['route'] ?? 'N/A', isBold: true),
+                          const SizedBox(height: 18),
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 1,
+                                child: TextButton(
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.red[700],
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  ),
+                                  onPressed: () {
+                                    ApiService().respondTripRequest({
+                                      'request_id': request['request_id'],
+                                      'driver_id': int.tryParse(driverId) ?? 0,
+                                      'passenger_id': (request['passenger_id'] as num?)?.toInt() ?? 0,
+                                      'accepted': false,
+                                    });
+                                    setModalState(() {
+                                      ApiService.pendingRequests.removeAt(index);
+                                    });
+                                    setState(() {});
+                                  },
+                                  child: const Text('Decline', style: TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 2,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: nagcarlanGreen,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    elevation: 2,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  ),
+                                  onPressed: () {
+                                    ApiService().respondTripRequest({
+                                      'request_id': request['request_id'],
+                                      'driver_id': int.tryParse(driverId) ?? 0,
+                                      'passenger_id': (request['passenger_id'] as num?)?.toInt() ?? 0,
+                                      'accepted': true,
+                                    });
+                                    setModalState(() {
+                                      ApiService.pendingRequests.removeAt(index);
+                                    });
+                                    setState(() {});
+                                  },
+                                  child: const Text('Accept Trip', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ).then((_) {
+      _isRequestModalOpen = false;
+      _requestModalSetState = null;
+    });
   }
 
-  void _showTripDetailsModal() {
+  void _endTrip(Map<String, dynamic> trip) async {
+    final Map<String, dynamic>? driverData =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final String driverId = (driverData?['id'] ?? driverData?['driver_id'] ?? '').toString();
+
+    try {
+      final success = await _apiService.completeTrip(
+        trip['trip_code'], 
+        int.tryParse(driverId) ?? 0
+      );
+
+      if (success) {
+        setState(() {
+          ApiService.activeTrips.removeWhere((t) => t['trip_code'] == trip['trip_code']);
+          _activeTripsCount = ApiService.activeTrips.length;
+        });
+        
+        if (_activeTripsCount == 0) {
+          Navigator.of(context).pushNamed('/driver_trip_ended', arguments: driverData);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Trip completed. You still have other ongoing trips."), backgroundColor: Colors.green),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error completing trip: $e');
+    }
+>>>>>>> Stashed changes
+  }
+
+  void _showTripDetailsModal(Map<String, dynamic> trip) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -93,13 +427,18 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
           children: [
             Icon(Icons.info_outline, color: nagcarlanGreen),
             SizedBox(width: 10),
+<<<<<<< Updated upstream
             Text("Current Trip Details", style: TextStyle(fontWeight: FontWeight.bold)),
+=======
+            Text("Trip Details", style: TextStyle(fontWeight: FontWeight.bold, color: nagcarlanGreen)),
+>>>>>>> Stashed changes
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+<<<<<<< Updated upstream
             _buildDetailRow(Icons.person, "Passenger", "Maria Santos"),
             const SizedBox(height: 12),
             _buildDetailRow(Icons.location_on, "From", "Poblacion"),
@@ -111,6 +450,17 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
             _buildDetailRow(Icons.alt_route, "Trip Type", "Regular"),
             const Divider(height: 32),
             _buildDetailRow(Icons.payments, "Fare Total", "₱30.00", isBold: true, valueColor: nagcarlanGreen),
+=======
+            _buildDetailRow(Icons.person, "Passenger", trip['passenger_name'] ?? 'Guest'),
+            const SizedBox(height: 12),
+            _buildDetailRow(Icons.route, "Route", trip['route'] ?? '—'),
+            const SizedBox(height: 12),
+            _buildDetailRow(Icons.confirmation_number_outlined, "Ref Code", trip['trip_code'] ?? '—'),
+            const Divider(height: 32),
+            _buildDetailRow(Icons.payments, "Fare Total", 
+                "₱${(trip['fare_amount'] as num?)?.toStringAsFixed(2) ?? '0.00'}", 
+                isBold: true, valueColor: nagcarlanGreen),
+>>>>>>> Stashed changes
           ],
         ),
         actions: [
@@ -198,7 +548,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
         children: [
           Container(
             width: double.infinity,
+            height: double.infinity,
             decoration: nagcarlanGradient,
+<<<<<<< Updated upstream
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
@@ -239,12 +591,96 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                           color: _isShiftActive ? Colors.green : Colors.grey[700],
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1,
+=======
+            child: SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: IntrinsicHeight(
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 24),
+                    const Text("eTODA", style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: nagcarlanYellow)),
+                    const Text("NAGCARLAN", style: TextStyle(fontSize: 16, letterSpacing: 3, fontWeight: FontWeight.bold, color: nagcarlanWhite)),
+
+                    Text(
+                        "Welcome, ${driverData?['first_name'] ?? 'Driver'}",
+                        style: const TextStyle(fontSize: 18, color: nagcarlanWhite, fontWeight: FontWeight.w500)
+                    ),
+
+                    const SizedBox(height: 24),
+                    
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: nagcarlanWhite.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: _isShiftActive ? nagcarlanYellow : Colors.white30),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: _isShiftActive ? nagcarlanYellow : Colors.white30,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _isShiftActive ? "ONLINE" : "OFFLINE",
+                            style: TextStyle(
+                              color: _isShiftActive ? nagcarlanYellow : Colors.white,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    if (_isShiftActive && ApiService.activeTrips.isNotEmpty) ...[
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "ONGOING TRIPS",
+                          style: TextStyle(color: nagcarlanYellow, fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 12),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 140,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: ApiService.activeTrips.length,
+                          itemBuilder: (context, index) {
+                            final trip = ApiService.activeTrips[index];
+                            return Container(
+                              width: MediaQuery.of(context).size.width * 0.9,
+                              margin: const EdgeInsets.only(right: 15),
+                              child: OngoingTripCard(
+                                tripData: trip,
+                                tripIndex: index,
+                                totalTrips: ApiService.activeTrips.length,
+                                onCompleteTap: () => _endTrip(trip),
+                              ),
+                            );
+                          },
+>>>>>>> Stashed changes
+                        ),
+                      ),
+                      const SizedBox(height: 24),
                     ],
-                  ),
-                ),
 
+<<<<<<< Updated upstream
                 const Spacer(),
                 
                 if (_isTripActive && _isShiftActive) ...[
@@ -289,6 +725,56 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                 
                 const BrandingFooter(),
               ],
+=======
+                    Column(
+                      children: [
+                            MenuCard(
+                              title: _isShiftActive ? "END SHIFT" : "START SHIFT",
+                              subtitle: _isShiftActive ? "Go offline and take a break" : "Go online to start receiving trips",
+                              icon: _isShiftActive ? Icons.power_settings_new : Icons.play_circle_outline,
+                              color: _isShiftActive ? Colors.redAccent : nagcarlanYellow,
+                              textColor: _isShiftActive ? nagcarlanWhite : nagcarlanGreen,
+                              onTap: _isLoadingShift ? () {} : _toggleShift,
+                            ),
+                            
+                            const SizedBox(height: 16),
+                            
+                            MenuCard(
+                              title: "MY PROFILE",
+                              subtitle: "Trips, vehicle info & earnings",
+                              icon: Icons.account_circle,
+                              color: nagcarlanWhite.withOpacity(0.9),
+                              textColor: nagcarlanGreen,
+                              onTap: () => Navigator.pushNamed(context, '/driver_profile', arguments: driverData),
+                            ),
+                            
+                            const SizedBox(height: 16),
+                            
+                            MenuCard(
+                              title: "TRIP HISTORY",
+                              subtitle: "See your past rides",
+                              icon: Icons.list_alt,
+                              color: nagcarlanWhite.withOpacity(0.9),
+                              textColor: nagcarlanGreen,
+                              onTap: () {
+                                Navigator.pushNamed(context, '/driver_trip_history', arguments: driverData);
+                              },
+                            ),
+                          ],
+                        ),
+                    const Spacer(),
+                    const SizedBox(height: 24),
+                    const BrandingFooter(),
+                    const SizedBox(height: 24),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+>>>>>>> Stashed changes
             ),
           ),
           if (_isLoadingShift)

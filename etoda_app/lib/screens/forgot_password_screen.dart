@@ -206,9 +206,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 40),
         _buildInputField(
           controller: _usernameController,
-          label: "Username",
+          hint: " juan_dela_cruz",
           icon: Icons.person_outline,
-          hint: "e.g. juan_dela_cruz",
         ),
         const SizedBox(height: 40),
         _buildActionButton("NEXT", _findUser),
@@ -242,9 +241,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 40),
         _buildInputField(
           controller: _otpController,
-          label: "OTP Code",
+          hint: "6-digit code",
           icon: Icons.lock_clock_outlined,
-          hint: "Enter 6-digit code",
           keyboardType: TextInputType.number,
         ),
         const SizedBox(height: 40),
@@ -275,7 +273,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 40),
         _buildInputField(
           controller: _newPasswordController,
-          label: "New Password",
+          hint: "New Password",
           icon: Icons.lock_outline,
           obscureText: _obscureNew,
           onToggle: () => setState(() => _obscureNew = !_obscureNew),
@@ -283,7 +281,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 20),
         _buildInputField(
           controller: _confirmPasswordController,
-          label: "Confirm New Password",
+          hint: "Confirm New Password",
           icon: Icons.check_circle_outline,
           obscureText: _obscureConfirm,
           onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
@@ -296,7 +294,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Widget _buildInputField({
     required TextEditingController controller,
-    required String label,
     required IconData icon,
     String? hint,
     bool obscureText = false,
@@ -306,11 +303,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+<<<<<<< Updated upstream
         Text(
           label.toUpperCase(),
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black54, letterSpacing: 1),
         ),
         const SizedBox(height: 8),
+=======
+>>>>>>> Stashed changes
         TextFormField(
           controller: controller,
           obscureText: obscureText,

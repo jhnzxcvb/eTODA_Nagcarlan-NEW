@@ -17,6 +17,77 @@ class TripStartedScreen extends StatefulWidget {
 }
 
 class _TripStartedScreenState extends State<TripStartedScreen> {
+<<<<<<< Updated upstream
+=======
+  StreamSubscription? _wsSubscription;
+  final ApiService _apiService = ApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    _connectWebSocket();
+  }
+
+  @override
+  void dispose() {
+    _wsSubscription?.cancel();
+    ApiService.disconnectWebSocket();
+    super.dispose();
+  }
+  
+  void _connectWebSocket() async {
+    try {
+      // Connect to passenger WebSocket
+      await ApiService.connectPassengerWebSocket(widget.passengerId.toString());
+      _setupWebSocketListener();
+    } catch (e) {
+      debugPrint('Failed to connect passenger WebSocket: $e');
+    }
+  }
+
+  /// Set up WebSocket listener for real-time trip updates
+  void _setupWebSocketListener() {
+    _wsSubscription?.cancel();
+    final wsStream = ApiService.getWebSocketStream();
+    
+    if (wsStream == null) {
+      debugPrint('⚠️ WebSocket stream not available');
+      return;
+    }
+
+    _wsSubscription = wsStream.listen(
+      (message) {
+        if (message['event'] == 'trip_ended' || message['event'] == 'trip_cancelled') {
+          debugPrint('✓ Trip finalization notification received: ${message['event']}');
+          if (mounted) {
+            // Bundle the event into the trip data
+            final tripData = Map<String, dynamic>.from(message['trip'] ?? {});
+            if (message['event'] == 'trip_cancelled') {
+              tripData['status'] = 'cancelled';
+              Navigator.of(context).pushReplacementNamed(
+                '/trip_cancelled',
+                arguments: tripData,
+              );
+            } else {
+              tripData['status'] = 'completed';
+              Navigator.of(context).pushReplacementNamed(
+                '/trip_ended',
+                arguments: tripData,
+              );
+            }
+          }
+        }
+      },
+      onError: (error) {
+        debugPrint('⚠️ WebSocket stream error: $error');
+      },
+      onDone: () {
+        debugPrint('⚠️ WebSocket stream closed');
+      },
+    );
+  }
+
+>>>>>>> Stashed changes
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,10 +95,14 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+<<<<<<< Updated upstream
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: nagcarlanGreen),
           onPressed: () => Navigator.of(context).pop(),
         ),
+=======
+        automaticallyImplyLeading: false,
+>>>>>>> Stashed changes
       ),
       body: Container(
         width: double.infinity,
@@ -61,6 +136,7 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
                 color: nagcarlanGreen,
               ),
             ),
+<<<<<<< Updated upstream
             
             const SizedBox(height: 8),
             
@@ -69,6 +145,53 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.black.withOpacity(0.6),
+=======
+
+            const Spacer(flex: 1),
+
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 30),
+              elevation: 0,
+              color: Colors.white.withOpacity(0.15),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(nagcarlanYellow),
+                        strokeWidth: 3,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "Trip Status",
+                          style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.8)),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          "IN PROGRESS",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: nagcarlanYellow,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+>>>>>>> Stashed changes
               ),
             ),
             
@@ -93,9 +216,17 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 style: OutlinedButton.styleFrom(
+<<<<<<< Updated upstream
                   foregroundColor: Colors.red[700],
                   side: BorderSide(color: Colors.red[700]!, width: 1.5),
                   padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+=======
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.redAccent,
+                  side: const BorderSide(color: Colors.transparent),
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 15, horizontal: 20),
+>>>>>>> Stashed changes
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
