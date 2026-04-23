@@ -20,6 +20,8 @@ import {
   faCog,
   faUserCircle,
   faBell,
+  faEye,
+  faEyeSlash,
   faUserPlus,
   faIdCard,
   faQrcode,
@@ -51,6 +53,8 @@ import Payments from "./payments/Payments";
 import Complaints from "./complaints/Complaints";
 
 import Fare from "./fare/Fare";
+
+import Modal from "./ui/Modal";
 
 import QRCodes from "./qrcodes/QRCodes";
 
@@ -212,41 +216,74 @@ export default function App() {
   // ── Profile Update Logic ──
 
   const [profileForm, setProfileForm] = useState({
+    admin_id: "",
     full_name: "",
     email: "",
     username: "",
+    current_password: "",
     password: "",
   });
+
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [confirmUpdateOpen, setConfirmUpdateOpen] = useState(false);
+
+  const hasChanges = auth && (
+    profileForm.full_name !== (auth.full_name || "") ||
+    profileForm.email !== (auth.email || "") ||
+    profileForm.username !== (auth.username || "") ||
+    profileForm.password !== ""
+  );
 
   useEffect(() => {
     if (auth && panel === "profile") {
       setProfileForm({
+        admin_id: auth.admin_id || "",
+
         full_name: auth.full_name || "",
 
         email: auth.email || "",
 
         username: auth.username || "",
 
+        current_password: "",
+
         password: "",
       });
+      setSavingProfile(false);
+      setShowCurrentPw(false);
+      setShowNewPw(false);
     }
   }, [auth, panel]);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
 
+    if (!hasChanges) {
+      notify("No changes detected", "info");
+      return;
+    }
+
+    setConfirmUpdateOpen(true);
+  };
+
+  const executeProfileUpdate = async () => {
+    setConfirmUpdateOpen(false);
+    setSavingProfile(true);
     const res = await api("/api/profile", "PATCH", profileForm);
+    setSavingProfile(false);
 
     if (res.success) {
-      const updated = { ...auth, ...profileForm };
-
-      delete updated.password;
+      const { current_password, password, ...rest } = profileForm;
+      const updated = { ...auth, ...rest };
 
       setAuth(updated);
 
       localStorage.setItem("adminUser", JSON.stringify(updated));
 
       notify("Profile updated successfully", "success");
+      setProfileForm(prev => ({ ...prev, current_password: "", password: "" }));
     } else {
       notify(res.error || "Failed to update profile", "error");
     }
@@ -1144,20 +1181,76 @@ export default function App() {
                 <div className="field">
                   <label>
                     <FontAwesomeIcon icon={faLock} style={{ marginRight: 8 }} />
+                    Current Password
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showCurrentPw ? "text" : "password"}
+                      required={!!profileForm.password}
+                      value={profileForm.current_password}
+                      onChange={(e) =>
+                        setProfileForm({
+                          ...profileForm,
+                          current_password: e.target.value,
+                        })
+                      }
+                      placeholder="Required to change password"
+                      style={{ paddingRight: '40px' }}
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => setShowCurrentPw(!showCurrentPw)}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#666'
+                      }}
+                    >
+                      <FontAwesomeIcon icon={showCurrentPw ? faEyeSlash : faEye} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="field">
+                  <label>
+                    <FontAwesomeIcon icon={faLock} style={{ marginRight: 8 }} />
                     New Password
                   </label>
-
-                  <input
-                    type="password"
-                    value={profileForm.password}
-                    onChange={(e) =>
-                      setProfileForm({
-                        ...profileForm,
-                        password: e.target.value,
-                      })
-                    }
-                    placeholder="Leave blank to keep current password"
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showNewPw ? "text" : "password"}
+                      value={profileForm.password}
+                      onChange={(e) =>
+                        setProfileForm({
+                          ...profileForm,
+                          password: e.target.value,
+                        })
+                      }
+                      placeholder="Leave blank to keep current password"
+                      style={{ paddingRight: '40px' }}
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => setShowNewPw(!showNewPw)}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#666'
+                      }}
+                    >
+                      <FontAwesomeIcon icon={showNewPw ? faEyeSlash : faEye} />
+                    </button>
+                  </div>
                 </div>
 
                 <div
@@ -1167,13 +1260,36 @@ export default function App() {
                     justifyContent: "flex-end",
                   }}
                 >
-                  <button type="submit" className="btn btn-green">
+                  <button 
+                    type="submit" 
+                    className="btn btn-green"
+                    disabled={!hasChanges || savingProfile}
+                    style={{ opacity: (hasChanges && !savingProfile) ? 1 : 0.6, cursor: (hasChanges && !savingProfile) ? 'pointer' : 'not-allowed' }}
+                  >
                     <FontAwesomeIcon icon={faSave} style={{ marginRight: 8 }} />
-                    Save Changes
+                    {savingProfile ? "Saving..." : "Save Changes"}
                   </button>
                 </div>
               </form>
             </div>
+          )}
+
+          {/* Profile Update Confirmation Modal */}
+          {confirmUpdateOpen && (
+            <Modal title="Confirm Profile Update" onClose={() => setConfirmUpdateOpen(false)}>
+              <div style={{ padding: "10px 20px", fontSize: "0.9rem", color: "#4b5563", lineHeight: "1.5" }}>
+                Are you sure you want to update your administrator profile? 
+                {profileForm.password && " Your new password will take effect immediately upon saving."}
+              </div>
+              <div className="modal-footer" style={{ borderTop: "1px solid #f3f4f6", padding: "15px 20px" }}>
+                <button className="btn btn-ghost" onClick={() => setConfirmUpdateOpen(false)}>
+                  Cancel
+                </button>
+                <button className="btn btn-green" onClick={executeProfileUpdate}>
+                  Confirm Changes
+                </button>
+              </div>
+            </Modal>
           )}
 
           {/* ── Settings Panel ── */}

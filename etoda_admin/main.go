@@ -18,7 +18,7 @@ func main() {
 	port := utils.Env("DB_PORT", "5432")
 	name := utils.Env("DB_NAME", "etoda_db")
 	user := utils.Env("DB_USER", "postgres")
-	pass := utils.Env("DB_PASSWORD", "1")
+	pass := utils.Env("DB_PASSWORD", "123")
 	if pass == "" {
 		log.Println("⚠️ DB_PASSWORD not set; connection may fail")
 	}

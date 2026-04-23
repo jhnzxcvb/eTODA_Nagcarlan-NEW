@@ -16,10 +16,11 @@ type Stats struct {
 
 // Admin represents an administrator account for the web portal.
 type Admin struct {
-	AdminID  int    `json:"admin_id"`
-	Username string `json:"username"`
-	FullName string `json:"full_name"`
-	Email    string `json:"email"`
+	AdminID      int    `json:"admin_id"`
+	Username     string `json:"username"`
+	FullName     string `json:"full_name"`
+	Email        string `json:"email"`
+	PasswordHash string `json:"-"`
 }
 
 // AdminDriver represents a driver record shown in the admin panel.

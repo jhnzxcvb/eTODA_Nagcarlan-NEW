@@ -297,3 +297,73 @@ func UpdateDriverProfile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "Driver profile updated successfully"})
 }
+
+// UpdateProfile handles Administrator profile updates
+func UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		AdminID         int    `json:"admin_id"`
+		FullName        string `json:"full_name"`
+		Email           string `json:"email"`
+		Username        string `json:"username"`
+		CurrentPassword string `json:"current_password"`
+		Password        string `json:"password"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	if input.AdminID == 0 {
+		http.Error(w, "Admin ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// 1. If changing password, verify the current one
+	if input.Password != "" {
+		var storedPassword string
+		err := DB.QueryRow("SELECT password_hash FROM admins WHERE admin_id = $1", input.AdminID).Scan(&storedPassword)
+		if err != nil {
+			http.Error(w, "Administrator not found", http.StatusNotFound)
+			return
+		}
+
+		// Trim whitespace from database result in case of fixed-length column types
+		storedPassword = strings.TrimSpace(storedPassword)
+		if strings.TrimSpace(input.CurrentPassword) == "" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Current password is required to set a new password"})
+			return
+		}
+
+		if storedPassword != strings.TrimSpace(input.CurrentPassword) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "Incorrect current password"})
+			return
+		}
+	}
+
+	// 2. Build the update query
+	query := `UPDATE admins SET full_name = $1, email = $2, username = $3`
+	params := []interface{}{input.FullName, input.Email, input.Username}
+
+	if input.Password != "" {
+		query += `, password_hash = $4 WHERE admin_id = $5`
+		params = append(params, input.Password, input.AdminID)
+	} else {
+		query += ` WHERE admin_id = $4`
+		params = append(params, input.AdminID)
+	}
+
+	_, err := DB.Exec(query, params...)
+	if err != nil {
+		log.Printf("❌ Admin profile update error: %v", err)
+		http.Error(w, "Failed to update profile", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "message": "Profile updated successfully"})
+}
