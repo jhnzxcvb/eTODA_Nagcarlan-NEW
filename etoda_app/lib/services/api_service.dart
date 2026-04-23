@@ -424,4 +424,24 @@ class ApiService {
       return {};
     }
   }
+
+  /// Checks if the system is currently in maintenance mode.
+  Future<bool> isMaintenanceMode() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/api/settings'));
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is Map<String, dynamic> && decoded['success'] == true) {
+          final data = decoded['data'];
+          if (data is Map<String, dynamic>) {
+            return data['maintenance'] ?? false;
+          }
+        }
+      }
+      return false;
+    } catch (e) {
+      debugPrint('⚠️ Maintenance check error: $e');
+      return false;
+    }
+  }
 }

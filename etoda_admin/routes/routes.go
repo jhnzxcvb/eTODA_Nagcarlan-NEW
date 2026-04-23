@@ -43,7 +43,13 @@ func SetupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/forgot-password/reset", middleware.CORS(controllers.ResetPassword))
 
 	// --- 3. PROFILE MANAGEMENT ---
-	mux.HandleFunc("/api/profile", middleware.CORS(controllers.GetProfile))
+	mux.HandleFunc("/api/profile", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PATCH" {
+			controllers.UpdateProfile(w, r)
+			return
+		}
+		controllers.GetProfile(w, r)
+	}))
 	mux.HandleFunc("/api/passenger/update-profile", middleware.CORS(controllers.UpdatePassengerProfile))
 	mux.HandleFunc("/api/driver/update-profile", middleware.CORS(controllers.UpdateDriverProfile))
 
@@ -134,4 +140,16 @@ func SetupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/notifications/read", middleware.CORS(controllers.MarkNotificationsRead))
 	mux.HandleFunc("/api/notifications/clear", middleware.CORS(controllers.ClearNotifications))
 	mux.HandleFunc("/api/notifications/", middleware.CORS(controllers.DeleteNotification))
+
+	// --- 6. SYSTEM SETTINGS ---
+	mux.HandleFunc("/api/settings", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "GET":
+			controllers.GetSettings(w, r)
+		case "PATCH":
+			controllers.UpdateSettings(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
 }

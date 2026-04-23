@@ -20,6 +20,7 @@ import 'package:etoda_nagcarlan/screens/driver_trip_details_screen.dart';
 import 'package:etoda_nagcarlan/screens/trip_ended_screen.dart';
 import 'package:etoda_nagcarlan/screens/trip_cancelled_screen.dart';
 import 'package:etoda_nagcarlan/screens/driver_trip_ended_screen.dart';
+import 'package:etoda_nagcarlan/services/api_service.dart';
 
 void main() {
   runApp(const EtodaApp());
@@ -74,7 +75,20 @@ class EtodaApp extends StatelessWidget {
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
       // Define initial route
-      home: const LandingScreen(),
+      home: FutureBuilder<bool>(
+        future: ApiService().isMaintenanceMode(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator(color: nagcarlanGreen)),
+            );
+          }
+          if (snapshot.hasData && snapshot.data == true) {
+            return const MaintenanceScreen();
+          }
+          return const LandingScreen();
+        },
+      ),
       // Define routes for navigation
       onGenerateRoute: (settings) {
         if (settings.name == '/trip_started') {
@@ -112,6 +126,62 @@ class EtodaApp extends StatelessWidget {
         '/trip_cancelled': (context) => const TripCancelledScreen(),
         '/driver_trip_ended': (context) => const DriverTripEndedScreen(),
       },
+    );
+  }
+}
+
+class MaintenanceScreen extends StatelessWidget {
+  const MaintenanceScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        decoration: nagcarlanGradient,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: Colors.white24,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.construction_rounded,
+                size: 80,
+                color: nagcarlanYellow,
+              ),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              'System Maintenance',
+              style: GoogleFonts.poppins(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'We are currently updating our systems to serve you better. We\'ll be back online shortly.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70, fontSize: 16),
+            ),
+            const SizedBox(height: 48),
+            ElevatedButton(
+              onPressed: () => runApp(const EtodaApp()),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: nagcarlanYellow,
+                foregroundColor: nagcarlanGreen,
+              ),
+              child: const Text('CHECK AGAIN'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
