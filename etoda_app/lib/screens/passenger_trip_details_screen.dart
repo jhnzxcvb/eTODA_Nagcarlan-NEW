@@ -57,6 +57,7 @@ class PassengerTripDetailsScreen extends StatelessWidget {
                         "Fare Paid": "₱${fare.toStringAsFixed(2)}",
                         "Payment Method": trip['payment_method'] ?? 'N/A',
                         "Reference": trip['trip_code'] ?? 'N/A',
+                        "Duration": "${trip['duration_min'] ?? 0} min",
                       },
                     ),
                     const SizedBox(height: 16),

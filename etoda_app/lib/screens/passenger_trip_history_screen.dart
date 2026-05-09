@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:etoda_nagcarlan/widgets/trip_card_widget.dart';
 import 'package:etoda_nagcarlan/widgets/branding_footer.dart';
+import 'package:etoda_nagcarlan/screens/passenger_trip_details_screen.dart';
 
 class PassengerTripHistoryScreen extends StatefulWidget {
   const PassengerTripHistoryScreen({super.key});
@@ -315,16 +316,30 @@ class _PassengerTripHistoryScreenState extends State<PassengerTripHistoryScreen>
 
   // ── Trip card ──────────────────────────────────────────────────
   Widget _buildTripCard(dynamic trip) {
-    return TripCardWidget(
-      trip: trip,
-      monoStyle: _monoStyle,
-      sansStyle: _sansStyle,
-      accentGreen: _accentGreen,
-      accentYellow: nagcarlanYellow,
-      cardBorder: _cardBorder,
-      textPrimary: _textPrimary,
-      textMuted: _textMuted,
-      textFaint: _textFaint,
+    return InkWell(
+      onTap: () {
+        debugPrint("Navigating to PassengerTripDetailsScreen with: $trip");
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const PassengerTripDetailsScreen(),
+            settings: RouteSettings(arguments: trip),
+          ),
+        );
+      },
+      child: IgnorePointer(
+        child: TripCardWidget(
+          trip: trip,
+          monoStyle: _monoStyle,
+          sansStyle: _sansStyle,
+          accentGreen: _accentGreen,
+          accentYellow: nagcarlanYellow,
+          cardBorder: _cardBorder,
+          textPrimary: _textPrimary,
+          textMuted: _textMuted,
+          textFaint: _textFaint,
+        ),
+      ),
     );
   }
 
@@ -374,6 +389,20 @@ class _PassengerTripHistoryScreenState extends State<PassengerTripHistoryScreen>
             grouped.putIfAbsent(label, () => []).add(trip);
           }
 
+          // Flatten grouped trips into a list of widgets once to avoid expensive rebuilds in the delegate
+          final List<Widget> listItems = [];
+          for (final entry in grouped.entries) {
+            listItems.add(_buildSectionLabel(entry.key));
+            for (final trip in entry.value) {
+              listItems.add(_buildTripCard(trip));
+            }
+          }
+          if (totalPages > 1) {
+            listItems.add(_buildPagination(_currentPage, totalPages));
+          }
+          listItems.add(const BrandingFooter());
+          listItems.add(const SizedBox(height: 24));
+
           return RefreshIndicator(
             onRefresh: _handleRefresh,
             color: _accentGreen,
@@ -393,32 +422,8 @@ class _PassengerTripHistoryScreenState extends State<PassengerTripHistoryScreen>
                 else
                   SliverList(
                     delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final entries = grouped.entries.toList();
-                        final widgets = <Widget>[];
-                        for (final entry in entries) {
-                          widgets.add(_buildSectionLabel(entry.key));
-                          for (final trip in entry.value) {
-                            widgets.add(_buildTripCard(trip));
-                          }
-                        }
-                        // pagination + footer after last item
-                        if (totalPages > 1) {
-                          widgets.add(_buildPagination(_currentPage, totalPages));
-                        }
-                        widgets.add(const BrandingFooter());
-                        widgets.add(const SizedBox(height: 24));
-                        return widgets[index];
-                      },
-                      childCount: () {
-                        int count = 0;
-                        for (final e in grouped.entries) {
-                          count += 1 + e.value.length; // label + cards
-                        }
-                        if (totalPages > 1) count++;
-                        count += 2; // BrandingFooter + SizedBox
-                        return count;
-                      }(),
+                      (context, index) => listItems[index],
+                      childCount: listItems.length,
                     ),
                   ),
               ],

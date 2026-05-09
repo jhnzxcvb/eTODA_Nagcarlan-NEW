@@ -131,7 +131,9 @@ func ActiveTrips(w http.ResponseWriter, r *http.Request) {
 			to_char(p.paid_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as started_at,
 			COALESCE(u.first_name || ' ' || u.last_name, 'Passenger') as p_name,
 			COALESCE(d.first_name || ' ' || d.last_name, 'Driver') as d_name,
-			COALESCE(d.contact, '—') as d_phone
+			COALESCE(d.contact, '—') as d_phone,
+			COALESCE(d.plate_number, '—') as d_plate,
+			COALESCE(d.body_no, '—') as d_body
 		FROM payments p
 		LEFT JOIN users u ON p.passenger_id = u.user_id
 		LEFT JOIN drivers d ON p.driver_id = d.id
@@ -158,10 +160,10 @@ func ActiveTrips(w http.ResponseWriter, r *http.Request) {
 
 	list := []map[string]interface{}{}
 	for rows.Next() {
-		var code, route, method, status, startedAt, pName, dName, dPhone string
+		var code, route, method, status, startedAt, pName, dName, dPhone, dPlate, dBody string
 		var pID, dID int
 		var amount float64
-		if err := rows.Scan(&code, &pID, &dID, &route, &amount, &method, &status, &startedAt, &pName, &dName, &dPhone); err != nil {
+		if err := rows.Scan(&code, &pID, &dID, &route, &amount, &method, &status, &startedAt, &pName, &dName, &dPhone, &dPlate, &dBody); err != nil {
 			continue
 		}
 		list = append(list, map[string]interface{}{
@@ -169,13 +171,16 @@ func ActiveTrips(w http.ResponseWriter, r *http.Request) {
 			"passenger_id":   pID,
 			"driver_id":      dID,
 			"route":          route,
-			"fare":           amount,
+			"fare_amount":    amount,
 			"payment_method": method,
 			"status":         status,
 			"started_at":     startedAt,
 			"passenger_name": pName,
 			"driver_name":    dName,
 			"driver_phone":   dPhone,
+			"driver_contact": dPhone,
+			"plate_number":   dPlate,
+			"body_no":        dBody,
 		})
 	}
 	utils.JSONOK(w, list)
