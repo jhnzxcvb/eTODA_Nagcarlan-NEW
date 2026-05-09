@@ -50,7 +50,6 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
   List<dynamic> _dynamicStations = [];
   List<dynamic> _fares = [];
   List<String> _allLocations = [];
-  bool _isLoadingStations = true;
 
   List<String> get _filteredLocations {
     if (activeStationFilter == null) return _allLocations;
@@ -82,17 +81,11 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
           }
           _fares = fareData;
           _extractLocations();
-          _isLoadingStations = false;
         });
         _updateMarkers();
       }
     } catch (e) {
       debugPrint('Failed to load data: $e');
-      if (mounted) {
-        setState(() {
-          _isLoadingStations = false;
-        });
-      }
     }
   }
 
@@ -190,7 +183,7 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: isHighlighted ? nagcarlanYellow.withOpacity(0.3) : Colors.black12, 
+                          color: isHighlighted ? nagcarlanYellow.withValues(alpha: 0.3) : Colors.black12, 
                           blurRadius: isHighlighted ? 12 : 6,
                           spreadRadius: isHighlighted ? 2 : 0,
                           offset: const Offset(0, 3)
@@ -337,7 +330,7 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 10,
                             offset: const Offset(0, 5),
                           )
@@ -420,16 +413,16 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                               decoration: BoxDecoration(
-                                color: nagcarlanYellow.withOpacity(0.1),
+                                color: nagcarlanYellow.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: nagcarlanYellow.withOpacity(0.3)),
+                                border: Border.all(color: nagcarlanYellow.withValues(alpha: 0.3)),
                               ),
                               child: Row(
                                 children: [
                                   Container(
                                     padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: nagcarlanYellow.withOpacity(0.2),
+                                    decoration: BoxDecoration( // Line 432
+                                      color: nagcarlanYellow.withValues(alpha: 0.2),
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(Icons.filter_alt_rounded, size: 18, color: nagcarlanYellow),
@@ -533,7 +526,7 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
         Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: nagcarlanGreen)),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           decoration: InputDecoration(
             prefixIcon: Icon(icon, color: nagcarlanGreen, size: 20),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -607,13 +600,13 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 15,
             offset: const Offset(0, 8),
           )
         ],
         gradient: LinearGradient(
-          colors: [nagcarlanGreen, nagcarlanGreen.withOpacity(0.8)],
+          colors: [nagcarlanGreen, nagcarlanGreen.withValues(alpha: 0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -640,9 +633,9 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: nagcarlanYellow.withOpacity(0.2),
+                      color: nagcarlanYellow.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: nagcarlanYellow.withOpacity(0.5)),
+                      border: Border.all(color: nagcarlanYellow.withValues(alpha: 0.5)),
                     ),
                     child: const Text(
                       "Special Trip",
@@ -656,9 +649,9 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: nagcarlanYellow.withOpacity(0.2),
+                      color: nagcarlanYellow.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: nagcarlanYellow.withOpacity(0.5)),
+                      border: Border.all(color: nagcarlanYellow.withValues(alpha: 0.5)),
                     ),
                     child: Text(
                       "Discounted (₱${discountAmount.toStringAsFixed(0)} Off)",
@@ -679,7 +672,7 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
   Widget _buildSectionCard({required IconData icon, required String title, required List<Widget> children}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.85),
+        color: Colors.white.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white),
       ),
@@ -691,8 +684,8 @@ class _FareMatrixScreenState extends State<FareMatrixScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: nagcarlanGreen.withOpacity(0.1),
+                decoration: BoxDecoration( // Line 616
+                  color: nagcarlanGreen.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: nagcarlanGreen, size: 22),

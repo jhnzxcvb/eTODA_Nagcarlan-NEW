@@ -186,8 +186,15 @@ func UpdatePassengerProfile(w http.ResponseWriter, r *http.Request) {
 	query = fmt.Sprintf(`UPDATE users SET %s WHERE user_id=$%d`, strings.Join(fields, ", "), paramIdx)
 	params = append(params, userID)
 
-	if _, err := DB.Exec(query, params...); err != nil {
+	res, err := DB.Exec(query, params...)
+	if err != nil {
 		log.Printf("❌ Passenger update error: %v", err)
+		http.Error(w, "Failed to update profile", http.StatusInternalServerError)
+		return
+	}
+	_, err = res.RowsAffected()
+	if err != nil {
+		log.Printf("❌ Passenger update error (RowsAffected): %v", err)
 		http.Error(w, "Failed to update profile", http.StatusInternalServerError)
 		return
 	}
@@ -283,8 +290,15 @@ func UpdateDriverProfile(w http.ResponseWriter, r *http.Request) {
 	query = fmt.Sprintf(`UPDATE drivers SET %s WHERE id=$%d`, strings.Join(fields, ", "), paramIdx)
 	params = append(params, driverID)
 
-	if _, err := DB.Exec(query, params...); err != nil {
+	res, err := DB.Exec(query, params...)
+	if err != nil {
 		log.Printf("❌ Driver update error: %v", err)
+		http.Error(w, "Failed to update profile", http.StatusInternalServerError)
+		return
+	}
+	_, err = res.RowsAffected()
+	if err != nil {
+		log.Printf("❌ Driver update error (RowsAffected): %v", err)
 		http.Error(w, "Failed to update profile", http.StatusInternalServerError)
 		return
 	}
@@ -357,9 +371,16 @@ func UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		params = append(params, input.AdminID)
 	}
 
-	_, err := DB.Exec(query, params...)
+	res, err := DB.Exec(query, params...)
 	if err != nil {
 		log.Printf("❌ Admin profile update error: %v", err)
+		http.Error(w, "Failed to update profile", http.StatusInternalServerError)
+		return
+	}
+
+	_, err = res.RowsAffected()
+	if err != nil {
+		log.Printf("❌ Admin profile update error (RowsAffected): %v", err)
 		http.Error(w, "Failed to update profile", http.StatusInternalServerError)
 		return
 	}

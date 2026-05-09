@@ -22,14 +22,20 @@ import 'package:etoda_nagcarlan/screens/trip_cancelled_screen.dart';
 import 'package:etoda_nagcarlan/screens/driver_trip_ended_screen.dart';
 import 'package:etoda_nagcarlan/services/api_service.dart';
 
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
+
 void main() {
   runApp(const EtodaApp());
 }
 
 // Brand Colors
-const Color nagcarlanGreen = Color(0xFF14532D); // Primary: Deep green from admin sidebar
+const Color nagcarlanGreen = Color(
+  0xFF14532D,
+); // Primary: Deep green from admin sidebar
 const Color nagcarlanWhite = Colors.white; // Secondary
-const Color nagcarlanYellow = Color(0xFFFACC15); // Tertiary: Vibrant yellow accent
+const Color nagcarlanYellow = Color(
+  0xFFFACC15,
+); // Tertiary: Vibrant yellow accent
 
 // Modern Gradient for Nagcarlan Branding (Main color green)
 const BoxDecoration nagcarlanGradient = BoxDecoration(
@@ -80,7 +86,9 @@ class EtodaApp extends StatelessWidget {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
-              body: Center(child: CircularProgressIndicator(color: nagcarlanGreen)),
+              body: Center(
+                child: CircularProgressIndicator(color: nagcarlanGreen),
+              ),
             );
           }
           if (snapshot.hasData && snapshot.data == true) {
@@ -89,6 +97,7 @@ class EtodaApp extends StatelessWidget {
           return const LandingScreen();
         },
       ),
+      navigatorObservers: [routeObserver],
       // Define routes for navigation
       onGenerateRoute: (settings) {
         if (settings.name == '/trip_started') {
@@ -107,20 +116,27 @@ class EtodaApp extends StatelessWidget {
         '/signup': (context) => const SignupScreen(),
         '/forgot_password': (context) => const ForgotPasswordScreen(),
         '/passenger_home': (context) => const PassengerHomeScreen(),
-        '/passenger_edit_profile': (context) => const PassengerEditProfileScreen(),
+        '/passenger_edit_profile': (context) =>
+            const PassengerEditProfileScreen(),
         '/driver_home': (context) => const DriverHomeScreen(),
         '/driver_profile': (context) => const DriverProfileScreen(),
         '/driver_edit_profile': (context) => const DriverEditProfileScreen(),
         '/driver_trip_history': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-          final String driverId = (args?['id'] ?? args?['driver_id'] ?? '').toString();
+          final args =
+              ModalRoute.of(context)?.settings.arguments
+                  as Map<String, dynamic>?;
+          final String driverId = (args?['id'] ?? args?['driver_id'] ?? '')
+              .toString();
           return DriverTripHistoryScreen(driverId: driverId);
         },
         '/scan_qr': (context) => const ScanQRScreen(),
-        '/driver_profile_scanned': (context) => const ScannedDriverProfileScreen(),
+        '/driver_profile_scanned': (context) =>
+            const ScannedDriverProfileScreen(),
         '/fare_matrix': (context) => const FareMatrixScreen(),
-        '/passenger_trip_history': (context) => const PassengerTripHistoryScreen(),
-        '/passenger_trip_details': (context) => const PassengerTripDetailsScreen(),
+        '/passenger_trip_history': (context) =>
+            const PassengerTripHistoryScreen(),
+        '/passenger_trip_details': (context) =>
+            const PassengerTripDetailsScreen(),
         '/driver_trip_details': (context) => const DriverTripDetailsScreen(),
         '/trip_ended': (context) => const TripEndedScreen(),
         '/trip_cancelled': (context) => const TripCancelledScreen(),

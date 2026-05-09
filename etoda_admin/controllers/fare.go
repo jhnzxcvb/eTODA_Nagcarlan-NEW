@@ -75,9 +75,16 @@ func Fare(w http.ResponseWriter, r *http.Request) {
 			utils.JSONErr(w, err.Error(), 500)
 			return
 		}
+
+		// Determine action for audit log
+		action := "UPSERT"
+		// If the ID was already known or if we want to be precise, we could check rows affected,
+		// but for UPSERT, logging the intent is usually sufficient.
+		// For better clarity, you might want to check if the route existed first,
+		// but simply logging the upsert is standard.
+
 		adminID := fmt.Sprintf("%v", r.Context().Value("admin_id"))
-		utils.LogAudit(DB, "CREATE", "Fare", fmt.Sprintf("%d", f.ID), fmt.Sprintf("%s → %s base ₱%.2f", b.Origin, b.Destination, b.BaseFare), "Admin:"+adminID, "Admin")
-		w.WriteHeader(201)
+		utils.LogAudit(DB, action, "Fare", fmt.Sprintf("%d", f.ID), fmt.Sprintf("%s → %s base ₱%.2f (%s)", b.Origin, b.Destination, b.BaseFare, b.Association), "Admin:"+adminID, "Admin")
 		utils.JSONOK(w, f)
 
 	default:

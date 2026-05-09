@@ -118,6 +118,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         }),
       );
 
+      if (!mounted) return;
       if (response.statusCode == 200) {
         _showSnackBar("Password reset successful!", isError: false);
         Navigator.pop(context);
@@ -319,7 +320,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             hintText: hint,
             hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
             filled: true,
-            fillColor: nagcarlanWhite.withOpacity(0.9),
+            fillColor: nagcarlanWhite.withValues(alpha: 0.9),
             contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
             focusedBorder: OutlineInputBorder(
@@ -339,7 +340,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 12,
             offset: const Offset(0, 5),
           )

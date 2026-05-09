@@ -44,7 +44,7 @@ class _ReportDialogState extends State<ReportDialog> {
       'details': _detailsController.text,
     });
 
-    if (!mounted) return;
+    if (!context.mounted) return;
     setState(() => _isSubmitting = false);
 
     if (success) {
@@ -109,7 +109,7 @@ class _ReportDialogState extends State<ReportDialog> {
 
               // Reason Dropdown
               DropdownButtonFormField<String>(
-                value: selectedReason,
+                initialValue: selectedReason,
                 icon: const Icon(Icons.keyboard_arrow_down_rounded),
                 items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
                 onChanged: _isSubmitting ? null : (v) => setState(() => selectedReason = v),

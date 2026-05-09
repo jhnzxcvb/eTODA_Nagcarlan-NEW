@@ -73,11 +73,11 @@ class TripEndedScreen extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: nagcarlanWhite.withOpacity(0.9),
+                      color: nagcarlanWhite.withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),

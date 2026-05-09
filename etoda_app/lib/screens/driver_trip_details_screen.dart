@@ -35,7 +35,7 @@ class DriverTripDetailsScreen extends StatelessWidget {
                       title: "TRIP OVERVIEW",
                       icon: Icons.receipt_long_outlined,
                       items: {
-                        "Date": trip['started_at'] ?? 'N/A',
+                        "Date": trip['ended_at'] ?? 'N/A',
                         "Route": trip['route'] ?? 'N/A',
                         "Status": trip['status']?.toString().toUpperCase() ?? 'COMPLETED',
                         "Fare Collected": "₱${fare.toStringAsFixed(2)}",

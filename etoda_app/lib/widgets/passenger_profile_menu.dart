@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:etoda_nagcarlan/main.dart';
+import 'package:etoda_nagcarlan/screens/passenger_complaints_screen.dart';
 
 class PassengerProfileMenu extends StatelessWidget {
   final Map<String, dynamic>? passengerData;
@@ -18,6 +19,17 @@ class PassengerProfileMenu extends StatelessWidget {
           case 'trip_history':
             Navigator.pushNamed(context, '/passenger_trip_history', arguments: passengerData);
             break;
+          case 'my_complaints':
+            final String passengerId = (passengerData?['user_id'] ?? passengerData?['id'] ?? '').toString();
+            if (passengerId.isNotEmpty) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PassengerComplaintsScreen(passengerId: passengerId),
+                ),
+              );
+            }
+            break;
           case 'logout':
             // Navigate to landing screen and remove all previous routes
             Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
@@ -30,6 +42,11 @@ class PassengerProfileMenu extends StatelessWidget {
       itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
         _buildPopupMenuItem(icon: Icons.edit_outlined, title: 'Edit Profile', value: 'edit_profile'),
         _buildPopupMenuItem(icon: Icons.history_outlined, title: 'Trip History', value: 'trip_history'),
+        _buildPopupMenuItem(
+          icon: Icons.warning_amber_rounded,
+          title: 'My Complaints',
+          value: 'my_complaints',
+        ),
         const PopupMenuDivider(height: 1),
         _buildPopupMenuItem(
           icon: Icons.logout,

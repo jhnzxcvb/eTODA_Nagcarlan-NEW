@@ -278,9 +278,9 @@ class _SignupScreenState extends State<SignupScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: nagcarlanWhite.withOpacity(0.1),
+                      color: nagcarlanWhite.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: nagcarlanWhite.withOpacity(0.2)),
+                      border: Border.all(color: nagcarlanWhite.withValues(alpha: 0.2)),
                     ),
                     child: const Row(
                       children: [
@@ -322,7 +322,7 @@ class _SignupScreenState extends State<SignupScreen> {
       textCapitalization: textCapitalization,
       decoration: InputDecoration(
         filled: true,
-        fillColor: nagcarlanWhite.withOpacity(0.9),
+        fillColor: nagcarlanWhite.withValues(alpha: 0.9),
         hintText: hintText,
         hintStyle: const TextStyle(color: Colors.grey),
         prefixIcon: Icon(icon, color: nagcarlanGreen),

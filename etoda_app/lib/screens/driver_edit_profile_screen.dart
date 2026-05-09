@@ -446,7 +446,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
         labelStyle: const TextStyle(color: nagcarlanGreen, fontSize: 14),
         prefixIcon: Icon(icon, color: nagcarlanGreen, size: 22),
         filled: true,
-        fillColor: nagcarlanWhite.withOpacity(0.9),
+        fillColor: nagcarlanWhite.withValues(alpha: 0.9),
         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
@@ -495,7 +495,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
           onPressed: onToggle,
         ),
         filled: true,
-        fillColor: nagcarlanWhite.withOpacity(0.9),
+        fillColor: nagcarlanWhite.withValues(alpha: 0.9),
         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
@@ -526,7 +526,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )

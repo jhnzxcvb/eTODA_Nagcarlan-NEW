@@ -71,7 +71,9 @@ function Dashboard({ notify, setPanel }) {
   };
 
   const loadChart = async (range) => {
-    setChartData(MOCK_CHART_DATA[range]);
+    const r = await api(`/api/dashboard/chart?range=${range}`);
+    if (r.success) setChartData(r.data);
+    else notify(r.error, 'error');
   };
 
   const loadActivity = async () => {
@@ -170,10 +172,8 @@ function Dashboard({ notify, setPanel }) {
   };
 
 // Helper function to calculate trend string and color
-const getTrendInfo = (currentValue, yesterdayValue, prefix = '', suffix = '') => {
-  const yesterday = yesterdayValue || 0; // Handle cases where yesterday's data might be null/undefined
-  const diff = currentValue - yesterday;
-
+const getTrendInfo = (currentValue, yesterdayValue, prefix = '', suffix = '', inverse = false) => {
+  const diff = currentValue - (yesterdayValue || 0);
   let trendString;
   if (diff === 0) {
     trendString = `0 from yesterday`;
@@ -184,7 +184,7 @@ const getTrendInfo = (currentValue, yesterdayValue, prefix = '', suffix = '') =>
     trendString = `${arrow} ${mathSign}${prefix}${absDiff.toLocaleString()}${suffix} from yesterday`;
   }
 
-  const trendColor = diff >= 0 ? 'green' : 'red';
+  const trendColor = diff === 0 ? 'gray' : (diff > 0 ? (inverse ? 'red' : 'green') : (inverse ? 'green' : 'red'));
 
   return { trend: trendString, trendColor };
 };
@@ -192,15 +192,8 @@ const getTrendInfo = (currentValue, yesterdayValue, prefix = '', suffix = '') =>
   const CARDS = stats ? [
     { val: stats.active_drivers,    lbl: 'Active Drivers',   sub: 'Registered',            icon: faUsers, color: '#2d5a1b', ...getTrendInfo(stats.active_drivers, stats.active_drivers_yesterday) },
     { val: stats.trips_today,       lbl: 'Trips Today',      sub: 'Completed',             icon: faRoute, color: '#0284c7', ...getTrendInfo(stats.trips_today, stats.trips_yesterday) },
-    {
-      val: `₱${Number(stats.revenue_today || 0).toLocaleString()}`,
-      lbl: 'Revenue Today',
-      sub: `${stats.revenue_count || 0} transactions`,
-      icon: faWallet,
-      color: '#d97706',
-      ...getTrendInfo(stats.revenue_today, stats.revenue_yesterday, '₱')
-    },
-    { val: stats.pending_complaints, lbl: 'Open Complaints', sub: 'Needs action',          icon: faExclamationCircle, color: '#dc2626', ...getTrendInfo(stats.pending_complaints, stats.pending_complaints_yesterday) },
+    { val: `₱${Number(stats.revenue_today || 0).toLocaleString()}`, lbl: 'Revenue Today', sub: `${stats.revenue_count || 0} transactions`, icon: faWallet, color: '#d97706', ...getTrendInfo(stats.revenue_today, stats.revenue_yesterday, '₱') },
+    { val: stats.pending_complaints, lbl: 'Open Complaints', sub: 'Needs action',          icon: faExclamationCircle, color: '#dc2626', ...getTrendInfo(stats.pending_complaints, stats.pending_complaints_yesterday, '', '', true) },
     { val: stats.total_drivers,     lbl: 'Total Drivers',    sub: 'All enrolled',          icon: faIdCard, color: '#16a34a', ...getTrendInfo(stats.total_drivers, stats.total_drivers_yesterday) },
     { val: stats.passengers,        lbl: 'Total Passengers', sub: 'Registered',            icon: faUsers, color: '#8e44ad', ...getTrendInfo(stats.passengers, stats.passengers_yesterday) },
     { val: stats.total_trips,       lbl: 'Total Trips',      sub: 'All time',              icon: faCheckCircle, color: '#0369a1', ...getTrendInfo(stats.total_trips, stats.total_trips_yesterday) },
@@ -211,6 +204,78 @@ const getTrendInfo = (currentValue, yesterdayValue, prefix = '', suffix = '') =>
 
   return (
     <div>
+      <style>{`
+        .metrics {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          gap: 24px;
+          margin-bottom: 32px;
+        }
+        .metric {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-left: 6px solid;
+          border-radius: 16px;
+          padding: 24px;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+          transition: all 0.3s ease;
+          position: relative;
+        }
+        .metric:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+          background-color: #f0fdf4;
+        }
+        .metric-val {
+          font-size: 1.85rem;
+          font-weight: 800;
+          color: #0f172a;
+          margin-bottom: 4px;
+          letter-spacing: -0.02em;
+        }
+        .metric-lbl {
+          font-size: 0.85rem;
+          font-weight: 700;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        .metric-sub {
+          font-size: 0.75rem;
+          color: #94a3b8;
+        }
+        .card {
+          background: #ffffff !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 16px !important;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+        }
+        .premium-action-btn {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+          border-color: #1a4731 !important;
+          color: #1a4731 !important;
+          background: transparent;
+        }
+        .premium-action-btn:hover {
+          background-color: #1a4731 !important;
+          color: #fff !important;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 15px rgba(26, 71, 49, 0.2);
+        }
+        .premium-action-btn:active {
+          transform: translateY(0);
+        }
+        .chart-filter-btn {
+          transition: all 0.2s ease !important;
+        }
+        .chart-filter-btn.btn-outline:hover {
+          background-color: rgba(26, 71, 49, 0.08) !important;
+          transform: translateY(-1px);
+        }
+        .chart-filter-btn.btn-primary {
+          box-shadow: 0 4px 10px rgba(26, 71, 49, 0.15);
+        }
+      `}</style>
       <div className="metrics">
         {CARDS.map((c, i) => (
           <div
@@ -221,7 +286,7 @@ const getTrendInfo = (currentValue, yesterdayValue, prefix = '', suffix = '') =>
             <div className="metric-val">{c.val}</div>
             <div className="metric-lbl">{c.lbl}</div>
             <div className="metric-sub">{c.sub}</div>
-            <div className="metric-trend" style={{ color: c.trendColor === 'green' ? 'green' : 'red', fontSize: '0.75rem' }}>
+            <div className="metric-trend" style={{ color: c.trendColor, fontSize: '0.75rem' }}>
               {c.trend}
             </div>
             {c.lbl === 'Open Complaints' && c.val > 0 && (
@@ -254,16 +319,16 @@ const getTrendInfo = (currentValue, yesterdayValue, prefix = '', suffix = '') =>
 
       {/* Quick Actions */}
       <div className="quick-actions" style={{ display: 'flex', gap: 12, margin: '20px 0' }}>
-        <button className="btn btn-outline" style={{ borderColor: '#1a4731', color: '#1a4731' }} onClick={() => setPanel('drivers')}>
+        <button className="btn btn-outline premium-action-btn" onClick={() => setPanel('drivers')}>
           + Enroll Driver
         </button>
-        <button className="btn btn-outline" style={{ borderColor: '#1a4731', color: '#1a4731' }} onClick={() => setPanel('fare')}>
+        <button className="btn btn-outline premium-action-btn" onClick={() => setPanel('fare')}>
           Configure Fare
         </button>
-        <button className="btn btn-outline" style={{ borderColor: '#1a4731', color: '#1a4731' }} onClick={() => setPanel('complaints')}>
+        <button className="btn btn-outline premium-action-btn" onClick={() => setPanel('complaints')}>
           Review Complaints
         </button>
-        <button className="btn btn-outline" style={{ borderColor: '#1a4731', color: '#1a4731' }} onClick={handleGenerateReport}>
+        <button className="btn btn-outline premium-action-btn" onClick={handleGenerateReport}>
           Generate Report
         </button>
       </div>
@@ -275,9 +340,24 @@ const getTrendInfo = (currentValue, yesterdayValue, prefix = '', suffix = '') =>
             {dateRange === 'today' ? 'Trips Today' : dateRange === 'week' ? 'Trips This Week' : 'Trips This Month'}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className={`btn btn-sm ${dateRange === 'today' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setDateRange('today')}>Today</button>
-            <button className={`btn btn-sm ${dateRange === 'week'  ? 'btn-primary' : 'btn-outline'}`} onClick={() => setDateRange('week')}>This Week</button>
-            <button className={`btn btn-sm ${dateRange === 'month' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setDateRange('month')}>This Month</button>
+            <button
+              className={`btn btn-sm chart-filter-btn ${dateRange === 'today' ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => setDateRange('today')}
+            >
+              Today
+            </button>
+            <button
+              className={`btn btn-sm chart-filter-btn ${dateRange === 'week'  ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => setDateRange('week')}
+            >
+              This Week
+            </button>
+            <button
+              className={`btn btn-sm chart-filter-btn ${dateRange === 'month' ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => setDateRange('month')}
+            >
+              This Month
+            </button>
           </div>
         </div>
         <div style={{ padding: 18, opacity: chartLoading ? 0.4 : 1, transition: 'opacity 0.2s' }}>

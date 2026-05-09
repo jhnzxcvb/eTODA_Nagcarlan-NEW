@@ -204,6 +204,16 @@ export default function TodaStations({ notify }) {
     }
   };
 
+  const hasChanges = editItem && (
+    form.name !== (editItem.name || '') ||
+    form.lat !== (editItem.lat || 14.1333) ||
+    form.lng !== (editItem.lng || 121.4167) ||
+    form.color !== (editItem.color || '#16a34a') ||
+    form.logoFile !== null ||
+    // Check if the logo was removed (preview is gone but original existed)
+    (form.logoPreview === null && editItem.logo)
+  );
+
   return (
     <div>
       <div className="card">
@@ -386,7 +396,7 @@ export default function TodaStations({ notify }) {
           </div>
           <div className="modal-footer">
             <button className="btn btn-ghost" onClick={() => setEditItem(null)}>Cancel</button>
-            <button className="btn btn-green" onClick={saveEdit} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</button>
+            <button className="btn btn-green" onClick={saveEdit} disabled={saving || !hasChanges}>{saving ? "Saving..." : "Save Changes"}</button>
           </div>
         </Modal>
       )}

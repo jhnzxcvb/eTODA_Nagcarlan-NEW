@@ -102,6 +102,12 @@ function Passengers({ notify }) {
     else notify(r.error || 'Failed', 'error');
   };
 
+  const hasChanges = editItem && (
+    editForm.name !== (editItem.name || '') ||
+    editForm.email !== (editItem.email || '') ||
+    editForm.contact !== (editItem.contact || '')
+  );
+
   return (
     <div>
       <div className="card">
@@ -276,7 +282,7 @@ function Passengers({ notify }) {
           </div>
           <div className="modal-footer">
             <button className="btn btn-ghost" onClick={() => setEditItem(null)}>Cancel</button>
-            <button className="btn btn-green" onClick={saveEdit} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
+            <button className="btn btn-green" onClick={saveEdit} disabled={saving || !hasChanges}>{saving ? 'Saving...' : 'Save Changes'}</button>
           </div>
         </Modal>
       )}
