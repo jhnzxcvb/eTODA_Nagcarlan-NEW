@@ -5,33 +5,43 @@ import 'dart:async';
 import 'dart:convert';
 
 /// Simple service wrapper for calling the Go backend.
-///
-/// The `baseUrl` is now configurable at compile time via the
-/// `--dart-define=BASE_URL=...` flag (see `flutter run` docs) and can also
-/// be overridden at runtime using [setBaseUrl].
-///
-/// The default value (`10.0.2.2`) works with the Android emulator; if you
-/// ever run the app on a physical device you'll want to redefine the host
-/// address (e.g. your machine's LAN IP).
 class ApiService {
-  // ── Global Session State (For Simulation/One-Emulator Testing) ─────────────
+  // ── Global Session State ──────────────────────────────────────────────────
   static bool isDriverOnline = false;
-  static Map<String, dynamic>? activeTrip;
+  static List<Map<String, dynamic>> activeTrips = [];
+  static List<Map<String, dynamic>> pendingRequests = [];
+  static String? cachedPassengerTripStartAt;
   static Timer? _backgroundPollTimer;
 
-  /// Keeps the driver polling the database even if the UI is switched to Passenger
+  /// Resets all global session data and stops background processes
+  static void resetSession() {
+    isDriverOnline = false;
+    activeTrips = [];
+    pendingRequests = [];
+    _backgroundPollTimer?.cancel();
+    _backgroundPollTimer = null;
+    disconnectWebSocket();
+  }
+
+  /// Keeps the driver polling the database for all active ongoing trips
   static void startDriverPolling(String driverId) {
     _backgroundPollTimer?.cancel();
-    _backgroundPollTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
-      // Only poll if driver is "online" and doesn't already have an active trip
-      if (!isDriverOnline || activeTrip != null) return;
-      
+    _backgroundPollTimer = Timer.periodic(const Duration(seconds: 5), (
+      timer,
+    ) async {
+      if (!isDriverOnline) {
+        activeTrips = [];
+        return;
+      }
+
       try {
         final api = ApiService();
-        final trip = await api.fetchActiveTrip(driverId);
-        if (trip != null) {
-          activeTrip = trip;
-          debugPrint('🚩 Real-time trip detected in background for Driver ID: $driverId');
+        final trips = await api.fetchOngoingTrips(driverId);
+        if (trips != null) {
+          activeTrips = trips;
+          debugPrint(
+            '🚩 Background polling synced ${activeTrips.length} ongoing trips',
+          );
         }
       } catch (e) {
         debugPrint('⚠️ Background polling error: $e');
@@ -39,7 +49,6 @@ class ApiService {
     });
   }
 
-  // use a mutable field so tests or higher‑level code can re‑configure
   static String baseUrl = const String.fromEnvironment(
     'BASE_URL',
     defaultValue: 'http://10.0.2.2:8080',
@@ -48,7 +57,10 @@ class ApiService {
   /// WebSocket for real-time trip notifications
   static WebSocketChannel? _wsChannel;
   static StreamController<Map<String, dynamic>>? _wsStream;
-  
+
+  static String? _currentWsId;
+  static String? _currentWsType;
+
   /// Get the WebSocket stream for incoming messages
   static Stream<Map<String, dynamic>>? getWebSocketStream() {
     return _wsStream?.stream;
@@ -57,6 +69,12 @@ class ApiService {
   /// Connect to WebSocket for real-time driver notifications
   static Future<void> connectWebSocket(String driverId) async {
     try {
+      if (_wsChannel != null &&
+          _currentWsId == driverId &&
+          _currentWsType == 'driver') {
+        return; // Already connected to this driver ID
+      }
+
       // Ensure previous connection is closed
       await disconnectWebSocket();
 
@@ -64,6 +82,8 @@ class ApiService {
       final wsUrl = baseUrl.replaceFirst(RegExp(r'^http'), 'ws');
       final uri = Uri.parse('$wsUrl/ws/driver?driverID=$driverId');
 
+      _currentWsId = driverId;
+      _currentWsType = 'driver';
       debugPrint('🔌 Connecting to WebSocket: $uri');
       _wsChannel = WebSocketChannel.connect(uri);
       _wsStream = StreamController<Map<String, dynamic>>.broadcast();
@@ -100,6 +120,12 @@ class ApiService {
   /// Connect to WebSocket for real-time passenger notifications
   static Future<void> connectPassengerWebSocket(String passengerId) async {
     try {
+      if (_wsChannel != null &&
+          _currentWsId == passengerId &&
+          _currentWsType == 'passenger') {
+        return; // Already connected to this passenger ID
+      }
+
       // Ensure previous connection is closed
       await disconnectWebSocket();
 
@@ -107,6 +133,8 @@ class ApiService {
       final wsUrl = baseUrl.replaceFirst(RegExp(r'^http'), 'ws');
       final uri = Uri.parse('$wsUrl/ws/passenger?passengerID=$passengerId');
 
+      _currentWsId = passengerId;
+      _currentWsType = 'passenger';
       debugPrint('🔌 Connecting passenger to WebSocket: $uri');
       _wsChannel = WebSocketChannel.connect(uri);
       _wsStream = StreamController<Map<String, dynamic>>.broadcast();
@@ -117,7 +145,9 @@ class ApiService {
           try {
             final decoded = json.decode(message);
             if (decoded is Map<String, dynamic>) {
-              debugPrint('📨 Passenger WebSocket message received: ${decoded['event']}');
+              debugPrint(
+                '📨 Passenger WebSocket message received: ${decoded['event']}',
+              );
               _wsStream!.add(decoded);
             }
           } catch (e) {
@@ -150,18 +180,16 @@ class ApiService {
     } catch (e) {
       debugPrint('⚠️ Error closing WebSocket: $e');
     }
+    _currentWsId = null;
+    _currentWsType = null;
     _wsChannel = null;
     _wsStream = null;
   }
 
-  /// Override the base URL at runtime (e.g. after determining the device's
-  /// network settings).
   static void setBaseUrl(String url) {
     baseUrl = url;
   }
 
-  /// Updates the driver's online/offline status in the database.
-  /// This is called when the driver starts/ends their shift.
   Future<bool> updateDriverStatus(int driverId, bool online) async {
     try {
       final response = await http.patch(
@@ -173,6 +201,9 @@ class ApiService {
         }),
       );
       isDriverOnline = online;
+      debugPrint(
+        '📡 Driver status updated: ${online ? "Active" : "Inactive"} (HTTP ${response.statusCode})',
+      );
       return response.statusCode == 200;
     } catch (e) {
       debugPrint('Error updating driver status: $e');
@@ -180,19 +211,15 @@ class ApiService {
     }
   }
 
-  /// Marks a trip as completed in the database and records the final duration.
   Future<bool> completeTrip(String tripCode, int driverId) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/api/trips/complete'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'trip_code': tripCode,
-          'driver_id': driverId,
-        }),
+        body: json.encode({'trip_code': tripCode, 'driver_id': driverId}),
       );
       if (response.statusCode == 200) {
-        activeTrip = null; // Clear local active trip state
+        activeTrips.removeWhere((t) => t['trip_code'] == tripCode);
         return true;
       }
       return false;
@@ -207,28 +234,32 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$baseUrl/api/trips/cancel'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'trip_code': tripCode,
-          'driver_id': driverId,
-        }),
+        body: json.encode({'trip_code': tripCode, 'driver_id': driverId}),
       );
-      return response.statusCode == 200;
+      if (response.statusCode == 200) {
+        activeTrips.removeWhere((t) => t['trip_code'] == tripCode);
+        return true;
+      }
+      return false;
     } catch (e) {
       return false;
     }
   }
 
-  Future<Map<String, dynamic>> createTripRequest(Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> createTripRequest(
+    Map<String, dynamic> body,
+  ) async {
     return await post('/api/trip_requests', body);
   }
 
-  Future<Map<String, dynamic>> respondTripRequest(Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> respondTripRequest(
+    Map<String, dynamic> body,
+  ) async {
     return await post('/api/trip_requests/respond', body);
   }
 
   Future<Map<String, dynamic>> fetchStations() async {
     final response = await http.get(Uri.parse('$baseUrl/api/stations'));
-
     if (response.statusCode == 200) {
       try {
         return json.decode(response.body);
@@ -244,7 +275,6 @@ class ApiService {
 
   Future<List<dynamic>> fetchFares() async {
     final response = await http.get(Uri.parse('$baseUrl/api/fare'));
-
     if (response.statusCode == 200) {
       dynamic decoded;
       try {
@@ -253,7 +283,6 @@ class ApiService {
         debugPrint('⚠️ Failed to parse fares: $e');
         return [];
       }
-      // Safely extract the list depending on how the backend wraps it
       if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
         return List<dynamic>.from(decoded['data'] ?? []);
       } else if (decoded is List) {
@@ -267,8 +296,9 @@ class ApiService {
   }
 
   Future<List<dynamic>> fetchTrips(String passengerId) async {
-    final response = await http.get(Uri.parse('$baseUrl/api/trips?passenger_id=$passengerId'));
-
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/trips?passenger_id=$passengerId'),
+    );
     if (response.statusCode == 200) {
       dynamic decoded;
       try {
@@ -290,8 +320,9 @@ class ApiService {
   }
 
   Future<List<dynamic>> fetchDriverTrips(String driverId) async {
-    final response = await http.get(Uri.parse('$baseUrl/api/trips?driver_id=$driverId'));
-
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/trips?driver_id=$driverId'),
+    );
     if (response.statusCode == 200) {
       dynamic decoded;
       try {
@@ -312,39 +343,105 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>?> fetchActiveTrip(String driverId) async {
-    final response = await http.get(Uri.parse('$baseUrl/api/trips/active?driver_id=$driverId'));
+  /// Fetches all currently ongoing trips for a driver
+  Future<List<Map<String, dynamic>>?> fetchOngoingTrips(String driverId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/trips/active?driver_id=$driverId'),
+    );
+    if (response.statusCode == 200) {
+      debugPrint('Raw response from /api/trips/active: ${response.body}');
+      try {
+        final decoded = json.decode(response.body.trim());
+        if (decoded == null) return [];
 
+        if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
+          final activeData = decoded['data'];
+          if (activeData is List) {
+            return List<Map<String, dynamic>>.from(activeData);
+          } else if (activeData is Map<String, dynamic>) {
+            return [activeData];
+          }
+          return [];
+        }
+
+        if (decoded is List) {
+          return List<Map<String, dynamic>>.from(decoded);
+        } else if (decoded is Map<String, dynamic>) {
+          return [decoded];
+        }
+      } catch (e) {
+        debugPrint('! FormatException in fetchOngoingTrips: $e');
+      }
+    }
+    return null; // Return null on 404 to prevent wiping out active trips
+  }
+
+  /// Fetches all currently ongoing trips for a passenger
+  Future<List<Map<String, dynamic>>?> fetchOngoingPassengerTrips(
+    String passengerId,
+  ) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/trips/active?passenger_id=$passengerId'),
+    );
     if (response.statusCode == 200) {
       try {
         final decoded = json.decode(response.body.trim());
-        return (decoded != null && decoded is Map<String, dynamic>) ? decoded : null;
+        if (decoded == null) return [];
+
+        if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
+          final activeData = decoded['data'];
+          if (activeData is List) {
+            return List<Map<String, dynamic>>.from(activeData);
+          } else if (activeData is Map<String, dynamic>) {
+            return [activeData];
+          }
+          return [];
+        }
+
+        if (decoded is List) {
+          final trips = List<Map<String, dynamic>>.from(decoded);
+          if (trips.isNotEmpty) {
+            final firstTrip = trips.first;
+            cachedPassengerTripStartAt = firstTrip['started_at']?.toString() ??
+                firstTrip['paid_at']?.toString() ??
+                firstTrip['created_at']?.toString();
+          }
+          return trips;
+        } else if (decoded is Map<String, dynamic>) {
+          final trip = Map<String, dynamic>.from(decoded);
+          cachedPassengerTripStartAt = trip['started_at']?.toString() ??
+              trip['paid_at']?.toString() ??
+              trip['created_at']?.toString();
+          return [trip];
+        }
       } catch (e) {
-        debugPrint('! FormatException in fetchActiveTrip: $e');
-        debugPrint('📦 Raw response: ${response.body}');
-        return null;
+        debugPrint('! FormatException in fetchOngoingPassengerTrips: $e');
       }
     }
     return null;
   }
 
-  /// Fetches the average rating and review count for a specific driver
+  Future<Map<String, dynamic>?> fetchActiveTrip(String driverId) async {
+    final trips = await fetchOngoingTrips(driverId);
+    return (trips != null && trips.isNotEmpty) ? trips.first : null;
+  }
+
   Future<Map<String, dynamic>> fetchDriverRating(int driverId) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/api/drivers/$driverId/rating'));
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/drivers/$driverId/rating'),
+      );
       if (response.statusCode == 200) {
         return json.decode(response.body);
       }
       return {'average_rating': 0.0, 'total_ratings': 0};
     } catch (e) {
-      debugPrint('Error fetching driver rating: $e');
       return {'average_rating': 0.0, 'total_ratings': 0};
     }
   }
 
   Future<Map<String, dynamic>> fetchDriverData() async {
     final response = await http.get(Uri.parse('$baseUrl/api/drivers'));
-
     if (response.statusCode == 200) {
       return json.decode(response.body);
     } else {
@@ -354,13 +451,14 @@ class ApiService {
 
   Future<Map<String, dynamic>?> getDriverByQr(String qrCode) async {
     // Uses the backend search endpoint which now supports searching by QR ID
-    final response =
-        await http.get(Uri.parse('$baseUrl/api/drivers?search=$qrCode'));
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/drivers?search=$qrCode'),
+    );
 
     if (response.statusCode == 200) {
       final decoded = json.decode(response.body);
       List<dynamic> data = [];
-      
+
       if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
         data = decoded['data'];
       } else if (decoded is List) {
@@ -373,6 +471,44 @@ class ApiService {
     } else {
       throw Exception('Failed to connect to Go Backend');
     }
+  }
+
+  Future<Map<String, dynamic>?> getPassengerById(int passengerId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/passengers/$passengerId'),
+      );
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          return decoded.containsKey('data') ? decoded['data'] : decoded;
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error fetching passenger data: $e');
+    }
+    return null;
+  }
+
+  /// Fetches complaints filed by a specific passenger
+  Future<List<Map<String, dynamic>>> fetchPassengerComplaints(String passengerId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/complaints?passenger_id=$passengerId'),
+      );
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        // The Go backend wraps responses in a 'data' key
+        if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
+          return List<Map<String, dynamic>>.from(decoded['data'] ?? []);
+        } else if (decoded is List) {
+          return List<Map<String, dynamic>>.from(decoded);
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error fetching passenger complaints: $e');
+    }
+    return [];
   }
 
   Future<bool> submitComplaint(Map<String, dynamic> data) async {
@@ -390,14 +526,15 @@ class ApiService {
 
   // ── Generic POST — used by PaymentMethodDialog ──────────────────────────────
   Future<Map<String, dynamic>> post(
-      String path, Map<String, dynamic> body) async {
+    String path,
+    Map<String, dynamic> body,
+  ) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl$path'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(body),
       );
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         dynamic decoded;
         try {
@@ -416,7 +553,9 @@ class ApiService {
         }
         return {'raw': decoded};
       } else {
-        debugPrint('ApiService.post $path → HTTP ${response.statusCode}: ${response.body}');
+        debugPrint(
+          'ApiService.post $path → HTTP ${response.statusCode}: ${response.body}',
+        );
         return {};
       }
     } catch (e) {

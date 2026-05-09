@@ -16,7 +16,10 @@ func Complaints(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
-		rows, err := DB.Query(`
+		passengerID := r.URL.Query().Get("passenger_id")
+		driverID := r.URL.Query().Get("driver_id") // Keep existing driverID filter if any
+
+		baseQuery := `
 			SELECT c.id, c.report_code, 
 			COALESCE(p.first_name, '') || ' ' || COALESCE(p.last_name, ''),
 			COALESCE(d.first_name, '') || ' ' || COALESCE(d.last_name, ''), 
@@ -28,11 +31,33 @@ func Complaints(w http.ResponseWriter, r *http.Request) {
 			COALESCE(to_char(c.reported_at,'YYYY-MM-DD'), '')
 			FROM complaints c
 			LEFT JOIN users p ON c.passenger_id = p.user_id
-			LEFT JOIN drivers d ON c.driver_id = d.id
-			ORDER BY c.id DESC`)
+			LEFT JOIN drivers d ON c.driver_id = d.id`
+
+		var whereClauses []string
+		var args []interface{}
+		argCounter := 1
+
+		if passengerID != "" {
+			whereClauses = append(whereClauses, fmt.Sprintf("c.passenger_id = $%d", argCounter))
+			args = append(args, passengerID)
+			argCounter++
+		}
+		if driverID != "" { // Assuming driverID filter might also be needed for admin or future features
+			whereClauses = append(whereClauses, fmt.Sprintf("c.driver_id = $%d", argCounter))
+			args = append(args, driverID)
+			argCounter++
+		}
+
+		if len(whereClauses) > 0 {
+			baseQuery += " WHERE " + strings.Join(whereClauses, " AND ")
+		}
+
+		baseQuery += " ORDER BY c.id DESC"
+
+		rows, err := DB.Query(baseQuery, args...)
 
 		if err != nil {
-			utils.JSONErr(w, "Database selection error", 500)
+			utils.JSONErr(w, "Database selection error: "+err.Error(), 500)
 			return
 		}
 		defer rows.Close()
@@ -120,6 +145,17 @@ func ComplaintByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Fetch current complaint details to get passenger_id and report_code
+		var pID int
+		var reportCode string
+		err := DB.QueryRow(
+			`SELECT passenger_id, report_code FROM complaints WHERE id = $1`,
+			id,
+		).Scan(&pID, &reportCode)
+		if err != nil {
+			utils.JSONErr(w, "Complaint not found or database error: "+err.Error(), 404)
+			return
+		}
 		res, err := DB.Exec(
 			"UPDATE complaints SET status = $1, admin_notes = $2 WHERE id = $3",
 			b.Status, b.AdminNotes, id,
@@ -139,7 +175,23 @@ func ComplaintByID(w http.ResponseWriter, r *http.Request) {
 
 		adminID := fmt.Sprintf("%v", r.Context().Value("admin_id"))
 		utils.LogAudit(DB, "UPDATE", "Complaint", id, "Status updated to "+b.Status, "Admin:"+adminID, "Admin")
-		utils.JSONOK(w, map[string]string{"message": "Update successful"})
+
+		// --- NEW: Send WebSocket notification to passenger ---
+		if pID != 0 {
+			WSHub.NotifyPassenger(strconv.Itoa(pID), map[string]interface{}{
+				"event":        "complaint_updated",
+				"report_code":  reportCode,
+				"new_status":   b.Status,
+				"admin_notes":  b.AdminNotes,
+			})
+		}
+		// --- END NEW ---
+		utils.JSONOK(w, map[string]interface{}{
+			"message":     "Update successful",
+			"id":          id,
+			"status":      b.Status,
+			"admin_notes": b.AdminNotes,
+		})
 		return
 	}
 

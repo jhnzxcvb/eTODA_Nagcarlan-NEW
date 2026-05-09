@@ -369,7 +369,10 @@ export default function App() {
       <aside
         className="sb"
         onMouseEnter={() => setIsExpanded(true)}
-        onMouseLeave={() => setIsExpanded(false)}
+        onMouseLeave={() => {
+          setIsExpanded(false);
+          setDropdownOpen(false);
+        }}
         style={{
           width: isExpanded ? "260px" : "80px",
 
@@ -397,7 +400,7 @@ export default function App() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "15px",
+            gap: "20px",
             padding: "20px 0 20px 20px",
             minHeight: "85px",
           }}
@@ -406,7 +409,7 @@ export default function App() {
             style={{
               width: 44,
               height: 44,
-              borderRadius: "10px",
+              borderRadius: "50%",
               background: "#e6cc00",
               display: "flex",
               alignItems: "center",
@@ -417,7 +420,7 @@ export default function App() {
               border: '1px solid rgba(0,0,0,0.05)'
             }}
           >
-            <img src={AppLogo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={AppLogo} alt="Logo" style={{ width: '80%', height: '80%', objectFit: 'contain' }} />
           </div>
 
           <div

@@ -32,6 +32,8 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
   late final TextEditingController _contactController;
   final TextEditingController _accountController = TextEditingController();
   String _refCode = '';
+  final ApiService _apiService = ApiService();
+  String? _passengerName;
 
   @override
   void initState() {
@@ -179,7 +181,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
       barrierDismissible: false,
       builder: (_) => ValueListenableBuilder<String>(
         valueListenable: statusNotifier,
-        builder: (_, status, __) => Dialog(
+        builder: (_, status, _) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 28.0),
@@ -188,7 +190,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
               children: [
                 ValueListenableBuilder<bool>(
                   valueListenable: isLastStep,
-                  builder: (_, done, __) => done
+                  builder: (_, done, _) => done
                       ? const Icon(Icons.check_circle_rounded, color: nagcarlanGreen, size: 48)
                       : const CircularProgressIndicator(
                           valueColor: AlwaysStoppedAnimation<Color>(nagcarlanGreen)),
@@ -219,11 +221,13 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
         paymentFuture.then((success) {
           if (success) {
             Future.delayed(const Duration(milliseconds: 600), () {
+          if (!mounted) return;
               Navigator.of(context).pop(); // Pop progress dialog
               Navigator.of(context).pop(); // Pop payment method dialog
               _showReceiptDialog();
             });
           } else {
+        if (!mounted) return;
             Navigator.of(context).pop(); // Pop progress dialog
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Failed to record payment. Please try again.")),
@@ -241,6 +245,21 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
         debugPrint('Payment Warning: passenger_id is 0. Ensure user is logged in.');
       }
 
+      // Fetch passenger name if not already cached
+      if (_passengerName == null && pId != 0) {
+        try {
+          final pData = await _apiService.getPassengerById(pId);
+          if (pData != null) {
+            _passengerName = pData['name'] ?? 'Passenger';
+          } else {
+            _passengerName = 'Passenger';
+          }
+        } catch (e) {
+          debugPrint('Failed to fetch passenger name: $e');
+          _passengerName = 'Passenger';
+        }
+      }
+
       final route = [
         widget.driverData['from_location'],
         widget.driverData['to_location'],
@@ -249,7 +268,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
       final body = {
         'passenger_id': pId,
         'driver_id': (widget.driverData['driver_id'] as num?)?.toInt() ?? 0,
-        'passenger_name': widget.driverData['passenger_name'] ?? 'Passenger',
+        'passenger_name': _passengerName ?? 'Passenger',
         'driver_name': widget.driverData['full_name'] ?? 'Driver',
         'route': route.isNotEmpty ? route : "Body #${widget.driverData['body_no'] ?? 'N/A'}",
         'amount': widget.fare,
@@ -380,18 +399,22 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
             Text("Amount to Pay: ₱${widget.fare.toStringAsFixed(2)}",
                 style: TextStyle(fontSize: 16, color: Colors.grey[700], fontWeight: FontWeight.w500)),
             const SizedBox(height: 20),
-            _buildPaymentOption(
-                title: "Pay with Cash", value: PaymentMethod.cash, icon: Icons.money_outlined),
-            _buildPaymentOption(
-                title: "E-Wallet", value: PaymentMethod.ewallet, icon: Icons.account_balance_wallet_outlined),
+            Column(
+              children: [
+                _buildPaymentOption(title: "Pay with Cash", value: PaymentMethod.cash, icon: Icons.money_outlined),
+                _buildPaymentOption(title: "E-Wallet", value: PaymentMethod.ewallet, icon: Icons.account_balance_wallet_outlined),
+              ],
+            ),
             if (_selectedMethod == PaymentMethod.ewallet)
               Padding(
                 padding: const EdgeInsets.only(left: 32.0, top: 8.0, bottom: 8.0),
-                child: Column(children: [
-                  _buildEWalletChoice(wallet: EWallet.gcash),
-                  _buildEWalletChoice(wallet: EWallet.maya),
-                  _buildEWalletChoice(wallet: EWallet.konek2card),
-                ]),
+                child: Column(
+                  children: [
+                    _buildEWalletChoice(wallet: EWallet.gcash),
+                    _buildEWalletChoice(wallet: EWallet.maya),
+                    _buildEWalletChoice(wallet: EWallet.konek2card),
+                  ],
+                ),
               ),
             const SizedBox(height: 24),
             ElevatedButton(
@@ -414,8 +437,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
     );
   }
 
-  Widget _buildPaymentOption(
-      {required String title, required PaymentMethod value, required IconData icon}) {
+  Widget _buildPaymentOption({required String title, required PaymentMethod value, required IconData icon}) {
     return RadioListTile<PaymentMethod>(
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
       value: value,

@@ -153,23 +153,28 @@ function Fare({ notify }) {
 
   const openEdit = (f) => {
     setEditTarget(f);
-    setEditForm({ origin: f.origin, destination: f.destination, base_fare: String(f.base_fare) });
+    setEditForm({ origin: f.origin, destination: f.destination, base_fare: String(f.base_fare), association: f.association });
     setEditOpen(true);
   };
 
   const saveEdit = async () => {
-    if (!editForm.base_fare || parseFloat(editForm.base_fare) <= 0) {
+    const newBaseFare = parseFloat(editForm.base_fare);
+    if (isNaN(newBaseFare) || newBaseFare <= 0) {
       notify('Base fare must be greater than 0','error'); return;
     }
     setSaving(true);
     const r = await api('/api/fare','POST',{
       origin: editTarget.origin,
       destination: editTarget.destination,
-      base_fare: parseFloat(editForm.base_fare),
+      association: editForm.association,
+      base_fare: newBaseFare,
     });
     setSaving(false);
     if (r.success) {
-      setEditOpen(false); setEditTarget(null); load();
+      // Update local state immediately so changes reflect without a full reload
+      setData(prev => prev.map(item => item.id === r.data.id ? r.data : item));
+      setEditOpen(false); 
+      setEditTarget(null);
       notify(`${editTarget.origin} → ${editTarget.destination} updated`);
     } else notify(r.error||'Failed','error');
   };
@@ -337,6 +342,10 @@ function Fare({ notify }) {
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const pageWindow = buildPageWindow(currentPage, totalPages);
+
+  const hasChanges = editTarget && (
+    parseFloat(editForm.base_fare) !== editTarget.base_fare
+  );
 
   return (
     <div>
@@ -619,7 +628,7 @@ function Fare({ notify }) {
           )}
           <div className="modal-footer">
             <button className="btn btn-ghost" onClick={() => setEditOpen(false)}>Cancel</button>
-            <button className="btn btn-green" onClick={saveEdit} disabled={saving}>{saving?'Saving...':'Save Changes'}</button>
+            <button className="btn btn-green" onClick={saveEdit} disabled={saving || !hasChanges}>{saving ? 'Saving...' : 'Save Changes'}</button>
           </div>
         </Modal>
       )}

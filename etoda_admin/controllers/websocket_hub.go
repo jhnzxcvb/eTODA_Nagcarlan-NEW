@@ -36,6 +36,12 @@ func NewHub() *Hub {
 
 // run manages the hub's event loop (register, unregister, broadcast)
 func (h *Hub) run() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Hub panic recovered: %v", r)
+		}
+	}()
+
 	for {
 		select {
 		case client := <-h.register:
@@ -85,6 +91,20 @@ func (h *Hub) notifyClient(id string, clientType string, payload interface{}) {
 	}
 }
 
+// NotifyAllPassengers sends a JSON message to all connected passengers
+func (h *Hub) NotifyAllPassengers(payload interface{}) {
+	h.mu.RLock()
+	for _, client := range h.clients {
+		if client.Type == "passenger" {
+			if err := client.Conn.WriteJSON(payload); err != nil {
+				log.Printf("⚠️ Failed to send notification to %s %s: %v", client.Type, client.ID, err)
+				h.unregister <- client
+			}
+		}
+	}
+	h.mu.RUnlock()
+}
+
 // WebSocketUpgrader configures the HTTP->WebSocket upgrade
 var WebSocketUpgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -130,6 +150,12 @@ func handleWebSocketConnection(w http.ResponseWriter, r *http.Request, clientTyp
 
 	// Listen for disconnect (when client sends close or read error)
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("WebSocket read panic for %s %s: %v", clientType, id, r)
+			}
+		}()
+
 		defer func() {
 			WSHub.unregister <- client
 		}()

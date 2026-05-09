@@ -213,9 +213,9 @@ func UnifiedLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("❌ Authentication failed for username: %s", creds.Username)
+	log.Printf("[AUTH] Failed login attempt for user: %s", creds.Username)
 	w.WriteHeader(http.StatusUnauthorized)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Invalid username or password"})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Invalid credentials. Please verify your username and password."})
 }
 
 // FindUserForReset identifies a user by username across both tables
@@ -285,11 +285,12 @@ func ResetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var query string
-	if req.Role == "passenger" {
+	switch req.Role {
+	case "passenger":
 		query = "UPDATE users SET password_hash = $1 WHERE user_id = $2"
-	} else if req.Role == "driver" {
+	case "driver":
 		query = "UPDATE drivers SET password_hash = $1 WHERE id = $2"
-	} else {
+	default:
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Invalid role"})

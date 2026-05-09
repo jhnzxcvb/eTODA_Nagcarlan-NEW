@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"runtime/debug"
 
 	"etoda_admin/controllers"
 	"etoda_admin/routes"
@@ -14,6 +15,13 @@ import (
 )
 
 func main() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Main panic recovered: %v", r)
+			log.Printf("Stack trace: %s", debug.Stack())
+		}
+	}()
+
 	host := utils.Env("DB_HOST", "localhost")
 	port := utils.Env("DB_PORT", "5432")
 	name := utils.Env("DB_NAME", "etoda_db")
@@ -37,7 +45,7 @@ func main() {
 
 	controllers.DB = db
 	controllers.WSHub = controllers.NewHub()
-	fmt.Println("✓ WebSocket hub initialized")
+	fmt.Println("✓ WebSocket hub and Database reference initialized")
 
 	mux := http.NewServeMux()
 	routes.SetupRoutes(mux)

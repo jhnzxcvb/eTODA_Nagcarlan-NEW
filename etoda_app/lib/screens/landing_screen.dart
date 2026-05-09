@@ -1,8 +1,76 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:etoda_nagcarlan/main.dart';
 
-class LandingScreen extends StatelessWidget {
+
+class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
+
+  @override
+  State<LandingScreen> createState() => _LandingScreenState();
+}
+
+class _LandingScreenState extends State<LandingScreen> {
+  static bool _sessionPrivacyNoticeShown = false; // Session-level flag
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAndShowPrivacyNotice();
+  }
+
+  Future<void> _checkAndShowPrivacyNotice() async {
+    if (_sessionPrivacyNoticeShown) return; // Skip if already evaluated this session
+
+    _sessionPrivacyNoticeShown = true;
+    // Show the dialog after the first frame is painted
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showPrivacyNotice();
+    });
+  }
+
+  void _showPrivacyNotice() {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Prevents closing by tapping outside
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            "Data Privacy Notice",
+            style: TextStyle(color: nagcarlanGreen, fontWeight: FontWeight.bold),
+          ),
+          content: const SingleChildScrollView(
+            child: Text(
+              "eTODA Nagcarlan collects and processes personal information to facilitate tricycle transport services. "
+              "By clicking 'AGREE', you consent to our terms of service and acknowledge our data privacy policy in compliance with the Data Privacy Act.\n\n"
+              "Do you agree to proceed?",
+              style: TextStyle(fontSize: 14),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                // Automatically closes the app
+                SystemNavigator.pop();
+              },
+              child: const Text("DECLINE", style: TextStyle(color: Colors.red)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: nagcarlanYellow,
+                foregroundColor: nagcarlanGreen,
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text("AGREE"),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,11 +88,11 @@ class LandingScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: nagcarlanWhite.withOpacity(0.95),
+                  color: nagcarlanWhite.withValues(alpha: 0.95), // Fix: Deprecated withOpacity
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withValues(alpha: 0.2), // Fix: Deprecated withOpacity
                       blurRadius: 20,
                       spreadRadius: 5,
                     )

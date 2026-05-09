@@ -59,6 +59,23 @@ func PassengerByID(w http.ResponseWriter, r *http.Request) {
 	id := utils.PathID(r.URL.Path, "/api/passengers/")
 
 	switch r.Method {
+	case "GET":
+		var p models.Passenger
+		err := DB.QueryRow(`SELECT user_id,
+			COALESCE(username,''),
+			TRIM(REGEXP_REPLACE(first_name || ' ' || COALESCE(NULLIF(TRIM(middle_name),''),'') || ' ' || last_name, '\s+', ' ', 'g')) AS name,
+			COALESCE(email,''),
+			COALESCE(phone_number,''),
+			'Registered' AS session_type,
+			COALESCE(status,'Active'),
+			to_char(created_at,'YYYY-MM-DD')
+			FROM users WHERE user_id=$1`, id).Scan(&p.ID, &p.Username, &p.Name, &p.Email, &p.Contact, &p.SessionType, &p.Status, &p.RegisteredAt)
+		if err != nil {
+			log.Println("PassengerByID query error:", err)
+			utils.JSONErr(w, "Passenger not found", 404)
+			return
+		}
+		utils.JSONOK(w, p)
 	case "PATCH":
 		var b map[string]string
 		utils.Decode(r, &b)

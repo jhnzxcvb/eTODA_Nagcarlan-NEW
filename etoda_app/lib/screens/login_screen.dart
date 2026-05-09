@@ -7,6 +7,7 @@ import 'dart:convert';
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
+
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -18,6 +19,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isLoading = false;
   bool _obscurePassword = true;
+
+  int _failedAttempts = 0;
+  DateTime? _lockoutEndTime;
 
   void _showNotificationDialog({
     required String title,
@@ -63,6 +67,22 @@ class _LoginScreenState extends State<LoginScreen> {
     String username = _usernameController.text.trim();
     String password = _passwordController.text.trim();
     setState(() => _isLoading = true);
+
+    if (_lockoutEndTime != null && DateTime.now().isBefore(_lockoutEndTime!)) {
+      final remaining = _lockoutEndTime!.difference(DateTime.now());
+      _showNotificationDialog(
+        title: "Account Locked",
+        message: "Too many incorrect attempts. Please try again in ${remaining.inMinutes + 1} minutes.",
+        icon: Icons.timer_outlined,
+        color: Colors.redAccent,
+      );
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    // Ensure a clean state before attempting a new login
+    ApiService.resetSession();
+
     try {
       final response = await http.post(
         Uri.parse('${ApiService.baseUrl}/api/login'),
@@ -72,8 +92,13 @@ class _LoginScreenState extends State<LoginScreen> {
           'password': password,
         }),
       );
+      if (!mounted) return;
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+
+        _failedAttempts = 0;
+        _lockoutEndTime = null;
+
         String role = data['role'] ?? 'passenger';
         if (role == 'driver') {
           Navigator.pushReplacementNamed(context, '/driver_home', arguments: data);
@@ -88,13 +113,25 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.pushReplacementNamed(context, '/passenger_home', arguments: data);
         }
       } else if (response.statusCode == 401) {
+        _failedAttempts++;
+        String message = "The username or password you entered is incorrect.";
+        
+        if (_failedAttempts >= 5) {
+          _lockoutEndTime = DateTime.now().add(const Duration(minutes: 15));
+          message = "You have reached the limit of 5 incorrect attempts. Your account is locked for 15 minutes.";
+        } else {
+          int attemptsLeft = 5 - _failedAttempts;
+          message += "\n\nAttempts left: $attemptsLeft";
+        }
+
         _showNotificationDialog(
-          title: "Login Failed",
-          message: "The username or password you entered is incorrect.",
-          icon: Icons.lock_outline,
+          title: _failedAttempts >= 5 ? "Account Locked" : "Login Failed",
+          message: message,
+          icon: _failedAttempts >= 5 ? Icons.lock_clock_outlined : Icons.lock_outline,
           color: Colors.redAccent,
         );
       } else {
+        if (!mounted) return;
         _showNotificationDialog(
           title: "Error",
           message: "Something went wrong. Please try again later.",
@@ -103,6 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       _showNotificationDialog(
         title: "Connection Error",
         message: "Unable to connect to the eTODA server.",
@@ -161,11 +199,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: nagcarlanWhite.withOpacity(0.9),
+                      color: nagcarlanWhite.withValues(alpha: 0.9),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 10,
                           spreadRadius: 2,
                         )
@@ -187,7 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Username Field
                   TextFormField(
                     controller: _usernameController,
-                    decoration: _inputDecoration("Username", Icons.person_outline, hint: "Enter your username"),
+                    decoration: _inputDecoration(Icons.person_outline, hint: "Username"),
                     validator: (v) => v!.isEmpty ? "Please enter your username" : null,
                   ),
                   const SizedBox(height: 20),
@@ -196,7 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    decoration: _inputDecoration("Password", Icons.lock_outline).copyWith(
+                    decoration: _inputDecoration(Icons.lock_outline, hint: "Password").copyWith(
                       suffixIcon: IconButton(
                         icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: nagcarlanGreen),
                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
@@ -300,15 +338,14 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  InputDecoration _inputDecoration(String label, IconData icon, {String? hint}) {
+  InputDecoration _inputDecoration(IconData icon, {String? hint}) {
     return InputDecoration(
       filled: true,
-      fillColor: nagcarlanWhite.withOpacity(0.9),
-      labelText: label,
-      labelStyle: const TextStyle(color: nagcarlanGreen),
+      fillColor: nagcarlanWhite.withValues(alpha: 0.9),
       hintText: hint,
+      hintStyle: const TextStyle(color: Colors.grey),
       prefixIcon: Icon(icon, color: nagcarlanGreen),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none), // Line 176
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),

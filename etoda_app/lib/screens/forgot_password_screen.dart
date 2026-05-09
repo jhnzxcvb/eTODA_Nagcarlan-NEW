@@ -118,6 +118,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         }),
       );
 
+      if (!mounted) return;
       if (response.statusCode == 200) {
         _showSnackBar("Password reset successful!", isError: false);
         Navigator.pop(context);
@@ -206,9 +207,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 40),
         _buildInputField(
           controller: _usernameController,
-          label: "Username",
+          hint: " juan_dela_cruz",
           icon: Icons.person_outline,
-          hint: "e.g. juan_dela_cruz",
         ),
         const SizedBox(height: 40),
         _buildActionButton("NEXT", _findUser),
@@ -242,9 +242,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 40),
         _buildInputField(
           controller: _otpController,
-          label: "OTP Code",
+          hint: "6-digit code",
           icon: Icons.lock_clock_outlined,
-          hint: "Enter 6-digit code",
           keyboardType: TextInputType.number,
         ),
         const SizedBox(height: 40),
@@ -275,7 +274,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 40),
         _buildInputField(
           controller: _newPasswordController,
-          label: "New Password",
+          hint: "New Password",
           icon: Icons.lock_outline,
           obscureText: _obscureNew,
           onToggle: () => setState(() => _obscureNew = !_obscureNew),
@@ -283,7 +282,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 20),
         _buildInputField(
           controller: _confirmPasswordController,
-          label: "Confirm New Password",
+          hint: "Confirm New Password",
           icon: Icons.check_circle_outline,
           obscureText: _obscureConfirm,
           onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
@@ -296,7 +295,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Widget _buildInputField({
     required TextEditingController controller,
-    required String label,
     required IconData icon,
     String? hint,
     bool obscureText = false,
@@ -306,11 +304,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label.toUpperCase(),
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: nagcarlanWhite, letterSpacing: 1),
-        ),
-        const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           obscureText: obscureText,
@@ -327,7 +320,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             hintText: hint,
             hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
             filled: true,
-            fillColor: nagcarlanWhite.withOpacity(0.9),
+            fillColor: nagcarlanWhite.withValues(alpha: 0.9),
             contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
             focusedBorder: OutlineInputBorder(
@@ -347,7 +340,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 12,
             offset: const Offset(0, 5),
           )

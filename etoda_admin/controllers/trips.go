@@ -93,6 +93,7 @@ func Trips(w http.ResponseWriter, r *http.Request) {
 			"passenger_name": pName,
 			"driver_name":    dName,
 			"driver_contact": contact,
+			"driver_phone":   contact,
 			"plate_number":   plate,
 			"body_no":        body,
 			"route":          route,
@@ -102,6 +103,8 @@ func Trips(w http.ResponseWriter, r *http.Request) {
 			"duration_min":   duration,
 			"started_at":     startedAtStr,
 			"ended_at":       endedAtStr,
+			"passenger_id":   pID,
+			"driver_id":      dID,
 		})
 	}
 	utils.LogInfo("Trips", fmt.Sprintf("Fetched %d trip records for admin dashboard", count))
@@ -113,6 +116,67 @@ func Trips(w http.ResponseWriter, r *http.Request) {
 
 	if list == nil {
 		list = []map[string]interface{}{}
+	}
+	utils.JSONOK(w, list)
+}
+
+// ActiveTrips returns trips that are currently in progress (paid but not logged in trip_logs)
+func ActiveTrips(w http.ResponseWriter, r *http.Request) {
+	driverID := r.URL.Query().Get("driver_id")
+	passengerID := r.URL.Query().Get("passenger_id")
+
+	query := `
+		SELECT 
+			p.ref_code, p.passenger_id, p.driver_id, p.route, p.amount, p.method, 'ongoing' as status,
+			to_char(p.paid_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as started_at,
+			COALESCE(u.first_name || ' ' || u.last_name, 'Passenger') as p_name,
+			COALESCE(d.first_name || ' ' || d.last_name, 'Driver') as d_name,
+			COALESCE(d.contact, '—') as d_phone
+		FROM payments p
+		LEFT JOIN users u ON p.passenger_id = u.user_id
+		LEFT JOIN drivers d ON p.driver_id = d.id
+		WHERE p.status = 'Paid'
+		AND NOT EXISTS (SELECT 1 FROM trip_logs tl WHERE tl.trip_code = p.ref_code)
+		AND p.paid_at > NOW() - INTERVAL '24 hours'
+	`
+	var args []interface{}
+	if driverID != "" {
+		args = append(args, driverID)
+		query += fmt.Sprintf(" AND p.driver_id = $%d", len(args))
+	}
+	if passengerID != "" {
+		args = append(args, passengerID)
+		query += fmt.Sprintf(" AND p.passenger_id = $%d", len(args))
+	}
+
+	rows, err := DB.Query(query, args...)
+	if err != nil {
+		utils.JSONErr(w, "Database error", 500)
+		return
+	}
+	defer rows.Close()
+
+	list := []map[string]interface{}{}
+	for rows.Next() {
+		var code, route, method, status, startedAt, pName, dName, dPhone string
+		var pID, dID int
+		var amount float64
+		if err := rows.Scan(&code, &pID, &dID, &route, &amount, &method, &status, &startedAt, &pName, &dName, &dPhone); err != nil {
+			continue
+		}
+		list = append(list, map[string]interface{}{
+			"trip_code":      code,
+			"passenger_id":   pID,
+			"driver_id":      dID,
+			"route":          route,
+			"fare":           amount,
+			"payment_method": method,
+			"status":         status,
+			"started_at":     startedAt,
+			"passenger_name": pName,
+			"driver_name":    dName,
+			"driver_phone":   dPhone,
+		})
 	}
 	utils.JSONOK(w, list)
 }

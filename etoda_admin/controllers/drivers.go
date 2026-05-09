@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -183,11 +184,34 @@ func DriverByID(w http.ResponseWriter, r *http.Request) {
 		}
 
 		args = append(args, id)
-		query := fmt.Sprintf("UPDATE drivers SET %s WHERE id=$%d", strings.Join(sets, ","), len(args))
-		_, err = DB.Exec(query, args...)
-		if err != nil { // Use the 'err' declared above
+		query := fmt.Sprintf("UPDATE drivers SET %s WHERE id=$%d", strings.Join(sets, ","), len(args)) // Use the 'err' declared above
+		res, err := DB.Exec(query, args...)
+		if err != nil {
 			utils.JSONErr(w, err.Error(), 500)
 			return
+		}
+
+		rowsAffected, err := res.RowsAffected()
+		if err != nil {
+			utils.JSONErr(w, err.Error(), 500) // Error getting rows affected
+			return
+		}
+		if rowsAffected == 0 {
+			utils.JSONErr(w, "No driver found with the given ID or no changes were made.", http.StatusNotFound)
+			return
+		}
+
+		// Broadcast status update to all passengers if status or is_active changed
+		if _, hasStatus := b["status"]; hasStatus {
+			if _, hasActive := b["is_active"]; hasActive {
+				log.Printf("Broadcasting driver status update: driver_id=%s, status=%s, is_active=%s", id, b["status"], b["is_active"])
+				WSHub.NotifyAllPassengers(map[string]interface{}{
+					"event":     "driver_status_update",
+					"driver_id": id,
+					"status":    b["status"],
+					"is_active": b["is_active"],
+				})
+			}
 		}
 
 		adminID := fmt.Sprintf("%v", r.Context().Value("admin_id"))

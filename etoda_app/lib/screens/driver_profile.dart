@@ -134,7 +134,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                     if (_driverId != null)
                       Text(
                         "ID: DRV-${_driverId.toString().padLeft(4, '0')}",
-                        style: TextStyle(fontSize: 14, color: nagcarlanWhite.withOpacity(0.8)),
+                        style: TextStyle(fontSize: 14, color: nagcarlanWhite.withValues(alpha: 0.8)),
                       ),
                     const SizedBox(height: 32),
                     InfoSectionCard(

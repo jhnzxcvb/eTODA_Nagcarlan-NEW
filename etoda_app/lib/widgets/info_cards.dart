@@ -49,7 +49,7 @@ class InfoSectionCard extends StatelessWidget {
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),

@@ -2,6 +2,7 @@ import 'package:etoda_nagcarlan/main.dart';
 import 'package:flutter/material.dart';
 import 'package:etoda_nagcarlan/widgets/info_cards.dart';
 import 'package:etoda_nagcarlan/widgets/branding_footer.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PassengerTripDetailsScreen extends StatelessWidget {
   const PassengerTripDetailsScreen({super.key});
@@ -12,6 +13,21 @@ class PassengerTripDetailsScreen extends StatelessWidget {
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>? ?? {};
 
     final fare = (trip['fare_amount'] as num?)?.toDouble() ?? 0.0;
+
+    Future<void> makeCall(String? phone) async {
+      if (phone == null || phone.isEmpty || phone == "—" || phone == "N/A") return;
+      final Uri url = Uri.parse('tel:${phone.replaceAll(RegExp(r'[^0-9+]'), '')}');
+      debugPrint('Attempting to launch URL from PassengerTripDetailsScreen: $url');
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Could not launch phone app")),
+          );
+        }
+      }
+    }
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -35,7 +51,7 @@ class PassengerTripDetailsScreen extends StatelessWidget {
                       title: "TRIP OVERVIEW",
                       icon: Icons.receipt_long_outlined,
                       items: {
-                        "Date": trip['started_at'] ?? 'N/A',
+                        "Date": trip['ended_at'] ?? 'N/A',
                         "Route": trip['route'] ?? 'N/A',
                         "Status": trip['status']?.toString().toUpperCase() ?? 'COMPLETED',
                         "Fare Paid": "₱${fare.toStringAsFixed(2)}",
@@ -51,7 +67,7 @@ class PassengerTripDetailsScreen extends StatelessWidget {
                         "Name": trip['driver_name'] ?? 'N/A',
                         "Plate Number": trip['plate_number'] ?? 'N/A',
                         "Body Number": trip['body_no'] ?? 'N/A',
-                        "Contact": trip['driver_contact'] ?? '—',
+                        "Contact": trip['driver_phone'] ?? trip['driver_contact'] ?? '—',
                       },
                     ),
                     const SizedBox(height: 24),
@@ -60,11 +76,8 @@ class PassengerTripDetailsScreen extends StatelessWidget {
                       child: ElevatedButton.icon(
                         icon: const Icon(Icons.phone_in_talk_outlined),
                         onPressed: () {
-                          final contact = trip['driver_contact'] ?? 'N/A';
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text('Calling driver ($contact)...')),
-                          );
+                          final contact = (trip['driver_phone'] ?? trip['driver_contact'])?.toString();
+                          makeCall(contact);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: nagcarlanYellow,

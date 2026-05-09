@@ -163,7 +163,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> with WidgetsB
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 4),
-                      color: Colors.white.withOpacity(0.4),
+                      color: Colors.white.withValues(alpha: 0.4),
                     ),
                   ),
                 ),

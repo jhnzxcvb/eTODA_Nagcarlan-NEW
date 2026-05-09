@@ -65,7 +65,7 @@ const BLANK = {
   first_name: "", middle_name: "", last_name: "",
   username: "", password: "",
   franchise: "", body_no: "", contact: "",
-  license_no: "", plate_number: "", association: "Nagcarlan TODA",
+  license_no: "", plate_number: "", association: "Nagcarlan TODA", // Changed sample middle name
 };
 const ASSOCS = ["Nagcarlan TODA","Oobi TODA","Talangan TODA","San Antonio TODA"];
 
@@ -134,6 +134,24 @@ function Drivers({ notify }) {
   const pageWindow = buildPageWindow(currentPage, totalPages);
   const strength   = getStrength(form.password);
 
+  // Determine if there are changes in the edit form
+  const hasChanges = useMemo(() => {
+    if (!editItem) return false;
+    return (
+      form.first_name.trim() !== (editItem.first_name || '') ||
+      form.middle_name.trim() !== (editItem.middle_name || '') ||
+      form.last_name.trim() !== (editItem.last_name || '') ||
+      form.username.trim() !== (editItem.username || '') ||
+      form.franchise.trim() !== (editItem.franchise || '') ||
+      form.body_no.trim() !== (editItem.body_no || '') ||
+      form.contact.trim() !== (editItem.contact || '') ||
+      form.license_no.trim() !== (editItem.license_no || '') ||
+      form.plate_number.trim() !== (editItem.plate_number || '') ||
+      form.association !== (editItem.association || 'Nagcarlan TODA') ||
+      (resetPwMode && form.password.trim() !== '') // Password change is a change if resetPwMode is active
+    );
+  }, [form, editItem, resetPwMode]);
+
   // ── QR ──
   const openQR = async (d) => {
     if (!d.qr_id) return;
@@ -153,7 +171,7 @@ function Drivers({ notify }) {
   const printSticker = () => {
     if (!qrDataUrl || !qrSelected) return;
     const win = window.open("", "_blank");
-    win.document.write(`<!DOCTYPE html><html><head><title>QR Sticker - ${qrSelected.franchise}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#fff}.sticker{width:280px;border:2px solid #2d5a1b;border-radius:16px;overflow:hidden;text-align:center}.sticker-header{background:#2d5a1b!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;padding:14px 16px}.sticker-header h1{font-size:18px;font-weight:bold;color:#fff!important;margin-bottom:2px}.sticker-header p{font-size:11px;color:#fff!important}.sticker-body{padding:20px 16px}.qr-wrap{display:inline-block;padding:10px;border:2px solid #2d5a1b;border-radius:10px;margin-bottom:14px}.qr-wrap img{display:block;width:160px;height:160px}.driver-name{font-size:16px;font-weight:bold;color:#1a1a1a;margin-bottom:4px}.franchise{font-size:13px;color:#555;margin-bottom:6px}.qr-id{font-size:9px;font-family:monospace;color:#888;margin-bottom:12px;word-break:break-all}.badge{display:inline-block;padding:4px 12px;background:#e8f5e9!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color:#2d5a1b!important;border-radius:20px;font-size:11px;font-weight:bold;margin-bottom:4px}.sticker-footer{background:#f5f5f5!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;padding:8px 12px;font-size:10px;color:#888!important;border-top:1px solid #e0e0e0}</style></head><body><div class="sticker"><div class="sticker-header"><h1>eTODA Nagcarlan</h1><p>Official Driver QR Code</p></div><div class="sticker-body"><div class="qr-wrap"><img src="${qrDataUrl}" alt="QR Code"/></div><div class="driver-name">${qrSelected.driver_name}</div><div class="franchise">Franchise: ${qrSelected.franchise}</div><div class="qr-id">${qrSelected.qr_id}</div><div class="badge">&#10003; Active &middot; AES-256 Encrypted</div></div><div class="sticker-footer">Nagcarlan LGU &middot; eTODA System &middot; Issued ${qrSelected.issued_at}</div></div><script>window.onload=function(){window.print();window.close()};<\/script></body></html>`);
+    win.document.write(`<!DOCTYPE html><html><head><title>QR Sticker - ${qrSelected.franchise}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#fff}.sticker{width:280px;border:2px solid #2d5a1b;border-radius:16px;overflow:hidden;text-align:center}.sticker-header{background:#2d5a1b!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;padding:14px 16px}.sticker-header h1{font-size:18px;font-weight:bold;color:#fff!important;margin-bottom:2px}.sticker-header p{font-size:11px;color:#fff!important}.sticker-body{padding:20px 16px}.qr-wrap{display:inline-block;padding:10px;border:2px solid #2d5a1b;border-radius:10px;margin-bottom:14px}.qr-wrap img{display:block;width:160px;height:160px}.driver-name{font-size:16px;font-weight:bold;color:#1a1a1a;margin-bottom:4px}.franchise{font-size:13px;color:#555;margin-bottom:6px}.sticker-footer{background:#f5f5f5!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;padding:8px 12px;font-size:10px;color:#888!important;border-top:1px solid #e0e0e0}</style></head><body><div class="sticker"><div class="sticker-header"><h1>eTODA Nagcarlan</h1><p>Official Driver QR Code</p></div><div class="sticker-body"><div class="qr-wrap"><img src="${qrDataUrl}" alt="QR Code"/></div><div class="driver-name">${qrSelected.driver_name}</div><div class="franchise">Franchise: ${qrSelected.franchise}</div></div><div class="sticker-footer">Nagcarlan LGU &middot; eTODA System &middot; Issued ${qrSelected.issued_at}</div></div><script>window.onload=function(){window.print();window.close()};<\/script></body></html>`);
     win.document.close();
   };
 
@@ -182,6 +200,22 @@ function Drivers({ notify }) {
     if (!form.first_name.trim()) { notify("First Name is required", "error"); return; }
     if (!form.last_name.trim())  { notify("Last Name is required",  "error"); return; }
     if (!form.franchise.trim())  { notify("Franchise is required",  "error"); return; }
+
+    // ── Format Validations ──
+    const contactTrimmed = form.contact.trim();
+    if (contactTrimmed && !/^09\d{9}$/.test(contactTrimmed)) {
+      notify("Contact must be 11 digits starting with 09", "error");
+      return;
+    }
+    if (form.body_no.trim() && !/^\d+$/.test(form.body_no.trim())) {
+      notify("Body Number must be numeric", "error");
+      return;
+    }
+    if (form.plate_number.trim() && !/^[A-Z0-9 ]+$/i.test(form.plate_number.trim())) {
+      notify("Plate Number must be alphanumeric", "error");
+      return;
+    }
+
     setSaving(true);
     const payload = {
       first_name:   capitalizeName(form.first_name.trim()),
@@ -208,6 +242,22 @@ function Drivers({ notify }) {
   const saveEdit = async () => {
     if (!form.first_name.trim()) { notify("First Name is required", "error"); return; }
     if (!form.last_name.trim())  { notify("Last Name is required",  "error"); return; }
+
+    // ── Format Validations ──
+    const contactTrimmed = form.contact.trim();
+    if (contactTrimmed && !/^09\d{9}$/.test(contactTrimmed)) {
+      notify("Contact must be 11 digits starting with 09", "error");
+      return;
+    }
+    if (form.body_no.trim() && !/^\d+$/.test(form.body_no.trim())) {
+      notify("Body Number must be numeric", "error");
+      return;
+    }
+    if (form.plate_number.trim() && !/^[A-Z0-9 ]+$/i.test(form.plate_number.trim())) {
+      notify("Plate Number must be alphanumeric", "error");
+      return;
+    }
+
     setSaving(true);
     const payload = {
       first_name:   capitalizeName(form.first_name.trim()),
@@ -249,14 +299,23 @@ function Drivers({ notify }) {
   const openEnroll = () => { setShowPw(false); setCopiedPw(false); setCopiedCreds(false); setUsernameTouched(false); setForm(BLANK); setEnrollOpen(true); };
 
   const confirmSuspend = async () => {
+    // Determine the next status and is_active state
+    let nextStatus;
+    let nextIsActive;
+    if (suspendItem.status === "Suspended") {
+      nextStatus = "Inactive"; // Restore to Inactive
+      nextIsActive = false;
+    } else {
+      nextStatus = "Suspended"; // Suspend from Active/Inactive
+      nextIsActive = false;
+    }
+
     setToggling(suspendItem.id);
-    const next = suspendItem.status === "Suspended" ? "Inactive" : "Suspended";
-    const r = await api(`/api/drivers/${suspendItem.id}`, "PATCH", { status: next });
+    const r = await api(`/api/drivers/${suspendItem.id}`, "PATCH", { status: nextStatus, is_active: nextIsActive });
     setToggling(null); setSuspendItem(null);
     if (r.success) {
       load(search);
-      const name = capitalizeName(buildFullName(suspendItem.first_name, suspendItem.middle_name, suspendItem.last_name));
-      notify(next === "Suspended" ? `${name} suspended` : `${name} restored`, next === "Suspended" ? "warn" : "success");
+      notify(`${driverFullName(suspendItem)} ${nextStatus === "Suspended" ? 'suspended' : 'restored'}`, nextStatus === "Suspended" ? "warn" : "success");
     }
   };
 
@@ -268,7 +327,13 @@ function Drivers({ notify }) {
     } else notify(r.error, "error");
   };
 
-  const driverFullName = (d) => capitalizeName(buildFullName(d.first_name, d.middle_name, d.last_name)) || "—";
+  const driverFullName = (d) => {
+    const firstName = d.first_name || "";
+    const middleInitial = d.middle_name ? d.middle_name.charAt(0).toUpperCase() + "." : "";
+    const lastName = d.last_name || "";
+    const fullName = [firstName, middleInitial, lastName].filter(Boolean).join(" ");
+    return capitalizeName(fullName) || "—";
+  };
 
   // ── Credential section ──
   const credentialSection = (isEdit = false) => (
@@ -381,7 +446,7 @@ function Drivers({ notify }) {
         </div>
         <div className="field" style={{ flex: "1 1 200px" }}>
           <label>Middle Name <span style={{ fontWeight: 400, color: "var(--gray)", fontSize: ".72rem" }}>(optional)</span></label>
-          <input value={form.middle_name} onChange={e => setForm(p => ({ ...p, middle_name: e.target.value }))} placeholder="A." />
+          <input value={form.middle_name} onChange={e => setForm(p => ({ ...p, middle_name: e.target.value }))} placeholder="" />
         </div>
       </div>
       <div className="form-row" style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
@@ -395,11 +460,11 @@ function Drivers({ notify }) {
         </div>
       </div>
       <div className="form-row" style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
-        <div className="field" style={{ flex: "1 1 200px" }}><label>Body #</label><input value={form.body_no} onChange={e => setForm(p => ({ ...p, body_no: e.target.value }))} placeholder="06" /></div>
+        <div className="field" style={{ flex: "1 1 200px" }}><label>Body #</label><input value={form.body_no} onChange={e => setForm(p => ({ ...p, body_no: e.target.value.replace(/\D/g, '') }))} placeholder="06" /></div>
         <div className="field" style={{ flex: "1 1 200px" }}><label>Plate Number</label><input value={form.plate_number} onChange={e => setForm(p => ({ ...p, plate_number: e.target.value }))} placeholder="ABC 1234" /></div>
       </div>
       <div className="form-row" style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
-        <div className="field" style={{ flex: "1 1 200px" }}><label>Contact</label><input value={form.contact} onChange={e => setForm(p => ({ ...p, contact: e.target.value }))} placeholder="09XXXXXXXXX" /></div>
+        <div className="field" style={{ flex: "1 1 200px" }}><label>Contact</label><input type="tel" maxLength="11" value={form.contact} onChange={e => setForm(p => ({ ...p, contact: e.target.value.replace(/\D/g, '') }))} placeholder="09XXXXXXXXX" /></div>
         <div className="field" style={{ flex: "1 1 200px" }}><label>License No.</label><input value={form.license_no} onChange={e => setForm(p => ({ ...p, license_no: e.target.value }))} placeholder="NAG-XXXXXX" /></div>
       </div>
       <div className="form-row" style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
@@ -514,7 +579,7 @@ function Drivers({ notify }) {
                               <FontAwesomeIcon icon={faBan} style={{ marginRight: 4, fontSize: 11 }} />Suspend
                             </button>
                           ) : (
-                            <button className="ib ib-edit" onClick={() => setSuspendItem(d)} disabled={toggling === d.id} style={{ minWidth: 88 }}>
+                            <button className="ib ib-del" onClick={() => setSuspendItem(d)} disabled={toggling === d.id} style={{ background: "#f0fdf4", color: "#2d5a1b", borderColor: "#86efac", minWidth: 88 }}>
                               <FontAwesomeIcon icon={faCircleCheck} style={{ marginRight: 4, fontSize: 11 }} />Restore
                             </button>
                           )}
@@ -588,28 +653,28 @@ function Drivers({ notify }) {
           <div style={{ marginTop: 18 }}>{profileFields()}</div>
           <div className="modal-footer">
             <button className="btn btn-ghost" onClick={() => setEditItem(null)}>Cancel</button>
-            <button className="btn btn-green" onClick={saveEdit} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</button>
+            <button className="btn btn-green" onClick={saveEdit} disabled={saving || !hasChanges}>{saving ? "Saving..." : "Save Changes"}</button>
           </div>
         </Modal>
       )}
 
       {/* ── SUSPEND / RESTORE ── */}
       {suspendItem && (
-        <Modal title={suspendItem.status === "Active" ? "Suspend Driver" : "Restore Driver"} onClose={() => setSuspendItem(null)}>
-          {suspendItem.status === "Active" ? (
+        <Modal title={suspendItem.status === "Suspended" ? "Restore Driver" : "Suspend Driver"} onClose={() => setSuspendItem(null)}>
+          {suspendItem.status !== "Suspended" ? (
             <div style={{ background: "#fff8e1", border: "1px solid #f59e0b", borderRadius: 10, padding: "14px 16px", marginBottom: 16, fontSize: ".88rem", color: "#78350f", lineHeight: 1.7 }}>
               Are you sure you want to suspend <strong>{driverFullName(suspendItem)}</strong> ({suspendItem.franchise})?<br />
-              Their account will be deactivated and they won't be able to log in until restored.
+              They will not be able to accept trips until restored.
             </div>
           ) : (
             <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 10, padding: "14px 16px", marginBottom: 16, fontSize: ".88rem", color: "#14532d", lineHeight: 1.7 }}>
               Restore <strong>{driverFullName(suspendItem)}</strong> ({suspendItem.franchise})?<br />
-              Their account will be restored and they can log in again.
+              Their account will be reactivated and they can accept trips again.
             </div>
           )}
           <div className="modal-footer">
             <button className="btn btn-ghost" onClick={() => setSuspendItem(null)}>Cancel</button>
-            {suspendItem.status === "Active" ? (
+            {suspendItem.status !== "Suspended" ? (
               <button onClick={confirmSuspend} disabled={toggling === suspendItem.id} style={{ background: "#d97706", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontWeight: 700, cursor: "pointer" }}>
                 <FontAwesomeIcon icon={faBan} style={{ marginRight: 6 }} />{toggling === suspendItem.id ? "Suspending..." : "Yes, Suspend Driver"}
               </button>
@@ -655,11 +720,6 @@ function Drivers({ notify }) {
               )}
               <div style={{ fontSize: "16px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "4px" }}>{qrSelected.driver_name}</div>
               <div style={{ fontSize: "13px", color: "#555", marginBottom: "4px" }}>Franchise: {qrSelected.franchise}</div>
-              <div style={{ fontSize: "10px", fontFamily: "monospace", color: "#999", marginBottom: "14px", wordBreak: "break-all" }}>{qrSelected.qr_id}</div>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#e8f5e9", borderRadius: "20px", padding: "5px 14px", marginBottom: "20px" }}>
-                <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#2d5a1b" }} />
-                <span style={{ fontSize: "12px", color: "#2d5a1b", fontWeight: "600" }}>Active · AES-256 Encrypted</span>
-              </div>
               <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
                 <button onClick={printSticker} style={{ flex: 1, padding: "11px", fontSize: "13px", fontWeight: "700", borderRadius: "10px", cursor: "pointer", background: "#2d5a1b", color: "#fff", border: "none" }}>
                   <FontAwesomeIcon icon={faPrint} style={{ marginRight: "6px" }} />Print Sticker

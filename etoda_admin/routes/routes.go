@@ -56,6 +56,7 @@ func SetupRoutes(mux *http.ServeMux) {
 	// --- 4. ADMIN & DASHBOARD ENDPOINTS (Web App) ---
 	mux.HandleFunc("/api/dashboard", middleware.CORS(controllers.Dashboard))
 	mux.HandleFunc("/api/dashboard/report", middleware.CORS(controllers.GenerateReport))
+	mux.HandleFunc("/api/dashboard/chart", middleware.CORS(controllers.GetTripChartData))
 
 	// ── AUDIT: /stats must be registered BEFORE /audit to avoid prefix conflict ──
 	mux.HandleFunc("/api/audit/stats", middleware.CORS(controllers.AuditStats))
@@ -67,6 +68,9 @@ func SetupRoutes(mux *http.ServeMux) {
 		if strings.HasSuffix(r.URL.Path, "/rating") {
 			controllers.GetDriverRating(w, r)
 			return
+		}
+		if strings.HasSuffix(r.URL.Path, "/profile") && r.Method == "PATCH" {
+			controllers.UpdateDriverProfile(w, r) // This is for mobile app driver profile updates
 		}
 		controllers.DriverByID(w, r)
 	}))
@@ -106,7 +110,7 @@ func SetupRoutes(mux *http.ServeMux) {
 
 	// Trips
 	mux.HandleFunc("/api/trips", middleware.CORS(controllers.Trips))
-	// mux.HandleFunc("/api/trips/active", middleware.CORS(controllers.ActiveTrip))
+	mux.HandleFunc("/api/trips/active", middleware.CORS(controllers.ActiveTrips))
 	mux.HandleFunc("/api/trips/complete", middleware.CORS(controllers.CompleteTrip))
 	// mux.HandleFunc("/api/trips/cancel", middleware.CORS(controllers.CancelTrip))
 	mux.HandleFunc("/api/trip_requests", middleware.CORS(controllers.CreateTripRequest))

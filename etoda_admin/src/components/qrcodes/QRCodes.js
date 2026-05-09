@@ -128,8 +128,6 @@ function QRCodes({ notify }) {
           .qr-wrap img { display:block; width:160px; height:160px; }
           .driver-name { font-size:16px; font-weight:bold; color:#1a1a1a; margin-bottom:4px; }
           .franchise   { font-size:13px; color:#555; margin-bottom:6px; }
-          .qr-id       { font-size:9px; font-family:monospace; color:#888; margin-bottom:12px; word-break:break-all; }
-          .badge { display:inline-block; padding:4px 12px; background:#e8f5e9 !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color:#2d5a1b !important; border-radius:20px; font-size:11px; font-weight:bold; margin-bottom:4px; }
           .sticker-footer { background:#f5f5f5 !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; padding:8px 12px; font-size:10px; color:#888 !important; border-top:1px solid #e0e0e0; }
           @media print {
             * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
@@ -343,10 +341,6 @@ function QRCodes({ notify }) {
               )}
               <div style={{ fontSize: "16px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "4px" }}>{selected.driver_name}</div>
               <div style={{ fontSize: "13px", color: "#555", marginBottom: "4px" }}>Franchise: {selected.franchise}</div>
-              <div style={{ fontSize: "10px", fontFamily: "monospace", color: "#999", marginBottom: "14px", wordBreak: "break-all" }}>{selected.qr_id}</div>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#e8f5e9", borderRadius: "20px", padding: "5px 14px", marginBottom: "20px" }}>
-          
-              </div>
               <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
                 <button onClick={printSticker} style={{ flex: 1, padding: "11px", fontSize: "13px", fontWeight: "700", borderRadius: "10px", cursor: "pointer", background: "#2d5a1b", color: "#fff", border: "none" }}>
                   <FontAwesomeIcon icon={faPrint} style={{ marginRight: "6px" }} />Print Sticker

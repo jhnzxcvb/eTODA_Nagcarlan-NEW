@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:etoda_nagcarlan/widgets/passenger_profile_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:etoda_nagcarlan/main.dart';
@@ -19,6 +20,9 @@ class _ScannedDriverProfileScreenState
   double _averageRating = 0.0;
   int _totalRatings = 0;
   bool _isRatingLoading = true;
+  String _currentStatus = 'Inactive';
+  StreamSubscription? _wsSubscription;
+  bool _isInitialized = false;
 
   void _showFareCalculator(BuildContext context, Map<String, dynamic> data) {
     showDialog(
@@ -30,7 +34,23 @@ class _ScannedDriverProfileScreenState
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadRating();
+    
+    if (!_isInitialized) {
+      final Map<String, dynamic> d =
+          ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>? ??
+          {};
+      _currentStatus = d['status']?.toString() ?? 'Inactive';
+      _loadRating();
+      _setupWebSocketListener();
+      _isInitialized = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    _wsSubscription?.cancel();
+    ApiService.disconnectWebSocket();
+    super.dispose();
   }
 
   Future<void> _loadRating() async {
@@ -65,6 +85,46 @@ class _ScannedDriverProfileScreenState
     }
   }
 
+  Future<void> _setupWebSocketListener() async {
+    final Map<String, dynamic> d =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>? ??
+        {};
+    final int passengerId = (d['passenger_id'] as num?)?.toInt() ?? 0;
+    final int driverId =
+        (d['id'] as num?)?.toInt() ??
+        (d['driver_id'] as num?)?.toInt() ??
+        int.tryParse(d['id']?.toString() ?? '') ??
+        0;
+
+    debugPrint('🔌 Scanned screen: passengerId=$passengerId, driverId=$driverId');
+
+    if (passengerId != 0 && driverId != 0) {
+      _wsSubscription?.cancel();
+      
+      // Await the connection to ensure the stream is initialized
+      await ApiService.connectPassengerWebSocket(passengerId.toString());
+      final wsStream = ApiService.getWebSocketStream();
+      
+      if (wsStream != null) {
+        _wsSubscription = wsStream.listen((message) {
+          debugPrint('📨 Scanned screen received: $message');
+          if (message['event'] == 'driver_status_update' &&
+              int.tryParse(message['driver_id']?.toString() ?? '') == driverId &&
+              mounted) {
+            debugPrint('✅ Updating status to ${message['status']}');
+            setState(() {
+              _currentStatus = message['status']?.toString() ?? 'Inactive';
+            });
+          }
+        });
+      } else {
+        debugPrint('❌ WebSocket stream is null');
+      }
+    } else {
+      debugPrint('❌ Not connecting WebSocket: passengerId=$passengerId, driverId=$driverId');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final Map<String, dynamic> d =
@@ -81,10 +141,9 @@ class _ScannedDriverProfileScreenState
     final String first = d['first_name']?.toString() ?? '';
     final String last = d['last_name']?.toString() ?? '';
     final String fullName = "$first $last".trim().toUpperCase();
-    final String dbStatus = d['status']?.toString() ?? 'Inactive';
     final String qrStat = d['qr_status']?.toString() ?? '';
-    final bool isOnline = dbStatus == 'Active';
-    final bool isSuspended = dbStatus == 'Suspended' || qrStat == 'Revoked';
+    final bool isOnline = _currentStatus == 'Active';
+    final bool isSuspended = _currentStatus == 'Suspended' || qrStat == 'Revoked';
     final bool isVerified = d['license_no']?.toString().isNotEmpty ?? false;
     final String profilePic = d['profile_pic']?.toString() ?? '';
 
@@ -365,9 +424,9 @@ class _ScannedDriverProfileScreenState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: nagcarlanWhite.withOpacity(0.15),
+        color: nagcarlanWhite.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: color.withOpacity(0.5), width: 1.5),
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

@@ -37,6 +37,7 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
   double fare = 0.00;
   double discountAmount = 0.0;
   bool _isProcessing = false;
+  String? _passengerName;
 
   @override
   void initState() {
@@ -152,6 +153,21 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
       return;
     }
 
+    // Fetch passenger name if not already cached
+    if (_passengerName == null) {
+      try {
+        final pData = await _apiService.getPassengerById(passengerId);
+        if (pData != null) {
+          _passengerName = pData['name'] ?? 'Passenger';
+        } else {
+          _passengerName = 'Passenger';
+        }
+      } catch (e) {
+        debugPrint('Failed to fetch passenger name: $e');
+        _passengerName = 'Passenger';
+      }
+    }
+
     setState(() => _isProcessing = true);
     await Future.delayed(const Duration(milliseconds: 400));
 
@@ -165,7 +181,7 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
     final result = await _apiService.createTripRequest({
       'passenger_id': passengerId,
       'driver_id': (widget.driverData['driver_id'] as num?)?.toInt() ?? 0,
-      'passenger_name': widget.driverData['passenger_name'] ?? 'Passenger',
+      'passenger_name': _passengerName,
       'route': route,
       'fare': fare,
       'from_location': fromLocation,
@@ -302,7 +318,7 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, 10),
             )
@@ -319,7 +335,7 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: nagcarlanGreen.withOpacity(0.1),
+                          color: nagcarlanGreen.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(Icons.calculate_rounded, color: nagcarlanGreen),
@@ -395,9 +411,9 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.yellow.withOpacity(0.2),
+                                    color: Colors.yellow.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: Colors.yellow.shade700.withOpacity(0.5)),
+                                    border: Border.all(color: Colors.yellow.shade700.withValues(alpha: 0.5)),
                                   ),
                                   child: Text(
                                     "Special Trip",
@@ -411,9 +427,9 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.yellow.withOpacity(0.2),
+                                    color: Colors.yellow.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: Colors.yellow.shade700.withOpacity(0.5)),
+                                    border: Border.all(color: Colors.yellow.shade700.withValues(alpha: 0.5)),
                                   ),
                                   child: Text(
                                     "Discounted (₱${discountAmount.toStringAsFixed(0)} Off)",

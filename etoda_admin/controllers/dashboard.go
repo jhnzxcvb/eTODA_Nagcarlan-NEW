@@ -56,11 +56,11 @@ func Dashboard(w http.ResponseWriter, r *http.Request) {
 	queryAndScan(`SELECT COUNT(*) FROM drivers WHERE created_at < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date`, &totalDriversYesterday)
 	queryAndScan(`SELECT COUNT(*) FROM users WHERE created_at < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date`, &passengersYesterday)
 	queryAndScan(`SELECT COALESCE(SUM(amount),0)::FLOAT8 FROM payments WHERE status ILIKE 'Paid' AND (paid_at AT TIME ZONE 'Asia/Manila')::date = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date - 1`, &revenueYesterday)
-	queryAndScan(`SELECT COUNT(*) FROM complaints WHERE status!='Resolved' AND created_at < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date`, &pendingComplaintsYesterday)
+	queryAndScan(`SELECT COUNT(*) FROM complaints WHERE status!='Resolved' AND reported_at < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date`, &pendingComplaintsYesterday)
 	// For daily trips, we need the count specifically for yesterday.
 	queryAndScan(`SELECT COUNT(*) FROM trip_logs WHERE (started_at AT TIME ZONE 'Asia/Manila')::date = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date - 1`, &tripsYesterday)
 	queryAndScan(`SELECT COUNT(*) FROM trip_logs WHERE started_at < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date`, &totalTripsYesterday)
-	queryAndScan(`SELECT COUNT(*) FROM qr_codes WHERE status='Active' AND created_at < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date`, &activeQRYesterday)
+	queryAndScan(`SELECT COUNT(*) FROM qr_codes WHERE status='Active' AND issued_at < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date`, &activeQRYesterday)
 
 	// Diagnostic Logging
 	log.Printf("[Dashboard Stats] Today: Active Drivers: %d, Total Drivers: %d, Passengers: %d, Revenue: %.2f (%d txns), Pending Complaints: %d, Trips Today: %d, Total Trips: %d, Active QR: %d", activeDrivers, totalDrivers, passengers, revenueToday, revenueCount, pendingComplaints, tripsToday, totalTrips, activeQR)
@@ -122,10 +122,10 @@ func GenerateReport(w http.ResponseWriter, r *http.Request) {
 	queryAndScan(`SELECT COUNT(*) FROM drivers WHERE created_at < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date`, &totalDriversYesterday)
 	queryAndScan(`SELECT COUNT(*) FROM users WHERE created_at < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date`, &passengersYesterday)
 	queryAndScan(`SELECT COALESCE(SUM(amount),0)::FLOAT8 FROM payments WHERE status ILIKE 'Paid' AND (paid_at AT TIME ZONE 'Asia/Manila')::date = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date - 1`, &revenueYesterday)
-	queryAndScan(`SELECT COUNT(*) FROM complaints WHERE status!='Resolved' AND created_at < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date`, &pendingComplaintsYesterday)
+	queryAndScan(`SELECT COUNT(*) FROM complaints WHERE status!='Resolved' AND reported_at < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date`, &pendingComplaintsYesterday)
 	queryAndScan(`SELECT COUNT(*) FROM trip_logs WHERE (started_at AT TIME ZONE 'Asia/Manila')::date = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date - 1`, &tripsYesterday)
 	queryAndScan(`SELECT COUNT(*) FROM trip_logs WHERE started_at < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date`, &totalTripsYesterday)
-	queryAndScan(`SELECT COUNT(*) FROM qr_codes WHERE status='Active' AND created_at < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date`, &activeQRYesterday)
+	queryAndScan(`SELECT COUNT(*) FROM qr_codes WHERE status='Active' AND issued_at < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date`, &activeQRYesterday)
 
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment;filename=etoda_dashboard_report_%s.csv", time.Now().Format("2006-01-02")))
@@ -149,4 +149,128 @@ func GenerateReport(w http.ResponseWriter, r *http.Request) {
 
 	adminID := fmt.Sprintf("%v", r.Context().Value("admin_id"))
 	utils.LogAudit(DB, "EXPORT", "Dashboard", "Report", "Generated CSV Dashboard Report", "Admin:"+adminID, "Admin")
+}
+
+// GetTripChartData fetches time-series trip data for the dashboard chart.
+func GetTripChartData(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		utils.JSONErr(w, "Method not allowed", 405)
+		return
+	}
+
+	dateRange := r.URL.Query().Get("range")
+	if dateRange == "" {
+		utils.JSONErr(w, "Missing 'range' parameter", http.StatusBadRequest)
+		return
+	}
+
+	var query string
+	var chartData []map[string]interface{}
+
+	switch dateRange {
+	case "today":
+		// Hourly trips for today (Manila timezone)
+		query = `
+			SELECT
+				TO_CHAR(started_at AT TIME ZONE 'Asia/Manila', 'HH24') AS hour_of_day,
+				COUNT(*) AS trips
+			FROM trip_logs
+			WHERE (started_at AT TIME ZONE 'Asia/Manila')::date = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date
+			GROUP BY hour_of_day
+			ORDER BY hour_of_day;
+		`
+		rows, err := DB.Query(query)
+		if err != nil {
+			utils.JSONErr(w, "Database error: "+err.Error(), 500)
+			return
+		}
+		defer rows.Close()
+
+		hourlyData := make(map[string]int)
+		for rows.Next() {
+			var hour string
+			var trips int
+			if err := rows.Scan(&hour, &trips); err != nil {
+				log.Printf("Error scanning hourly trip data: %v", err)
+				continue
+			}
+			hourlyData[hour] = trips
+		}
+
+		// Fill in missing hours with 0 and format for chart
+		for h := 0; h < 24; h++ {
+			hourStr := fmt.Sprintf("%02d", h)
+			var hourVal int
+			if h%12 == 0 && h != 0 {
+				hourVal = 12
+			} else {
+				hourVal = h % 12
+			}
+			label := fmt.Sprintf("%d%s", hourVal, func() string {
+				if h == 0 {
+					return "am"
+				} else if h < 12 {
+					return "am"
+				} else {
+					return "pm"
+				}
+			}())
+			chartData = append(chartData, map[string]interface{}{
+				"day":   label,
+				"trips": hourlyData[hourStr],
+			})
+		}
+
+	case "week":
+		// Daily trips for the last 7 days (Manila timezone)
+		query = `
+			SELECT
+				TO_CHAR(started_at AT TIME ZONE 'Asia/Manila', 'Dy') AS day_of_week,
+				COUNT(*) AS trips
+			FROM trip_logs
+			WHERE (started_at AT TIME ZONE 'Asia/Manila')::date >= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date - INTERVAL '6 days'
+			  AND (started_at AT TIME ZONE 'Asia/Manila')::date <= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date
+			GROUP BY (started_at AT TIME ZONE 'Asia/Manila')::date, day_of_week
+			ORDER BY (started_at AT TIME ZONE 'Asia/Manila')::date;
+		`
+		rows, err := DB.Query(query)
+		if err != nil {
+			utils.JSONErr(w, "Database error: "+err.Error(), 500)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var day string
+			var trips int
+			if err := rows.Scan(&day, &trips); err != nil {
+				log.Printf("Error scanning daily trip data: %v", err)
+				continue
+			}
+			chartData = append(chartData, map[string]interface{}{
+				"day":   day,
+				"trips": trips,
+			})
+		}
+
+	case "month":
+		// Weekly trips for the last 4 weeks (Manila timezone)
+		// This query is more complex and might require specific week numbering logic.
+		// For simplicity, we'll return mock data for now, or you can implement a more advanced SQL query.
+		// Example: Aggregate by week number, then map to "Wk 1", "Wk 2", etc.
+		// For a real implementation, you'd calculate the week number relative to the current month/year.
+		// For this example, we'll just return some placeholder data if 'month' is requested.
+		chartData = []map[string]interface{}{
+			{"day": "Wk 1", "trips": 84},
+			{"day": "Wk 2", "trips": 97},
+			{"day": "Wk 3", "trips": 110},
+			{"day": "Wk 4", "trips": 103},
+		}
+
+	default:
+		utils.JSONErr(w, "Invalid 'range' parameter", http.StatusBadRequest)
+		return
+	}
+
+	utils.JSONOK(w, chartData)
 }
