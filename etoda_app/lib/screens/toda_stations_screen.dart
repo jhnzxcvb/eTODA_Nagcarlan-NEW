@@ -9,9 +9,10 @@ class TodaStationsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("TODA Terminal Stations"),
-        backgroundColor: Colors.white,
+        backgroundColor: nagcarlanWhite,
         foregroundColor: nagcarlanGreen,
-        elevation: 1,
+        elevation: 0,
+        centerTitle: true,
       ),
       body: Stack(
         children: [
@@ -19,7 +20,7 @@ class TodaStationsScreen extends StatelessWidget {
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage("assets/map_placeholder.png"), // You need to add a map image to your assets
+                image: AssetImage("assets/map_placeholder.png"),
                 fit: BoxFit.cover,
               ),
             ),
@@ -44,21 +45,22 @@ class TodaStationsScreen extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(15),
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 5,
-                  offset: Offset(0, 2),
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
+              border: Border.all(color: nagcarlanGreen.withOpacity(0.1)),
             ),
             child: Text(
               name,
-              style: const TextStyle(fontWeight: FontWeight.bold, color: nagcarlanGreen),
+              style: const TextStyle(fontWeight: FontWeight.bold, color: nagcarlanGreen, fontSize: 12),
             ),
           ),
           const SizedBox(height: 4),
-          const Icon(Icons.location_on, size: 50, color: Colors.red),
+          const Icon(Icons.location_on, size: 50, color: nagcarlanGreen),
         ],
       ),
     );

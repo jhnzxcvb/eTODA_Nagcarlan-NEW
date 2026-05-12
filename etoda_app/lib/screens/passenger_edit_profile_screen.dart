@@ -79,7 +79,6 @@ class _PassengerEditProfileScreenState extends State<PassengerEditProfileScreen>
           _lastNameController.text = data['last_name'] ?? '';
           _contactController.text = data['phone_number'] ?? '';
           _emailController.text = data['email'] ?? '';
-          // FIXED: Matches the column name profile_pic in your revised Go backend
           _avatarUrl = data['profile_pic'];
           _isLoading = false;
         });
@@ -145,7 +144,7 @@ class _PassengerEditProfileScreenState extends State<PassengerEditProfileScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: nagcarlanGreen.withAlpha(20),
+              color: nagcarlanGreen.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: nagcarlanGreen, size: 30),
@@ -187,7 +186,6 @@ class _PassengerEditProfileScreenState extends State<PassengerEditProfileScreen>
 
     setState(() => _isSaving = true);
     try {
-      // FIXED URL: Points to the specific mobile update route in your routes.go
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('${ApiService.baseUrl}/api/passenger/update-profile'),
@@ -200,7 +198,6 @@ class _PassengerEditProfileScreenState extends State<PassengerEditProfileScreen>
       request.fields['phone_number'] = _contactController.text.trim();
       request.fields['email'] = _emailController.text.trim();
 
-      // FIXED: Sending current/new password only if current password is provided
       if (_currentPasswordController.text.isNotEmpty) {
         request.fields['current_password'] = _currentPasswordController.text;
         request.fields['new_password'] = _newPasswordController.text;
@@ -208,7 +205,7 @@ class _PassengerEditProfileScreenState extends State<PassengerEditProfileScreen>
 
       if (_imageFile != null) {
         request.files.add(await http.MultipartFile.fromPath(
-          'avatar', // FIXED: Matches r.FormFile("avatar") in your Go controller
+          'avatar',
           _imageFile!.path,
         ));
       }
@@ -227,7 +224,6 @@ class _PassengerEditProfileScreenState extends State<PassengerEditProfileScreen>
           );
         }
       } else {
-        // Log error for debugging but show user friendly message
         debugPrint("Server Response: ${response.body}");
         final errorData = jsonDecode(response.body);
         _showError(errorData['error'] ?? "Update failed.");
@@ -276,7 +272,7 @@ class _PassengerEditProfileScreenState extends State<PassengerEditProfileScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Profile', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
+        backgroundColor: nagcarlanWhite,
         foregroundColor: nagcarlanGreen,
         elevation: 0,
         centerTitle: true,
@@ -396,7 +392,7 @@ class _PassengerEditProfileScreenState extends State<PassengerEditProfileScreen>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withAlpha(25),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 10,
                   spreadRadius: 2,
                 )
@@ -407,7 +403,7 @@ class _PassengerEditProfileScreenState extends State<PassengerEditProfileScreen>
               backgroundColor: Colors.white,
               backgroundImage: avatarImage,
               child: (_imageFile == null && (_avatarUrl == null || _avatarUrl!.isEmpty))
-                  ? const Icon(Icons.person_outline_rounded, size: 70, color: Color(0xFFA5D6A7))
+                  ? const Icon(Icons.person_outline_rounded, size: 70, color: Colors.grey)
                   : null,
             ),
           ),
@@ -432,25 +428,25 @@ class _PassengerEditProfileScreenState extends State<PassengerEditProfileScreen>
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(fontWeight: FontWeight.w500),
+      style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.black54, fontSize: 14),
         prefixIcon: Icon(icon, color: nagcarlanGreen, size: 22),
         filled: true,
-        fillColor: Colors.white.withAlpha(230),
+        fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: Colors.black12),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: Colors.black12),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: nagcarlanGreen, width: 1.5),
+          borderSide: const BorderSide(color: nagcarlanGreen, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
@@ -477,7 +473,7 @@ class _PassengerEditProfileScreenState extends State<PassengerEditProfileScreen>
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
-      style: const TextStyle(fontWeight: FontWeight.w500),
+      style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.black54, fontSize: 14),
@@ -487,19 +483,19 @@ class _PassengerEditProfileScreenState extends State<PassengerEditProfileScreen>
           onPressed: onToggle,
         ),
         filled: true,
-        fillColor: Colors.white.withAlpha(230),
+        fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: Colors.black12),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: Colors.black12),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: nagcarlanGreen, width: 1.5),
+          borderSide: const BorderSide(color: nagcarlanGreen, width: 2),
         ),
       ),
       validator: (v) {
@@ -518,7 +514,7 @@ class _PassengerEditProfileScreenState extends State<PassengerEditProfileScreen>
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: nagcarlanGreen.withAlpha(60),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )

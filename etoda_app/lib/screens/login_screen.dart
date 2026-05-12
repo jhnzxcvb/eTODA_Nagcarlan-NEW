@@ -179,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: nagcarlanWhite),
+          icon: const Icon(Icons.arrow_back, color: nagcarlanGreen),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -195,52 +195,67 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  // Logo / Icon Header
+                  // Updated logo header to use the app logo asset
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    width: 150,
+                    height: 150,
                     decoration: BoxDecoration(
-                      color: nagcarlanWhite.withValues(alpha: 0.9),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 10,
+                          color: Colors.black.withOpacity(0.22),
+                          blurRadius: 24,
                           spreadRadius: 2,
+                          offset: const Offset(0, 10),
                         )
                       ],
                     ),
-                    child: const Icon(Icons.account_circle, size: 80, color: nagcarlanGreen),
+                    clipBehavior: Clip.antiAlias,
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   const Text(
                     "eTODA Nagcarlan",
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: nagcarlanYellow),
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: nagcarlanGreen),
                   ),
                   const Text(
                     "Login to your account",
-                    style: TextStyle(color: nagcarlanWhite, fontSize: 16),
+                    style: TextStyle(color: Colors.black54, fontSize: 16),
                   ),
                   const SizedBox(height: 40),
 
-                  // Username Field
-                  TextFormField(
-                    controller: _usernameController,
-                    decoration: _inputDecoration(Icons.person_outline, hint: "Username"),
-                    validator: (v) => v!.isEmpty ? "Please enter your username" : null,
+                  // Username Field with Label
+                  _buildFieldWrapper(
+                    TextFormField(
+                      controller: _usernameController,
+                      style: const TextStyle(color: Colors.black87),
+                      decoration: _inputDecoration(Icons.person_outline, hint: "Username", label: "Username"),
+                      validator: (v) => v!.isEmpty ? "Please enter your username" : null,
+                    ),
                   ),
                   const SizedBox(height: 20),
 
-                  // Password Field
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: _inputDecoration(Icons.lock_outline, hint: "Password").copyWith(
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: nagcarlanGreen),
-                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  // Password Field with Label
+                  _buildFieldWrapper(
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      style: const TextStyle(color: Colors.black87),
+                      decoration: _inputDecoration(Icons.lock_outline, hint: "Password", label: "Password").copyWith(
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: nagcarlanGreen),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        ),
                       ),
+                      validator: (v) => v!.isEmpty ? "Please enter your password" : null,
                     ),
-                    validator: (v) => v!.isEmpty ? "Please enter your password" : null,
                   ),
 
                   // Forgot Password Link
@@ -250,14 +265,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () => Navigator.pushNamed(context, '/forgot_password'),
                       child: const Text(
                         "Forgot Password?",
-                        style: TextStyle(color: nagcarlanWhite, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: nagcarlanYellow, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
 
                   const SizedBox(height: 10),
 
-                  // Login Button
+                  // Login Button - Updated to Yellow
                   _isLoading
                       ? const CircularProgressIndicator(color: nagcarlanYellow)
                       : ElevatedButton(
@@ -266,7 +281,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       foregroundColor: nagcarlanGreen,
                       minimumSize: const Size(double.infinity, 56),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      elevation: 5,
+                      elevation: 8,
+                      shadowColor: nagcarlanYellow.withOpacity(0.5),
                     ),
                     onPressed: _handleLogin,
                     child: const Text("LOGIN", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -277,12 +293,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   // --- OR DIVIDER ---
                   Row(
                     children: [
-                      const Expanded(child: Divider(thickness: 1, color: Colors.white30)),
+                      const Expanded(child: Divider(thickness: 1, color: Colors.black12)),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: Text("OR", style: TextStyle(color: nagcarlanWhite, fontWeight: FontWeight.bold)),
+                        child: Text("OR", style: TextStyle(color: Colors.black38, fontWeight: FontWeight.bold)),
                       ),
-                      const Expanded(child: Divider(thickness: 1, color: Colors.white30)),
+                      const Expanded(child: Divider(thickness: 1, color: Colors.black12)),
                     ],
                   ),
 
@@ -291,15 +307,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Guest Login Button
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: nagcarlanWhite, width: 1.5),
+                      side: const BorderSide(color: nagcarlanGreen, width: 1.5),
                       minimumSize: const Size(double.infinity, 56),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     ),
                     onPressed: _handleGuestLogin,
-                    icon: const Icon(Icons.person_outline, color: nagcarlanWhite),
+                    icon: const Icon(Icons.person_outline, color: nagcarlanGreen),
                     label: const Text(
                       "CONTINUE AS GUEST", 
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: nagcarlanWhite)
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: nagcarlanGreen)
                     ),
                   ),
 
@@ -309,7 +325,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("Don't have a passenger account?", style: TextStyle(color: nagcarlanWhite)),
+                      const Text("Don't have a passenger account?", style: TextStyle(color: Colors.black87)),
                       TextButton(
                         onPressed: () => Navigator.pushNamed(context, '/signup'),
                         child: const Text(
@@ -326,7 +342,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Text(
                       "Drivers: Please contact the eTODA Admin office if you cannot access your account.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: Colors.white60, fontStyle: FontStyle.italic),
+                      style: TextStyle(fontSize: 12, color: Colors.black45, fontStyle: FontStyle.italic),
                     ),
                   ),
                 ],
@@ -338,18 +354,47 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  InputDecoration _inputDecoration(IconData icon, {String? hint}) {
+  Widget _buildFieldWrapper(Widget child) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: nagcarlanYellow.withOpacity(0.15),
+            blurRadius: 10,
+            spreadRadius: 1,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  InputDecoration _inputDecoration(IconData icon, {String? hint, String? label}) {
     return InputDecoration(
       filled: true,
-      fillColor: nagcarlanWhite.withValues(alpha: 0.9),
+      fillColor: Colors.white,
       hintText: hint,
+      labelText: label,
+      labelStyle: const TextStyle(color: nagcarlanGreen),
       hintStyle: const TextStyle(color: Colors.grey),
       prefixIcon: Icon(icon, color: nagcarlanGreen),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none), // Line 176
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(color: Colors.black12),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: BorderSide(color: nagcarlanYellow.withOpacity(0.4)),
+      ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
         borderSide: const BorderSide(color: nagcarlanYellow, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1),
       ),
     );
   }

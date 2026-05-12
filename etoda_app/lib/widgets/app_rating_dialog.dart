@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'package:etoda_nagcarlan/main.dart';
 import 'package:flutter/material.dart';
@@ -34,6 +33,7 @@ class _AppRatingDialogState extends State<AppRatingDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: nagcarlanWhite,
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: _isSubmitted
@@ -56,10 +56,10 @@ class _AppRatingDialogState extends State<AppRatingDialog> {
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: nagcarlanGreen),
                   ),
                   const SizedBox(height: 8),
-                  Text(
+                  const Text(
                     "Enjoying the experience? Let us know!",
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(color: Colors.black54),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -70,7 +70,7 @@ class _AppRatingDialogState extends State<AppRatingDialog> {
                         onPressed: () => setState(() => _rating = index + 1),
                         icon: Icon(
                           index < _rating ? Icons.star_rounded : Icons.star_border_rounded,
-                          color: Colors.amber[600],
+                          color: nagcarlanYellow,
                         ),
                       );
                     }),
@@ -84,6 +84,7 @@ class _AppRatingDialogState extends State<AppRatingDialog> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      elevation: 0,
                     ),
                     onPressed: _rating > 0 ? _submitRating : null,
                     child: const Text("SUBMIT", style: TextStyle(fontWeight: FontWeight.bold)),

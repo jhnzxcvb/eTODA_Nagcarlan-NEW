@@ -69,7 +69,7 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
   void _setStartTimeFromTrip(Map<String, dynamic> trip) {
     final parsed = _getTripStartTimestamp(trip);
     if (parsed != null && mounted) {
-      final candidateStart = parsed.toLocal(); // Line 69
+      final candidateStart = parsed.toLocal();
       if (!_isTimestampInTheFuture(candidateStart)) {
         ApiService.cachedPassengerTripStartAt = candidateStart.toIso8601String();
         if (!_hasRealStartTime || _startTime == null ||
@@ -287,7 +287,7 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
         elevation: 0,
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: nagcarlanWhite),
+          icon: const Icon(Icons.arrow_back, color: nagcarlanGreen),
           tooltip: 'Back',
           onPressed: () {
             Navigator.of(context).pop();
@@ -305,12 +305,12 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: nagcarlanWhite.withValues(alpha: 0.15),
+                color: nagcarlanYellow.withOpacity(0.1), // Added yellow accent
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.check_circle,
-                color: nagcarlanYellow,
+                color: nagcarlanGreen,
                 size: 120,
               ),
             ),
@@ -322,7 +322,7 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: nagcarlanYellow,
+                color: nagcarlanGreen,
               ),
             ),
 
@@ -330,23 +330,25 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
 
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 30),
-              elevation: 0,
-              color: Colors.white.withValues(alpha: 0.15),
+              elevation: 2,
+              color: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: nagcarlanYellow.withOpacity(0.3)), // Yellow border accent
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(
+                    SizedBox(
                       width: 40,
                       height: 40,
                       child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          nagcarlanYellow,
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          nagcarlanGreen,
                         ),
+                        backgroundColor: nagcarlanYellow.withOpacity(0.2), // Yellow accent
                         strokeWidth: 3,
                       ),
                     ),
@@ -355,20 +357,20 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
+                        const Text(
                           "Trip Status",
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.white.withValues(alpha: 0.8),
+                            color: Colors.black54,
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Text(
+                        const Text(
                           "IN PROGRESS",
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: nagcarlanYellow,
+                            color: nagcarlanGreen,
                             letterSpacing: 1.5,
                           ),
                         ),
@@ -399,19 +401,19 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
                       icon: const Icon(
                         Icons.warning_amber_rounded,
                         size: 20,
-                        color: nagcarlanWhite,
+                        color: nagcarlanGreen,
                       ),
                       label: const Text(
                         "Report",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: nagcarlanWhite,
+                          color: nagcarlanGreen,
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
-                        backgroundColor: Colors.white.withValues(alpha: 0.2),
-                        foregroundColor: nagcarlanWhite,
-                        side: const BorderSide(color: Colors.transparent),
+                        backgroundColor: Colors.white,
+                        foregroundColor: nagcarlanGreen,
+                        side: const BorderSide(color: nagcarlanYellow, width: 1.5), // Yellow border accent
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:etoda_nagcarlan/main.dart';
 
 class CameraCaptureScreen extends StatefulWidget {
   const CameraCaptureScreen({super.key});
@@ -26,9 +27,8 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> with WidgetsB
     try {
       _cameras = await availableCameras();
       if (_cameras != null && _cameras!.isNotEmpty) {
-        // Prefer the front-facing camera for profile pictures
         _selectedCameraIndex = _cameras!.indexWhere((c) => c.lensDirection == CameraLensDirection.front);
-        if (_selectedCameraIndex == -1) _selectedCameraIndex = 0; // Fallback to whatever is available
+        if (_selectedCameraIndex == -1) _selectedCameraIndex = 0;
         
         await _initCameraController(_cameras![_selectedCameraIndex]);
       }
@@ -41,11 +41,9 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> with WidgetsB
   Future<void> _initCameraController(CameraDescription cameraDescription) async {
     _controller = CameraController(
       cameraDescription,
-      // Using medium resolution prevents Out-Of-Memory (OOM) crashes on emulators
-      // and lower-end devices. It is more than enough for a profile avatar.
       ResolutionPreset.medium,
       enableAudio: false,
-      imageFormatGroup: ImageFormatGroup.jpeg, // Enforces a stable format
+      imageFormatGroup: ImageFormatGroup.jpeg,
     );
 
     try {
@@ -76,11 +74,9 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> with WidgetsB
     }
 
     if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
-      // Free up the camera when the app is minimized to prevent background crashes
       cameraController.dispose();
       setState(() => _isReady = false);
     } else if (state == AppLifecycleState.resumed) {
-      // Reinitialize the camera when the app comes back to the foreground
       _initCameraController(cameraController.description);
     }
   }
@@ -93,7 +89,6 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> with WidgetsB
     try {
       final XFile file = await _controller!.takePicture();
       if (mounted) {
-        // Return the captured image path to the previous screen
         Navigator.pop(context, file.path);
       }
     } catch (e) {
@@ -125,7 +120,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> with WidgetsB
     if (!_isReady || _controller == null || !_controller!.value.isInitialized) {
       return const Scaffold(
         backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.green)),
+        body: Center(child: CircularProgressIndicator(color: nagcarlanGreen)),
       );
     }
 
@@ -139,11 +134,9 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> with WidgetsB
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          // Full screen camera preview
           Positioned.fill(
             child: CameraPreview(_controller!),
           ),
-          // Bottom controls
           Positioned(
             bottom: 40,
             left: 0,
@@ -163,11 +156,11 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> with WidgetsB
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 4),
-                      color: Colors.white.withValues(alpha: 0.4),
+                      color: Colors.white.withOpacity(0.4),
                     ),
                   ),
                 ),
-                const SizedBox(width: 48), // Empty space for symmetry
+                const SizedBox(width: 48),
               ],
             ),
           ),

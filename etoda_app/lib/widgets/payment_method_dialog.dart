@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:etoda_nagcarlan/constants.dart';
+import 'package:etoda_nagcarlan/main.dart';
 import 'package:etoda_nagcarlan/services/api_service.dart';
 
 enum PaymentMethod { cash, ewallet }
@@ -78,6 +78,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => Dialog(
+        backgroundColor: nagcarlanWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -100,20 +101,23 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
               ),
               const SizedBox(height: 6),
               Text("Amount: ₱${widget.fare.toStringAsFixed(2)}",
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                  style: const TextStyle(fontSize: 13, color: Colors.black54)),
               const SizedBox(height: 18),
               Text("Driver's ${config['name']} Number",
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87)),
               const SizedBox(height: 6),
               TextField(
                 controller: _accountController,
                 keyboardType: TextInputType.phone,
+                style: const TextStyle(color: Colors.black87),
                 decoration: InputDecoration(
                   hintText: config['hint'] as String,
+                  hintStyle: const TextStyle(color: Colors.black26),
                   prefixIcon: const Icon(Icons.phone_android, color: nagcarlanGreen),
                   helperText: "Auto-filled from driver profile. You may edit if needed.",
-                  helperStyle: TextStyle(fontSize: 11, color: Colors.grey[500]),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  helperStyle: const TextStyle(fontSize: 11, color: Colors.black38),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black12)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black12)),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: nagcarlanGreen, width: 2),
@@ -131,7 +135,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         minimumSize: const Size(0, 48),
                       ),
-                      child: const Text("Cancel", style: TextStyle(color: nagcarlanGreen)),
+                      child: const Text("Cancel", style: TextStyle(color: nagcarlanGreen, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -142,6 +146,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
                         foregroundColor: Colors.white,
                         minimumSize: const Size(0, 48),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);
@@ -182,6 +187,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
       builder: (_) => ValueListenableBuilder<String>(
         valueListenable: statusNotifier,
         builder: (_, status, _) => Dialog(
+          backgroundColor: nagcarlanWhite,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 28.0),
@@ -198,7 +204,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
                 const SizedBox(height: 20),
                 Text(status,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87)),
               ],
             ),
           ),
@@ -206,7 +212,6 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
       ),
     );
 
-    // Store the future to ensure we wait for it before showing the receipt
     final paymentFuture = _postPayment();
 
     Timer.periodic(const Duration(milliseconds: 900), (timer) {
@@ -217,18 +222,17 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
       } else {
         timer.cancel();
         
-        // Ensure the API call is finished and successful before showing receipt
         paymentFuture.then((success) {
           if (success) {
             Future.delayed(const Duration(milliseconds: 600), () {
           if (!mounted) return;
-              Navigator.of(context).pop(); // Pop progress dialog
-              Navigator.of(context).pop(); // Pop payment method dialog
+              Navigator.of(context).pop(); 
+              Navigator.of(context).pop(); 
               _showReceiptDialog();
             });
           } else {
         if (!mounted) return;
-            Navigator.of(context).pop(); // Pop progress dialog
+            Navigator.of(context).pop(); 
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Failed to record payment. Please try again.")),
             );
@@ -242,10 +246,9 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
     try {
       final pId = (widget.driverData['passenger_id'] as num?)?.toInt() ?? 0;
       if (pId == 0) {
-        debugPrint('Payment Warning: passenger_id is 0. Ensure user is logged in.');
+        debugPrint('Payment Warning: passenger_id is 0.');
       }
 
-      // Fetch passenger name if not already cached
       if (_passengerName == null && pId != 0) {
         try {
           final pData = await _apiService.getPassengerById(pId);
@@ -284,8 +287,6 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
 
       final result = await ApiService().post('/api/payments', body);
       
-      // ApiService.post unwraps the "data" object from the backend response.
-      // Check if we received a reference code, which indicates a successful DB save.
       if (result.containsKey('ref_code')) {
         _refCode = result['ref_code'].toString();
         return true;
@@ -310,6 +311,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => Dialog(
+        backgroundColor: nagcarlanWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -321,7 +323,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
               const Text("Payment Successful!",
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: nagcarlanGreen)),
               const SizedBox(height: 20),
-              const Divider(),
+              const Divider(color: Colors.black12),
               const SizedBox(height: 8),
               _receiptRow("Amount Paid", "₱${widget.fare.toStringAsFixed(2)}"),
               _receiptRow("Method", _methodLabel),
@@ -332,7 +334,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
               _receiptRow("Reference No.", displayRef),
               _receiptRow("Date & Time", timeLabel),
               const SizedBox(height: 8),
-              const Divider(),
+              const Divider(color: Colors.black12),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
@@ -342,6 +344,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
                     foregroundColor: Colors.white,
                     minimumSize: const Size(0, 50),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
                   ),
                   onPressed: () {
                     Navigator.pop(ctx);
@@ -364,11 +367,11 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+          Text(label, style: const TextStyle(color: Colors.black54, fontSize: 13)),
           Flexible(
             child: Text(value,
                 textAlign: TextAlign.end,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.black87)),
           ),
         ],
       ),
@@ -386,6 +389,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      backgroundColor: nagcarlanWhite,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -397,7 +401,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: nagcarlanGreen)),
             const SizedBox(height: 8),
             Text("Amount to Pay: ₱${widget.fare.toStringAsFixed(2)}",
-                style: TextStyle(fontSize: 16, color: Colors.grey[700], fontWeight: FontWeight.w500)),
+                style: const TextStyle(fontSize: 16, color: Colors.black87, fontWeight: FontWeight.w500)),
             const SizedBox(height: 20),
             Column(
               children: [
@@ -423,6 +427,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
                 foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
               ),
               onPressed: (_selectedMethod == PaymentMethod.cash ||
                       (_selectedMethod == PaymentMethod.ewallet && _selectedEWallet != null))
@@ -439,7 +444,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
 
   Widget _buildPaymentOption({required String title, required PaymentMethod value, required IconData icon}) {
     return RadioListTile<PaymentMethod>(
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87)),
       value: value,
       groupValue: _selectedMethod,
       onChanged: (v) => setState(() {
@@ -454,7 +459,7 @@ class _PaymentMethodDialogState extends State<PaymentMethodDialog> {
   Widget _buildEWalletChoice({required EWallet wallet}) {
     final config = _eWalletConfig(wallet);
     return RadioListTile<EWallet>(
-      title: Text(config['name'] as String),
+      title: Text(config['name'] as String, style: const TextStyle(color: Colors.black87)),
       value: wallet,
       groupValue: _selectedEWallet,
       onChanged: (v) => setState(() => _selectedEWallet = v),

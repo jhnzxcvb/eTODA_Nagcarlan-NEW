@@ -34,8 +34,9 @@ class PassengerTripDetailsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Trip Details'),
         backgroundColor: Colors.transparent,
-        foregroundColor: nagcarlanWhite,
+        foregroundColor: nagcarlanGreen,
         elevation: 0,
+        centerTitle: true,
       ),
       body: Container(
         decoration: nagcarlanGradient,
@@ -81,8 +82,8 @@ class PassengerTripDetailsScreen extends StatelessWidget {
                           makeCall(contact);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: nagcarlanYellow,
-                          foregroundColor: nagcarlanGreen,
+                          backgroundColor: nagcarlanGreen,
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),

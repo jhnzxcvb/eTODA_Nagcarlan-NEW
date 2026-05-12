@@ -64,7 +64,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
       if (response.statusCode == 404) {
         _showError("Invalid QR Code",
             "This QR code is not registered in the eTODA system.",
-            icon: Icons.qr_code, iconColor: Colors.orange);
+            icon: Icons.qr_code, iconColor: nagcarlanYellow);
         return;
       }
       
@@ -102,7 +102,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
       if (data['status'] == 'Suspended') {
         _showError("Driver Suspended",
             "This driver's account has been suspended by the administrator.",
-            icon: Icons.person_off, iconColor: Colors.orange);
+            icon: Icons.person_off, iconColor: nagcarlanYellow);
         return;
       }
 
@@ -137,6 +137,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     String title,
     String message, {
     IconData icon = Icons.error_outline,
+    IconData iconData = Icons.error_outline,
     Color iconColor = Colors.red,
   }) {
     showDialog(
@@ -182,8 +183,9 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Scan Driver QR"),
-        backgroundColor: nagcarlanGreen,
-        foregroundColor: Colors.white,
+        backgroundColor: nagcarlanWhite,
+        foregroundColor: nagcarlanGreen,
+        iconTheme: const IconThemeData(color: nagcarlanGreen),
         actions: [
           IconButton(
             icon: const Icon(Icons.flashlight_on),
@@ -237,14 +239,14 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
               height: 260,
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: _isLoading ? Colors.orange : nagcarlanGreen,
+                  color: _isLoading ? nagcarlanYellow : nagcarlanGreen.withOpacity(0.5),
                   width: 3,
                 ),
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
           ),
-          // Corners
+          // Corners - Changed to Yellow
           Center(
             child: SizedBox(
               width: 260,
@@ -266,11 +268,12 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                 decoration: BoxDecoration(
                   color: Colors.black87,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: nagcarlanYellow, width: 1), // Yellow accent
                 ),
                 child: const Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: nagcarlanGreen),
+                    CircularProgressIndicator(color: nagcarlanYellow), // Changed to Yellow
                     SizedBox(height: 12),
                     Text("Verifying driver...", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   ],
@@ -287,6 +290,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                 decoration: BoxDecoration(
                   color: Colors.black54,
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: nagcarlanYellow.withOpacity(0.3), width: 1), // Yellow accent
                 ),
                 child: Text(
                   _isLoading
@@ -312,8 +316,8 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
       height: 24,
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(color: nagcarlanGreen, width: 4),
-          left: BorderSide(color: nagcarlanGreen, width: 4),
+          top: BorderSide(color: nagcarlanYellow, width: 4), // Changed to Yellow
+          left: BorderSide(color: nagcarlanYellow, width: 4), // Changed to Yellow
         ),
         borderRadius: const BorderRadius.only(topLeft: Radius.circular(6)),
       ),

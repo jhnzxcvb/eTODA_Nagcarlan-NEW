@@ -123,13 +123,14 @@ class _SignupScreenState extends State<SignupScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: nagcarlanGreen,
+              foregroundColor: nagcarlanWhite,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () {
               Navigator.pop(context);
               Navigator.pop(context);
             },
-            child: const Text("BACK TO LOGIN", style: TextStyle(color: Colors.white)),
+            child: const Text("BACK TO LOGIN"),
           ),
         ],
       ),
@@ -156,7 +157,7 @@ class _SignupScreenState extends State<SignupScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: nagcarlanWhite,
+        foregroundColor: nagcarlanGreen,
       ),
       body: Container(
         width: double.infinity,
@@ -171,13 +172,13 @@ class _SignupScreenState extends State<SignupScreen> {
                 children: [
                   const Text(
                     "Create Account",
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: nagcarlanYellow),
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: nagcarlanGreen),
                   ),
                   const SizedBox(height: 8),
                   const Text(
                     "Join the eTODA community as a passenger",
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: nagcarlanWhite, fontSize: 16),
+                    style: TextStyle(color: Colors.black54, fontSize: 16),
                   ),
                   const SizedBox(height: 32),
                   _buildTextField(
@@ -269,7 +270,8 @@ class _SignupScreenState extends State<SignupScreen> {
                             foregroundColor: nagcarlanGreen,
                             minimumSize: const Size(double.infinity, 56),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                            elevation: 5,
+                            elevation: 8,
+                            shadowColor: nagcarlanYellow.withOpacity(0.5),
                           ),
                           onPressed: _handleSignup,
                           child: const Text("SIGN UP", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -278,18 +280,18 @@ class _SignupScreenState extends State<SignupScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: nagcarlanWhite.withValues(alpha: 0.1),
+                      color: nagcarlanGreen.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: nagcarlanWhite.withValues(alpha: 0.2)),
+                      border: Border.all(color: nagcarlanGreen.withOpacity(0.1)),
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.info_outline, color: nagcarlanYellow, size: 20),
+                        Icon(Icons.info_outline, color: nagcarlanGreen, size: 20),
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             "Drivers must register through the eTODA administration office.",
-                            style: TextStyle(fontSize: 12, color: nagcarlanWhite, fontWeight: FontWeight.w500),
+                            style: TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w500),
                           ),
                         ),
                       ],
@@ -315,31 +317,55 @@ class _SignupScreenState extends State<SignupScreen> {
     TextCapitalization textCapitalization = TextCapitalization.none,
     String? Function(String?)? validator,
   }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      textCapitalization: textCapitalization,
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: nagcarlanWhite.withValues(alpha: 0.9),
-        hintText: hintText,
-        hintStyle: const TextStyle(color: Colors.grey),
-        prefixIcon: Icon(icon, color: nagcarlanGreen),
-        suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, color: nagcarlanGreen),
-                onPressed: onToggleVisibility,
-              )
-            : null,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: nagcarlanYellow, width: 2),
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: nagcarlanYellow.withOpacity(0.2),
+            blurRadius: 10,
+            spreadRadius: 1,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-      validator: validator,
+      child: TextFormField(
+        controller: controller,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        textCapitalization: textCapitalization,
+        style: const TextStyle(color: Colors.black87),
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: Colors.white,
+          hintText: hintText,
+          hintStyle: const TextStyle(color: Colors.grey),
+          prefixIcon: Icon(icon, color: nagcarlanGreen),
+          suffixIcon: isPassword
+              ? IconButton(
+                  icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, color: nagcarlanGreen),
+                  onPressed: onToggleVisibility,
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: const BorderSide(color: nagcarlanYellow, width: 1.5),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: const BorderSide(color: nagcarlanYellow, width: 1),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: const BorderSide(color: nagcarlanYellow, width: 2.5),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+          ),
+        ),
+        validator: validator,
+      ),
     );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:etoda_nagcarlan/services/api_service.dart'; // Assuming this path
-import 'package:etoda_nagcarlan/main.dart'; // For nagcarlanGreen, nagcarlanYellow, etc.
-import 'dart:async'; // Import for StreamSubscription
+import 'package:etoda_nagcarlan/services/api_service.dart';
+import 'package:etoda_nagcarlan/main.dart';
+import 'dart:async';
 
 class PassengerComplaintsScreen extends StatefulWidget {
   final String passengerId;
@@ -16,30 +16,27 @@ class _PassengerComplaintsScreenState extends State<PassengerComplaintsScreen> {
   List<Map<String, dynamic>> _complaints = [];
   bool _isLoading = true;
   String? _errorMessage;
-  StreamSubscription? _complaintUpdateSubscription; // NEW
+  StreamSubscription? _complaintUpdateSubscription;
 
   @override
   void initState() {
     super.initState();
     _fetchComplaints();
-    _subscribeToComplaintUpdates(); // NEW
+    _subscribeToComplaintUpdates();
   }
 
   @override
   void dispose() {
-    _complaintUpdateSubscription?.cancel(); // NEW
+    _complaintUpdateSubscription?.cancel();
     super.dispose();
   }
 
-  /// Subscribe to WebSocket updates for complaints
   void _subscribeToComplaintUpdates() async {
-    // Wait for the connection to be established before getting the stream
     await ApiService.connectPassengerWebSocket(widget.passengerId);
     
     _complaintUpdateSubscription = ApiService.getWebSocketStream()?.listen((message) {
       debugPrint('🔔 Complaint update received via WebSocket: ${message['event']}');
       if (message['event'] == 'complaint_updated') {
-        // Perform a "silent" refresh (without showing the main loading indicator)
         _fetchComplaints(isSilent: true);
       }
     });
@@ -74,26 +71,30 @@ class _PassengerComplaintsScreenState extends State<PassengerComplaintsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: nagcarlanWhite,
       appBar: AppBar(
         title: const Text(
           'My Complaints',
           style: TextStyle(
-            color: nagcarlanWhite,
+            color: nagcarlanGreen,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.5,
           ),
         ),
         centerTitle: true,
-        backgroundColor: nagcarlanGreen,
-        iconTheme: const IconThemeData(color: nagcarlanWhite),
+        backgroundColor: nagcarlanWhite,
+        iconTheme: const IconThemeData(color: nagcarlanGreen),
         elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(height: 1, color: Colors.black.withOpacity(0.05)),
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: _fetchComplaints,
         color: nagcarlanGreen,
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: nagcarlanYellow))
+            ? const Center(child: CircularProgressIndicator(color: nagcarlanGreen))
             : _errorMessage != null
                 ? ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
@@ -105,7 +106,7 @@ class _PassengerComplaintsScreenState extends State<PassengerComplaintsScreen> {
                           child: Text(
                             _errorMessage!,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.red, fontSize: 16),
+                            style: const TextStyle(color: Colors.redAccent, fontSize: 16),
                           ),
                         ),
                       ),
@@ -120,7 +121,7 @@ class _PassengerComplaintsScreenState extends State<PassengerComplaintsScreen> {
                             child: Column(
                               children: [
                                 Icon(Icons.check_circle_outline,
-                                    size: 80, color: nagcarlanGreen.withValues(alpha: 0.6)),
+                                    size: 80, color: nagcarlanGreen.withOpacity(0.2)),
                                 const SizedBox(height: 16),
                                 const Text(
                                   'No complaints filed yet',
@@ -131,9 +132,9 @@ class _PassengerComplaintsScreenState extends State<PassengerComplaintsScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                Text(
+                                const Text(
                                   'Your report history will appear here.',
-                                  style: TextStyle(color: Colors.grey[600]),
+                                  style: TextStyle(color: Colors.black54),
                                 ),
                               ],
                             ),
@@ -151,9 +152,10 @@ class _PassengerComplaintsScreenState extends State<PassengerComplaintsScreen> {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.black.withOpacity(0.05)),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
+                                  color: Colors.black.withOpacity(0.03),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -202,7 +204,7 @@ class _PassengerComplaintsScreenState extends State<PassengerComplaintsScreen> {
                                         width: double.infinity,
                                         padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
-                                          color: Colors.grey[100],
+                                          color: Colors.black.withOpacity(0.02),
                                           borderRadius: BorderRadius.circular(12),
                                         ),
                                         child: Column(
@@ -219,9 +221,9 @@ class _PassengerComplaintsScreenState extends State<PassengerComplaintsScreen> {
                                             const SizedBox(height: 4),
                                             Text(
                                               complaint['admin_notes'],
-                                              style: TextStyle(
+                                              style: const TextStyle(
                                                 fontSize: 14,
-                                                color: Colors.grey[700],
+                                                color: Colors.black54,
                                                 fontStyle: FontStyle.italic,
                                               ),
                                             ),
@@ -246,7 +248,7 @@ class _PassengerComplaintsScreenState extends State<PassengerComplaintsScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: Colors.grey[600]),
+          Icon(icon, size: 16, color: Colors.black38),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -267,9 +269,9 @@ class _PassengerComplaintsScreenState extends State<PassengerComplaintsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
+        border: Border.all(color: color.withOpacity(0.5)),
       ),
       child: Text(
         status?.toUpperCase() ?? 'UNKNOWN',

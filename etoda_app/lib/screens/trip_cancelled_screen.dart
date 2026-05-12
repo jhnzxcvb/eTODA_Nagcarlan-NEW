@@ -23,7 +23,7 @@ class TripCancelledScreen extends StatelessWidget {
                 const Spacer(),
                 const Icon(
                   Icons.cancel_rounded,
-                  color: Colors.red,
+                  color: Colors.redAccent,
                   size: 120,
                 ),
                 const SizedBox(height: 24),
@@ -32,7 +32,7 @@ class TripCancelledScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w900,
-                    color: Colors.red,
+                    color: Colors.redAccent,
                     letterSpacing: 1.2,
                   ),
                 ),
@@ -40,13 +40,13 @@ class TripCancelledScreen extends StatelessWidget {
                 const Text(
                   "The driver has cancelled the trip activity.",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, color: Colors.black54, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 18, color: Colors.black87, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 8),
                 const Text(
                   "Any payments made will be processed according to standard policy.",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                  style: TextStyle(fontSize: 14, color: Colors.black54),
                 ),
                 const SizedBox(height: 40),
                 
@@ -57,6 +57,7 @@ class TripCancelledScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.black.withOpacity(0.05)),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.05),
@@ -84,7 +85,7 @@ class TripCancelledScreen extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
+                      backgroundColor: Colors.redAccent,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       elevation: 0,
@@ -108,8 +109,8 @@ class TripCancelledScreen extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
-        Text(value, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+        Text(label, style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.w500)),
+        Text(value, style: const TextStyle(color: nagcarlanGreen, fontWeight: FontWeight.bold)),
       ],
     );
   }

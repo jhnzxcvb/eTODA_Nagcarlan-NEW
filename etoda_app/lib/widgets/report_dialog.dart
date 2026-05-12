@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:etoda_nagcarlan/main.dart';
 import 'package:etoda_nagcarlan/services/api_service.dart';
 
 class ReportDialog extends StatefulWidget {
@@ -66,7 +67,7 @@ class _ReportDialogState extends State<ReportDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to submit. Please check connection.'),
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.redAccent,
         ),
       );
     }
@@ -75,27 +76,27 @@ class _ReportDialogState extends State<ReportDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)), // Softer corners
-      child: SingleChildScrollView( // Prevents overflow on small screens
+      backgroundColor: nagcarlanWhite,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Visual Indicator
               CircleAvatar(
-                backgroundColor: Colors.red[50]!,
+                backgroundColor: Colors.red.withOpacity(0.1),
                 radius: 30,
-                child: Icon(Icons.report_problem_rounded, color: Colors.red[800], size: 32),
+                child: const Icon(Icons.report_problem_rounded, color: Colors.redAccent, size: 32),
               ),
               const SizedBox(height: 16),
               
-              Text(
+              const Text(
                 "Report an Issue",
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 22,
-                  color: Colors.red[800],
+                  color: Colors.redAccent,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -103,43 +104,42 @@ class _ReportDialogState extends State<ReportDialog> {
               const Text(
                 "Help us keep eTODA Nagcarlan safe by reporting any violations.",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 13),
+                style: TextStyle(color: Colors.black54, fontSize: 13),
               ),
               const SizedBox(height: 24),
 
-              // Reason Dropdown
               DropdownButtonFormField<String>(
-                initialValue: selectedReason,
-                icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                value: selectedReason,
+                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: nagcarlanGreen),
                 items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
                 onChanged: _isSubmitting ? null : (v) => setState(() => selectedReason = v),
                 decoration: InputDecoration(
                   labelText: "Reason for Report",
+                  labelStyle: const TextStyle(color: Colors.black54),
                   filled: true,
-                  fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  prefixIcon: const Icon(Icons.list_alt_rounded),
+                  fillColor: Colors.black.withOpacity(0.02),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  prefixIcon: const Icon(Icons.list_alt_rounded, color: nagcarlanGreen),
                 ),
               ),
               const SizedBox(height: 16),
 
-              // Details Input
               TextField(
                 controller: _detailsController,
                 maxLines: 4,
                 enabled: !_isSubmitting,
                 decoration: InputDecoration(
                   labelText: "Additional Details (Optional)",
+                  labelStyle: const TextStyle(color: Colors.black54),
                   hintText: "Describe what happened...",
                   filled: true,
-                  fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  fillColor: Colors.black.withOpacity(0.02),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                   alignLabelWithHint: true,
                 ),
               ),
               const SizedBox(height: 32),
 
-              // Action Buttons
               Row(
                 children: [
                   Expanded(
@@ -149,7 +149,7 @@ class _ReportDialogState extends State<ReportDialog> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text("Cancel", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                      child: const Text("Cancel", style: TextStyle(color: Colors.black54, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -157,7 +157,7 @@ class _ReportDialogState extends State<ReportDialog> {
                     child: ElevatedButton(
                       onPressed: _isSubmitting ? null : () => _submitReport(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red[700],
+                        backgroundColor: Colors.redAccent,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 16),

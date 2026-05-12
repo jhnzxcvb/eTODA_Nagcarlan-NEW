@@ -160,7 +160,8 @@ class _ScannedDriverProfileScreenState
         title: const Text("Driver Details"),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: nagcarlanWhite,
+        foregroundColor: nagcarlanGreen,
+        centerTitle: true,
         actions: const [PassengerProfileMenu()],
       ),
       extendBodyBehindAppBar: true,
@@ -180,13 +181,13 @@ class _ScannedDriverProfileScreenState
                 children: [
                   Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: nagcarlanWhite,
+                    decoration: BoxDecoration(
+                      color: nagcarlanGreen.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
                     child: CircleAvatar(
                       radius: 65,
-                      backgroundColor: Colors.grey[100],
+                      backgroundColor: Colors.white,
                       backgroundImage: profilePic.isNotEmpty
                           ? NetworkImage(
                               '${ApiService.baseUrl}/uploads/$profilePic',
@@ -204,7 +205,7 @@ class _ScannedDriverProfileScreenState
                   if (isVerified)
                     Container(
                       decoration: const BoxDecoration(
-                        color: nagcarlanWhite,
+                        color: Colors.white,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -224,7 +225,7 @@ class _ScannedDriverProfileScreenState
                 style: const TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
-                  color: nagcarlanYellow,
+                  color: nagcarlanGreen,
                   letterSpacing: 0.8,
                 ),
               ),
@@ -239,7 +240,7 @@ class _ScannedDriverProfileScreenState
                     SizedBox(width: 5),
                     Text(
                       '...',
-                      style: TextStyle(fontSize: 14, color: nagcarlanWhite),
+                      style: TextStyle(fontSize: 14, color: Colors.black54),
                     ),
                   ],
                 )
@@ -258,7 +259,7 @@ class _ScannedDriverProfileScreenState
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: nagcarlanWhite,
+                        color: Colors.black54,
                       ),
                     ),
                   ],
@@ -278,7 +279,7 @@ class _ScannedDriverProfileScreenState
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: nagcarlanYellow,
+                        color: nagcarlanGreen,
                       ),
                     ),
                     const SizedBox(width: 4),
@@ -287,20 +288,20 @@ class _ScannedDriverProfileScreenState
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: nagcarlanWhite,
+                        color: Colors.black54,
                       ),
                     ),
                     const SizedBox(width: 6),
                     const Text(
                       '·',
-                      style: TextStyle(color: nagcarlanWhite, fontSize: 14),
+                      style: TextStyle(color: Colors.black26, fontSize: 14),
                     ),
                     const SizedBox(width: 6),
                     Text(
                       '$_totalRatings reviews',
                       style: const TextStyle(
                         fontSize: 13,
-                        color: nagcarlanWhite,
+                        color: Colors.black54,
                       ),
                     ),
                   ],
@@ -317,7 +318,7 @@ class _ScannedDriverProfileScreenState
                     _statusPill(
                     label: isOnline ? "ACTIVE" : "OFFLINE",
                     icon: isOnline ? Icons.check_circle_rounded : Icons.power_settings_new_rounded,
-                    color: isOnline ? Colors.greenAccent : Colors.white70,
+                    color: isOnline ? Colors.green : Colors.grey,
                   ),
                   if (isVerified) ...[
                     const SizedBox(width: 10),
@@ -363,8 +364,8 @@ class _ScannedDriverProfileScreenState
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.play_circle_fill_rounded, size: 28),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: nagcarlanYellow,
-                    foregroundColor: nagcarlanGreen,
+                    backgroundColor: nagcarlanGreen,
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
@@ -424,9 +425,9 @@ class _ScannedDriverProfileScreenState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: nagcarlanWhite.withValues(alpha: 0.15),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
+        border: Border.all(color: color.withOpacity(0.5), width: 1.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

@@ -10,7 +10,7 @@ class PassengerProfileMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.account_circle, color: nagcarlanWhite, size: 35),
+      icon: const Icon(Icons.account_circle, color: nagcarlanGreen, size: 35),
       onSelected: (value) {
         switch (value) {
           case 'edit_profile':
@@ -31,7 +31,6 @@ class PassengerProfileMenu extends StatelessWidget {
             }
             break;
           case 'logout':
-            // Navigate to landing screen and remove all previous routes
             Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
             break;
         }
@@ -39,6 +38,7 @@ class PassengerProfileMenu extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16.0),
       ),
+      color: Colors.white,
       itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
         _buildPopupMenuItem(icon: Icons.edit_outlined, title: 'Edit Profile', value: 'edit_profile'),
         _buildPopupMenuItem(icon: Icons.history_outlined, title: 'Trip History', value: 'trip_history'),
@@ -52,7 +52,7 @@ class PassengerProfileMenu extends StatelessWidget {
           icon: Icons.logout,
           title: 'Logout',
           value: 'logout',
-          color: Colors.red[600],
+          color: Colors.redAccent,
         ),
       ],
     );
@@ -65,7 +65,7 @@ class PassengerProfileMenu extends StatelessWidget {
         children: [
           Icon(icon, color: color ?? nagcarlanGreen),
           const SizedBox(width: 16),
-          Text(title, style: TextStyle(color: color)),
+          Text(title, style: TextStyle(color: color ?? Colors.black87)),
         ],
       ),
     );

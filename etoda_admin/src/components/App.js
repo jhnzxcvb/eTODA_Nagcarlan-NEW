@@ -407,20 +407,19 @@ export default function App() {
         >
           <div
             style={{
-              width: 44,
-              height: 44,
+              width: 50,
+              height: 50,
               borderRadius: "50%",
-              background: "#e6cc00",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.14)",
               overflow: 'hidden',
               border: '1px solid rgba(0,0,0,0.05)'
             }}
           >
-            <img src={AppLogo} alt="Logo" style={{ width: '80%', height: '80%', objectFit: 'contain' }} />
+            <img src={AppLogo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
 
           <div

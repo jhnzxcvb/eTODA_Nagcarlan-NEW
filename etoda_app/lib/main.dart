@@ -29,20 +29,16 @@ void main() {
 }
 
 // Brand Colors
-const Color nagcarlanGreen = Color(
-  0xFF14532D,
-); // Primary: Deep green from admin sidebar
-const Color nagcarlanWhite = Colors.white; // Secondary
-const Color nagcarlanYellow = Color(
-  0xFFFACC15,
-); // Tertiary: Vibrant yellow accent
+const Color nagcarlanWhite = Colors.white; // Primary
+const Color nagcarlanGreen = Color(0xFF14532D); // Secondary: Deep green
+const Color nagcarlanYellow = Color(0xFFFACC15); // Tertiary: Vibrant yellow accent
 
-// Modern Gradient for Nagcarlan Branding (Main color green)
+// Modern Gradient for Nagcarlan Branding (Main color white)
 const BoxDecoration nagcarlanGradient = BoxDecoration(
   gradient: LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [nagcarlanGreen, Color(0xFF166534), nagcarlanGreen],
+    colors: [nagcarlanWhite, Color(0xFFF8F9FA), Color(0xFFF1F3F5)],
   ),
 );
 
@@ -58,29 +54,40 @@ class EtodaApp extends StatelessWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
           seedColor: nagcarlanGreen,
-          primary: nagcarlanGreen,
-          secondary: nagcarlanWhite,
+          primary: nagcarlanWhite,
+          onPrimary: Colors.black,
+          secondary: nagcarlanGreen,
+          onSecondary: Colors.white,
           tertiary: nagcarlanYellow,
-          surface: nagcarlanWhite,
-          onPrimary: Colors.white,
-          onSecondary: nagcarlanGreen,
           onTertiary: Colors.black,
+          surface: nagcarlanWhite,
+          onSurface: Colors.black,
         ),
+        scaffoldBackgroundColor: nagcarlanWhite,
         appBarTheme: const AppBarTheme(
-          backgroundColor: nagcarlanGreen,
-          foregroundColor: Colors.white,
+          backgroundColor: nagcarlanWhite,
+          foregroundColor: nagcarlanGreen,
           elevation: 0,
+          centerTitle: true,
+          iconTheme: IconThemeData(color: nagcarlanGreen),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: nagcarlanGreen,
-            foregroundColor: Colors.white,
+            foregroundColor: nagcarlanWhite,
             textStyle: const TextStyle(fontWeight: FontWeight.bold),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: nagcarlanGreen),
+            foregroundColor: nagcarlanGreen,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
-      // Define initial route
       home: FutureBuilder<bool>(
         future: ApiService().isMaintenanceMode(),
         builder: (context, snapshot) {
@@ -98,7 +105,6 @@ class EtodaApp extends StatelessWidget {
         },
       ),
       navigatorObservers: [routeObserver],
-      // Define routes for navigation
       onGenerateRoute: (settings) {
         if (settings.name == '/trip_started') {
           final args = settings.arguments as Map<String, dynamic>;
@@ -161,14 +167,14 @@ class MaintenanceScreen extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                color: Colors.white24,
+              decoration: BoxDecoration(
+                color: nagcarlanGreen.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.construction_rounded,
                 size: 80,
-                color: nagcarlanYellow,
+                color: nagcarlanGreen,
               ),
             ),
             const SizedBox(height: 32),
@@ -177,14 +183,14 @@ class MaintenanceScreen extends StatelessWidget {
               style: GoogleFonts.poppins(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: nagcarlanGreen,
               ),
             ),
             const SizedBox(height: 16),
             const Text(
               'We are currently updating our systems to serve you better. We\'ll be back online shortly.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70, fontSize: 16),
+              style: TextStyle(color: Colors.black87, fontSize: 16),
             ),
             const SizedBox(height: 48),
             ElevatedButton(

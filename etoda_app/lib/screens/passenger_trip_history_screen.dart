@@ -60,7 +60,8 @@ class _PassengerTripHistoryScreenState extends State<PassengerTripHistoryScreen>
     });
   }
 
-  DateTime? _parseDate(String dateStr) {
+  DateTime? _parseDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return null;
     try {
       return DateFormat("MMM dd, yyyy, hh:mm a").parse(dateStr);
     } catch (e) {
@@ -79,7 +80,7 @@ class _PassengerTripHistoryScreenState extends State<PassengerTripHistoryScreen>
       if (!matchesSearch) return false;
       if (_selectedFilter == "All") return true; // If "All" is selected, no date filter
 
-      DateTime? tripDate = _parseDate(trip['ended_at']);
+      DateTime? tripDate = _parseDate(trip['ended_at']?.toString());
       if (tripDate == null) return true; // If date can't be parsed, include it (or exclude based on desired behavior)
 
       if (_selectedFilter == "Today") {
@@ -382,7 +383,7 @@ class _PassengerTripHistoryScreenState extends State<PassengerTripHistoryScreen>
           // Group paginatedTrips by date label
           final Map<String, List<dynamic>> grouped = {};
           for (final trip in paginatedTrips) {
-            final dt = _parseDate(trip['ended_at'] ?? '');
+            final dt = _parseDate(trip['ended_at']?.toString());
             final label = dt != null
                 ? DateFormat("MMMM d, yyyy").format(dt)
                 : "Unknown Date";

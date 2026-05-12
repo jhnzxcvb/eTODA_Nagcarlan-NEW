@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:etoda_nagcarlan/widgets/payment_method_dialog.dart';
 import 'package:flutter/material.dart';
-import 'package:etoda_nagcarlan/constants.dart';
+import 'package:etoda_nagcarlan/main.dart';
 import 'package:etoda_nagcarlan/services/api_service.dart';
 
 class FareCalculatorDialog extends StatefulWidget {
@@ -131,16 +131,12 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
       return;
     }
 
-    debugPrint('📋 Full driverData: $widget.driverData');
-
     final String driverStatusRaw = widget.driverData['status']?.toString() ?? widget.driverData['driver_status']?.toString() ?? '';
     final String driverStatus = driverStatusRaw.toLowerCase().trim();
     final bool driverIsOnline = RegExp(r'\b(active|online|available)\b').hasMatch(driverStatus) ||
         widget.driverData['is_active']?.toString().toLowerCase() == 'true' ||
         widget.driverData['active'] == true ||
         widget.driverData['qr_status']?.toString().toLowerCase().trim() == 'active';
-
-    debugPrint('Driver status check - Raw: "$driverStatusRaw", Normalized: "$driverStatus", is_active: ${widget.driverData['is_active']}, active: ${widget.driverData['active']}, qr_status: ${widget.driverData['qr_status']}, driverIsOnline: $driverIsOnline');
 
     if (!driverIsOnline) {
       _showSnackbar("Driver is currently offline. Please choose another driver or try again later.");
@@ -153,7 +149,6 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
       return;
     }
 
-    // Fetch passenger name if not already cached
     if (_passengerName == null) {
       try {
         final pData = await _apiService.getPassengerById(passengerId);
@@ -235,16 +230,18 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
+        backgroundColor: nagcarlanWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Waiting for Driver Approval'),
-        content: Column(
+        title: const Text('Waiting for Driver Approval', style: TextStyle(color: nagcarlanGreen, fontWeight: FontWeight.bold)),
+        content: const Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             CircularProgressIndicator(color: nagcarlanGreen),
             SizedBox(height: 16),
             Text(
               'Please wait while the driver reviews your trip request.',
               textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.black87),
             ),
           ],
         ),
@@ -254,7 +251,7 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
               _currentRequestId = null;
               Navigator.of(ctx).pop();
             },
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Colors.black54)),
           ),
         ],
       ),
@@ -314,11 +311,11 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: nagcarlanWhite,
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 20,
               offset: const Offset(0, 10),
             )
@@ -335,7 +332,7 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: nagcarlanGreen.withValues(alpha: 0.1),
+                          color: nagcarlanGreen.withOpacity(0.05),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(Icons.calculate_rounded, color: nagcarlanGreen),
@@ -343,7 +340,7 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
                       const SizedBox(width: 16),
                       const Text(
                         "Fare Calculator",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, letterSpacing: -0.5),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, letterSpacing: -0.5, color: nagcarlanGreen),
                       ),
                     ],
                   ),
@@ -385,15 +382,15 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                     decoration: BoxDecoration(
-                      color: Colors.grey[50],
+                      color: Colors.black.withOpacity(0.02),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.grey[200]!),
+                      border: Border.all(color: Colors.black.withOpacity(0.05)),
                     ),
                     child: Column(
                       children: [
-                        Text(
+                        const Text(
                           "TOTAL FARE",
-                          style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                          style: TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -411,13 +408,13 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.yellow.withValues(alpha: 0.2),
+                                    color: nagcarlanYellow.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: Colors.yellow.shade700.withValues(alpha: 0.5)),
+                                    border: Border.all(color: nagcarlanYellow.withOpacity(0.5)),
                                   ),
-                                  child: Text(
+                                  child: const Text(
                                     "Special Trip",
-                                    style: TextStyle(color: Colors.yellow.shade800, fontSize: 12, fontWeight: FontWeight.bold),
+                                    style: TextStyle(color: Color(0xFF854D0E), fontSize: 12, fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ),
@@ -427,13 +424,13 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.yellow.withValues(alpha: 0.2),
+                                    color: nagcarlanYellow.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: Colors.yellow.shade700.withValues(alpha: 0.5)),
+                                    border: Border.all(color: nagcarlanYellow.withOpacity(0.5)),
                                   ),
                                   child: Text(
                                     "Discounted (₱${discountAmount.toStringAsFixed(0)} Off)",
-                                    style: TextStyle(color: Colors.yellow.shade800, fontSize: 12, fontWeight: FontWeight.bold),
+                                    style: const TextStyle(color: Color(0xFF854D0E), fontSize: 12, fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ),
@@ -475,7 +472,7 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
         padding: const EdgeInsets.only(bottom: 8.0, left: 4),
         child: Text(
           text,
-          style: TextStyle(color: Colors.grey[700], fontSize: 13, fontWeight: FontWeight.w600),
+          style: const TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -485,14 +482,14 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: Colors.black.withOpacity(0.03),
         borderRadius: BorderRadius.circular(16),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
           isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey),
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: nagcarlanGreen),
           style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500, fontSize: 15),
           items: items.map((i) => DropdownMenuItem(value: i, child: Text(i))).toList(),
           onChanged: onChanged,
@@ -513,16 +510,17 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
             return TextFormField(
               controller: ctrl,
               focusNode: node,
-              style: const TextStyle(fontSize: 15),
+              style: const TextStyle(fontSize: 15, color: Colors.black87),
               decoration: InputDecoration(
                 hintText: "Search location...",
+                hintStyle: const TextStyle(color: Colors.black26),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: Colors.black.withOpacity(0.03),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                 suffixIcon: value.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear_rounded, size: 20, color: Colors.grey),
+                        icon: const Icon(Icons.clear_rounded, size: 20, color: Colors.black38),
                         onPressed: () {
                           ctrl.clear();
                           onChanged(null);

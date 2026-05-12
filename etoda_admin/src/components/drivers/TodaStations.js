@@ -11,6 +11,8 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import Cropper from 'react-easy-crop';
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
 // ── Image Cropping Helpers ──
 const createImage = (url) =>
@@ -48,8 +50,6 @@ async function getCroppedImg(imageSrc, pixelCrop) {
 }
 
 // Fix for default Leaflet marker icons in React
-import icon from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 let DefaultIcon = L.icon({
   iconUrl: icon,
   shadowUrl: iconShadow,

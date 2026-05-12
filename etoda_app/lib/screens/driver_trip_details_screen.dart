@@ -18,8 +18,9 @@ class DriverTripDetailsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Trip Details'),
         backgroundColor: Colors.transparent,
-        foregroundColor: nagcarlanWhite,
+        foregroundColor: nagcarlanGreen,
         elevation: 0,
+        centerTitle: true,
       ),
       body: Container(
         decoration: nagcarlanGradient,
@@ -56,7 +57,7 @@ class DriverTripDetailsScreen extends StatelessWidget {
                     const Text(
                       "This trip record is saved in the official TODA ledger.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                      style: TextStyle(color: Colors.black54, fontSize: 12),
                     ),
                   ],
                 ),

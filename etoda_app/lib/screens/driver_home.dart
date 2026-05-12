@@ -372,8 +372,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
           actions: [
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: nagcarlanYellow,
-                foregroundColor: nagcarlanGreen,
+                backgroundColor: nagcarlanGreen,
+                foregroundColor: nagcarlanWhite,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
@@ -474,14 +474,14 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                         colors: [
-                          nagcarlanGreen.withValues(alpha: 0.3),
+                          nagcarlanGreen.withValues(alpha: 0.1),
                           Colors.transparent,
                         ],
                       ),
                     ),
                     child: Icon(
                       Icons.chevron_left,
-                      color: nagcarlanWhite.withValues(alpha: 0.6),
+                      color: nagcarlanGreen.withValues(alpha: 0.4),
                       size: 28,
                     ),
                   ),
@@ -503,13 +503,13 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                         end: Alignment.centerRight,
                         colors: [
                           Colors.transparent,
-                          nagcarlanGreen.withValues(alpha: 0.3),
+                          nagcarlanGreen.withValues(alpha: 0.1),
                         ],
                       ),
                     ),
                     child: Icon(
                       Icons.chevron_right,
-                      color: nagcarlanWhite.withValues(alpha: 0.6),
+                      color: nagcarlanGreen.withValues(alpha: 0.4),
                       size: 28,
                     ),
                   ),
@@ -531,8 +531,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                   height: 8,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: nagcarlanYellow.withValues(alpha: 0.5),
-                    border: Border.all(color: nagcarlanYellow, width: 1.5),
+                    color: nagcarlanGreen.withValues(alpha: 0.2),
+                    border: Border.all(color: nagcarlanGreen, width: 1.5),
                   ),
                 ),
               ),
@@ -615,7 +615,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: nagcarlanGreen.withValues(alpha: 0.1),
+                      color: nagcarlanYellow.withOpacity(0.1), // Yellow accent
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -658,7 +658,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                             offset: const Offset(0, 4),
                           ),
                         ],
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(color: nagcarlanYellow.withOpacity(0.2)), // Yellow border
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -666,7 +666,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                           Row(
                             children: [
                               CircleAvatar(
-                                backgroundColor: nagcarlanGreen.withValues(
+                                backgroundColor: nagcarlanYellow.withValues(
                                   alpha: 0.1,
                                 ),
                                 radius: 24,
@@ -917,7 +917,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
           PopupMenuButton<String>(
             icon: const Icon(
               Icons.account_circle,
-              color: nagcarlanWhite,
+              color: nagcarlanGreen,
               size: 35,
             ),
             onSelected: (value) {
@@ -981,7 +981,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                             style: TextStyle(
                               fontSize: 42,
                               fontWeight: FontWeight.w900,
-                              color: nagcarlanYellow,
+                              color: nagcarlanGreen,
                             ),
                           ),
                           const Text(
@@ -990,7 +990,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                               fontSize: 16,
                               letterSpacing: 3,
                               fontWeight: FontWeight.bold,
-                              color: nagcarlanWhite,
+                              color: Colors.black87,
                             ),
                           ),
 
@@ -998,7 +998,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                             "Welcome, ${driverData?['first_name'] ?? 'Driver'}",
                             style: const TextStyle(
                               fontSize: 18,
-                              color: nagcarlanWhite,
+                              color: Colors.black54,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -1009,12 +1009,12 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: nagcarlanWhite.withValues(alpha: 0.15),
+                              color: nagcarlanGreen.withOpacity(0.05),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
                                 color: _isShiftActive
-                                    ? nagcarlanYellow
-                                    : Colors.white30,
+                                    ? nagcarlanYellow // Yellow border when active
+                                    : Colors.black12,
                               ),
                             ),
                             child: Row(
@@ -1025,8 +1025,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                                   height: 10,
                                   decoration: BoxDecoration(
                                     color: _isShiftActive
-                                        ? nagcarlanYellow
-                                        : Colors.white30,
+                                        ? nagcarlanGreen
+                                        : Colors.grey,
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -1035,8 +1035,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                                   _isShiftActive ? "ONLINE" : "OFFLINE",
                                   style: TextStyle(
                                     color: _isShiftActive
-                                        ? nagcarlanYellow
-                                        : Colors.white,
+                                        ? nagcarlanGreen
+                                        : Colors.grey,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 1,
                                   ),
@@ -1071,7 +1071,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                                         child: Text(
                                           "ONGOING TRIPS",
                                           style: TextStyle(
-                                            color: nagcarlanYellow,
+                                            color: nagcarlanGreen,
                                             fontWeight: FontWeight.bold,
                                             letterSpacing: 1.5,
                                             fontSize: 12,
@@ -1098,10 +1098,8 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                                 : Icons.play_circle_outline,
                             color: _isShiftActive
                                 ? Colors.redAccent
-                                : nagcarlanYellow,
-                            textColor: _isShiftActive
-                                ? nagcarlanWhite
                                 : nagcarlanGreen,
+                            textColor: Colors.white,
                             onTap: _isLoadingShift ? () {} : _toggleShift,
                           ),
 
@@ -1113,7 +1111,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                             title: "MY PROFILE",
                             subtitle: "Trips, vehicle info & earnings",
                             icon: Icons.account_circle,
-                            color: nagcarlanWhite.withValues(alpha: 0.9),
+                            color: Colors.white,
                             textColor: nagcarlanGreen,
                             onTap: () => Navigator.pushNamed(
                               context,
@@ -1130,7 +1128,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                             title: "TRIP HISTORY",
                             subtitle: "See your past rides",
                             icon: Icons.list_alt,
-                            color: nagcarlanWhite.withValues(alpha: 0.9),
+                            color: Colors.white,
                             textColor: nagcarlanGreen,
                             onTap: () {
                               Navigator.pushNamed(
@@ -1158,7 +1156,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: nagcarlanYellow),
+                    CircularProgressIndicator(color: nagcarlanGreen),
                     SizedBox(height: 20),
                     Text(
                       "Starting shift...",
@@ -1199,9 +1197,14 @@ class MenuCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 4, // Matched with passenger_home
-      shadowColor: Colors.black.withValues(alpha: 0.2),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      elevation: 2, // Matched with passenger_home
+      shadowColor: Colors.black.withValues(alpha: 0.05),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20), 
+        side: color == Colors.white 
+          ? BorderSide(color: nagcarlanYellow.withOpacity(0.3)) // Added yellow border to white cards
+          : BorderSide(color: Colors.black.withOpacity(0.05))
+      ),
       color: color,
       child: InkWell(
         onTap: onTap,

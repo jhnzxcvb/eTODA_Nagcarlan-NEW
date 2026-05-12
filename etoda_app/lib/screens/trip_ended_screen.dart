@@ -13,7 +13,7 @@ class TripEndedScreen extends StatelessWidget {
 
     final String status = tripData?['status']?.toString().toLowerCase() ?? 'completed';
     final bool isCancelled = status == 'cancelled';
-    final Color themeColor = isCancelled ? Colors.redAccent : nagcarlanYellow;
+    final Color themeColor = isCancelled ? Colors.redAccent : nagcarlanGreen;
 
     String formattedEndTime = TimeOfDay.fromDateTime(DateTime.now()).format(context);
     final rawTimestamp = tripData?['ended_at'] ?? 
@@ -46,10 +46,23 @@ class TripEndedScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Spacer(),
-                Icon(
-                  isCancelled ? Icons.cancel_rounded : Icons.check_circle_rounded,
-                  color: themeColor,
-                  size: 100,
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: 140,
+                      height: 140,
+                      decoration: BoxDecoration(
+                        color: (isCancelled ? Colors.redAccent : nagcarlanYellow).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    Icon(
+                      isCancelled ? Icons.cancel_rounded : Icons.check_circle_rounded,
+                      color: themeColor,
+                      size: 100,
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -64,7 +77,7 @@ class TripEndedScreen extends StatelessWidget {
                 Text(
                   isCancelled ? "This trip was cancelled by the driver." : "The trip has been successfully finalized.",
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 16, color: nagcarlanWhite),
+                  style: const TextStyle(fontSize: 16, color: Colors.black87),
                 ),
                 const SizedBox(height: 32),
                 
@@ -73,15 +86,16 @@ class TripEndedScreen extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: nagcarlanWhite.withValues(alpha: 0.9),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
                       ],
+                      border: Border.all(color: nagcarlanYellow.withOpacity(0.2)), // Yellow border accent
                     ),
                     child: Column(
                       children: [
@@ -123,10 +137,11 @@ class TripEndedScreen extends StatelessWidget {
                           );
                         },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: themeColor,
-                      foregroundColor: isCancelled ? nagcarlanWhite : nagcarlanGreen,
+                      backgroundColor: isCancelled ? Colors.redAccent : nagcarlanYellow, // Yellow for success
+                      foregroundColor: isCancelled ? Colors.white : nagcarlanGreen,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 0,
+                      elevation: 4,
+                      shadowColor: (isCancelled ? Colors.redAccent : nagcarlanYellow).withOpacity(0.3),
                     ),
                     child: const Text(
                       "RETURN TO DASHBOARD",

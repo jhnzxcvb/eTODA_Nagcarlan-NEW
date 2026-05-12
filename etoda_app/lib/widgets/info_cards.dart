@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:etoda_nagcarlan/main.dart';
 
@@ -17,10 +16,11 @@ class InfoSectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2,
+      elevation: 0,
+      color: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: nagcarlanYellow.withOpacity(0.2)), // Minimal yellow border
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -29,23 +29,33 @@ class InfoSectionCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, color: nagcarlanGreen, size: 20),
-                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: nagcarlanYellow.withOpacity(0.1), // Subtle yellow accent
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: nagcarlanGreen, size: 20),
+                ),
+                const SizedBox(width: 12),
                 Text(
                   title,
                   style: const TextStyle(fontWeight: FontWeight.bold, color: nagcarlanGreen, fontSize: 16),
                 ),
               ],
             ),
-            const Divider(height: 20),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12.0),
+              child: Divider(height: 1, color: Colors.black12),
+            ),
             ...items.entries.map((entry) {
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                padding: const EdgeInsets.symmetric(vertical: 6.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(entry.key, style: TextStyle(color: Colors.grey[600])),
-                    Text(entry.value, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(entry.key, style: const TextStyle(color: Colors.black54, fontSize: 14)),
+                    Text(entry.value, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 14)),
                   ],
                 ),
               );

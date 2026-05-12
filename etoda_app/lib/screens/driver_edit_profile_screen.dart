@@ -55,7 +55,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
     super.didChangeDependencies();
     if (_driverId == null) {
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-      _driverId = args?['driver_id'];
+      _driverId = args?['driver_id'] ?? args?['id'];
 
       if (_driverId != null) {
         _fetchDriverData();
@@ -80,7 +80,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
           _lastNameController.text = data['last_name'] ?? '';
           _contactController.text = data['phone_number'] ?? '';
           _emailController.text = data['email'] ?? '';
-          _avatarUrl = data['avatar_url'];
+          _avatarUrl = data['profile_pic']; // Fixed key to match driver_profile.dart
           _isLoading = false;
         });
       } else {
@@ -145,7 +145,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: nagcarlanGreen.withAlpha(20),
+              color: nagcarlanGreen.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: nagcarlanGreen, size: 30),
@@ -285,7 +285,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
       appBar: AppBar(
         title: const Text('Edit Driver Profile', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
-        foregroundColor: nagcarlanWhite,
+        foregroundColor: nagcarlanGreen,
         elevation: 0,
         centerTitle: true,
       ),
@@ -294,7 +294,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
         height: double.infinity,
         decoration: nagcarlanGradient,
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: nagcarlanYellow))
+            ? const Center(child: CircularProgressIndicator(color: nagcarlanGreen))
             : SafeArea(
                 child: Column(
                   children: [
@@ -322,7 +322,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
                               
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 24.0),
-                                child: Divider(thickness: 1, color: nagcarlanWhite),
+                                child: Divider(thickness: 1, color: Colors.black12),
                               ),
 
                               _buildSectionTitle("SECURITY"),
@@ -378,7 +378,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
       style: const TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w900,
-        color: nagcarlanYellow,
+        color: nagcarlanGreen,
         letterSpacing: 1.2,
       ),
     );
@@ -404,7 +404,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withAlpha(25),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 10,
                   spreadRadius: 2,
                 )
@@ -412,7 +412,7 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
             ),
             child: CircleAvatar(
               radius: 60,
-              backgroundColor: nagcarlanWhite,
+              backgroundColor: Colors.white,
               backgroundImage: avatarImage,
               child: (_imageFile == null && (_avatarUrl == null || _avatarUrl!.isEmpty)) 
                 ? const Icon(Icons.person_outline_rounded, size: 70, color: Colors.grey) 
@@ -425,11 +425,11 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
           child: Container(
             padding: const EdgeInsets.all(8.0),
             decoration: BoxDecoration(
-              color: nagcarlanYellow,
+              color: nagcarlanGreen,
               shape: BoxShape.circle,
-              border: Border.all(color: nagcarlanWhite, width: 2),
+              border: Border.all(color: Colors.white, width: 2),
             ),
-            child: const Icon(Icons.camera_alt, color: nagcarlanGreen, size: 18),
+            child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
           ),
         )
       ],
@@ -440,25 +440,25 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(fontWeight: FontWeight.w500, color: nagcarlanGreen),
+      style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: nagcarlanGreen, fontSize: 14),
+        labelStyle: const TextStyle(color: Colors.black54, fontSize: 14),
         prefixIcon: Icon(icon, color: nagcarlanGreen, size: 22),
         filled: true,
-        fillColor: nagcarlanWhite.withValues(alpha: 0.9),
+        fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: Colors.black12),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: Colors.black12),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: nagcarlanYellow, width: 2),
+          borderSide: const BorderSide(color: nagcarlanGreen, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
@@ -485,29 +485,29 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
-      style: const TextStyle(fontWeight: FontWeight.w500, color: nagcarlanGreen),
+      style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: nagcarlanGreen, fontSize: 14),
+        labelStyle: const TextStyle(color: Colors.black54, fontSize: 14),
         prefixIcon: const Icon(Icons.lock_outline_rounded, color: nagcarlanGreen, size: 22),
         suffixIcon: IconButton(
           icon: Icon(obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey, size: 20),
           onPressed: onToggle,
         ),
         filled: true,
-        fillColor: nagcarlanWhite.withValues(alpha: 0.9),
+        fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: Colors.black12),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: Colors.black12),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: nagcarlanYellow, width: 2),
+          borderSide: const BorderSide(color: nagcarlanGreen, width: 2),
         ),
       ),
       validator: (v) {
@@ -526,20 +526,20 @@ class _DriverEditProfileScreenState extends State<DriverEditProfileScreen> {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
         ],
       ),
       child: _isSaving
-          ? const Center(child: CircularProgressIndicator(color: nagcarlanYellow))
+          ? const Center(child: CircularProgressIndicator(color: nagcarlanGreen))
           : ElevatedButton.icon(
               icon: const Icon(Icons.check_circle_outline, size: 22),
               onPressed: _saveChanges,
               style: ElevatedButton.styleFrom(
-                backgroundColor: nagcarlanYellow,
-                foregroundColor: nagcarlanGreen,
+                backgroundColor: nagcarlanGreen,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 elevation: 0,

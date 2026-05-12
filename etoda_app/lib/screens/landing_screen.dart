@@ -84,24 +84,30 @@ class _LandingScreenState extends State<LandingScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(),
-              // Logo/Icon Section
+              // Logo image section with Yellow Ring
               Container(
-                padding: const EdgeInsets.all(24),
+                width: 195,
+                height: 195,
                 decoration: BoxDecoration(
-                  color: nagcarlanWhite.withValues(alpha: 0.95), // Fix: Deprecated withOpacity
                   shape: BoxShape.circle,
+                  border: Border.all(color: nagcarlanYellow, width: 3), // Added yellow ring
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2), // Fix: Deprecated withOpacity
-                      blurRadius: 20,
-                      spreadRadius: 5,
+                      color: nagcarlanYellow.withOpacity(0.2), // Yellow shadow
+                      blurRadius: 34,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 12),
                     )
                   ],
                 ),
-                child: const Icon(
-                  Icons.electric_rickshaw,
-                  size: 80,
-                  color: nagcarlanGreen,
+                clipBehavior: Clip.antiAlias,
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    width: double.infinity,
+                    height: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               const SizedBox(height: 32),
@@ -111,7 +117,7 @@ class _LandingScreenState extends State<LandingScreen> {
                 style: TextStyle(
                   fontSize: 56,
                   fontWeight: FontWeight.w900,
-                  color: nagcarlanYellow,
+                  color: nagcarlanGreen,
                   letterSpacing: -1,
                 ),
               ),
@@ -121,7 +127,7 @@ class _LandingScreenState extends State<LandingScreen> {
                   fontSize: 18,
                   letterSpacing: 8,
                   fontWeight: FontWeight.bold,
-                  color: nagcarlanWhite,
+                  color: Colors.black87,
                 ),
               ),
               const SizedBox(height: 16),
@@ -129,7 +135,7 @@ class _LandingScreenState extends State<LandingScreen> {
                 "Your companion for tricycle transport in Nagcarlan.",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: Colors.black54,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
@@ -141,6 +147,7 @@ class _LandingScreenState extends State<LandingScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Column(
                   children: [
+                    // Login Button - Changed to Yellow
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: nagcarlanYellow,
@@ -150,6 +157,7 @@ class _LandingScreenState extends State<LandingScreen> {
                           borderRadius: BorderRadius.circular(15),
                         ),
                         elevation: 4,
+                        shadowColor: nagcarlanYellow.withOpacity(0.4),
                       ),
                       onPressed: () => Navigator.pushNamed(context, '/login'),
                       child: const Text(
@@ -162,20 +170,22 @@ class _LandingScreenState extends State<LandingScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
+                    // Sign Up Button - Added Yellow Border
                     OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: nagcarlanWhite, width: 2),
+                        backgroundColor: Colors.white,
+                        side: const BorderSide(color: nagcarlanYellow, width: 2), // Changed to Yellow border
                         minimumSize: const Size(double.infinity, 60),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
                         ),
+                        foregroundColor: nagcarlanGreen,
                       ),
                       onPressed: () => Navigator.pushNamed(context, '/signup'),
                       child: const Text(
                         "SIGN UP",
                         style: TextStyle(
-                          color: nagcarlanWhite,
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -192,7 +202,7 @@ class _LandingScreenState extends State<LandingScreen> {
                   "Drivers must register at the eTODA Admin office to activate their accounts.",
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.white60,
+                    color: Colors.black45,
                     fontSize: 12,
                     fontStyle: FontStyle.italic,
                   ),

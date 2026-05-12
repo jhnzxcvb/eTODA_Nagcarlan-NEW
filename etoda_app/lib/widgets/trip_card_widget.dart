@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:etoda_nagcarlan/main.dart';
 
-// This function was originally _buildBadge in driver_trip_history_screen.dart
 Widget buildBadge(String label, {required Color bg, required Color fg, required TextStyle sansStyle}) {
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
@@ -20,7 +20,6 @@ Widget buildBadge(String label, {required Color bg, required Color fg, required 
   );
 }
 
-// This widget was originally _TripCardWidget in driver_trip_history_screen.dart
 class TripCardWidget extends StatefulWidget {
   final dynamic trip;
   final TextStyle monoStyle;
@@ -61,8 +60,8 @@ class _TripCardWidgetState extends State<TripCardWidget> {
     final isCancelled = trip['status']?.toString().toLowerCase() == 'cancelled';
     final tripCode = trip['trip_code'] ?? '—';
     final endedAt = trip['ended_at'] ?? '—';
-    final passengerName = trip['passenger_name'] ?? 'Guest'; // For driver screen, this is passenger.
-    final driverName = trip['driver_name'] ?? 'Driver'; // For passenger screen, this is driver.
+    final passengerName = trip['passenger_name'] ?? 'Guest';
+    final driverName = trip['driver_name'] ?? 'Driver';
     final route = trip['route'] ?? '—';
     final payment = trip['payment_method'] ?? 'Cash';
     final status = trip['status']?.toString().toUpperCase() ?? 'COMPLETED';
@@ -71,35 +70,28 @@ class _TripCardWidgetState extends State<TripCardWidget> {
     final routeFrom = parts.isNotEmpty ? parts.first.trim() : route;
     final routeTo = parts.length > 1 ? parts.last.trim() : '';
 
-    // Determine who the "main" person is for the avatar and name display
-    // If it's a driver's history, the main person is the passenger.
-    // If it's a passenger's history, the main person is the driver.
-    final mainPersonName = trip['passenger_id'] != null ? passengerName : driverName; // Heuristic, adjust if needed
+    final mainPersonName = trip['passenger_id'] != null ? passengerName : driverName;
     final initials = mainPersonName.trim().isNotEmpty
         ? mainPersonName.trim().split(' ').map((w) => w[0]).take(2).join()
         : '?';
 
-    // Determine the navigation route based on whether it's a driver or passenger trip card
     final String detailRoute = trip['passenger_id'] != null ? '/driver_trip_details' : '/passenger_trip_details';
-
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       decoration: BoxDecoration(
-        color: _isPressed || _isHovered
-            ? widget.accentGreen.withValues(alpha: 0.02)
-            : Colors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: _isHovered || _isPressed ? widget.accentGreen : widget.cardBorder,
-          width: _isHovered || _isPressed ? 1.5 : 1,
+          color: _isHovered || _isPressed ? nagcarlanGreen : Colors.black.withOpacity(0.05),
+          width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: _isPressed || _isHovered ? 0.15 : 0.08),
+            color: Colors.black.withOpacity(_isPressed || _isHovered ? 0.08 : 0.03),
             blurRadius: _isPressed || _isHovered ? 16 : 8,
-            offset: Offset(0, _isPressed || _isHovered ? 8 : 3),
+            offset: Offset(0, _isPressed || _isHovered ? 8 : 4),
           ),
         ],
       ),
@@ -113,8 +105,7 @@ class _TripCardWidgetState extends State<TripCardWidget> {
           onTapCancel: () => setState(() => _isPressed = false),
           onTap: () => Navigator.pushNamed(context, detailRoute, arguments: trip),
           borderRadius: BorderRadius.circular(18),
-          splashColor: widget.accentGreen.withValues(alpha: 0.1),
-          highlightColor: widget.accentGreen.withValues(alpha: 0.05),
+          splashColor: nagcarlanGreen.withOpacity(0.05),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -126,14 +117,14 @@ class _TripCardWidgetState extends State<TripCardWidget> {
                     Container(
                       width: 36, height: 36,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE4F3EC),
+                        color: nagcarlanGreen.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         initials,
                         style: widget.sansStyle.copyWith(
-                          color: widget.accentGreen,
+                          color: nagcarlanGreen,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
@@ -149,8 +140,7 @@ class _TripCardWidgetState extends State<TripCardWidget> {
                             style: widget.sansStyle.copyWith(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: widget.textPrimary,
-                              letterSpacing: -0.1,
+                              color: Colors.black87,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -159,7 +149,7 @@ class _TripCardWidgetState extends State<TripCardWidget> {
                             style: widget.sansStyle.copyWith(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: widget.textMuted,
+                              color: Colors.black54,
                             ),
                           ),
                         ],
@@ -168,12 +158,12 @@ class _TripCardWidgetState extends State<TripCardWidget> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
+                        const Text(
                           "Total fare",
-                          style: widget.sansStyle.copyWith(
+                          style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: widget.textMuted,
+                            color: Colors.black38,
                             letterSpacing: 0.4,
                           ),
                         ),
@@ -182,28 +172,26 @@ class _TripCardWidgetState extends State<TripCardWidget> {
                           "₱${fare.toStringAsFixed(2)}",
                           style: widget.sansStyle.copyWith(
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: widget.accentGreen,
-                            letterSpacing: -0.3,
+                            fontWeight: FontWeight.w900,
+                            color: nagcarlanGreen,
                           ),
                         ),
                       ],
                     ),
                   ],
                 ),
-                Container(
-                  margin: const EdgeInsets.symmetric(vertical: 12),
-                  height: 1,
-                  color: const Color(0xFFF0F1F0),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Divider(height: 1, color: Colors.black12),
                 ),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Column(
                       children: [
-                        Container(width: 7, height: 7, decoration: BoxDecoration(color: widget.accentGreen, shape: BoxShape.circle)),
-                        Container(width: 1.5, height: 10, color: const Color(0xFFD8DDD9)),
-                        Container(width: 7, height: 7, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFFC8CFC9), width: 1.5))),
+                        Container(width: 7, height: 7, decoration: const BoxDecoration(color: nagcarlanGreen, shape: BoxShape.circle)),
+                        Container(width: 1, height: 10, color: Colors.black12),
+                        Container(width: 7, height: 7, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.black26, width: 1))),
                       ],
                     ),
                     const SizedBox(width: 10),
@@ -216,11 +204,11 @@ class _TripCardWidgetState extends State<TripCardWidget> {
                             style: widget.sansStyle.copyWith(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: widget.textPrimary,
+                              color: Colors.black87,
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(routeTo.isNotEmpty ? routeTo : route, style: widget.sansStyle.copyWith(fontSize: 12, color: widget.textMuted)),
+                          Text(routeTo.isNotEmpty ? routeTo : route, style: widget.sansStyle.copyWith(fontSize: 12, color: Colors.black54)),
                         ],
                       ),
                     ),
@@ -233,12 +221,12 @@ class _TripCardWidgetState extends State<TripCardWidget> {
                     children: [
                       Row(
                         children: [
-                          buildBadge(status, bg: isCancelled ? const Color(0xFFFFEEEE) : const Color(0xFFE4F3EC), fg: isCancelled ? Colors.red : widget.accentGreen, sansStyle: widget.sansStyle),
+                          buildBadge(status, bg: isCancelled ? Colors.red.withOpacity(0.1) : nagcarlanGreen.withOpacity(0.1), fg: isCancelled ? Colors.redAccent : nagcarlanGreen, sansStyle: widget.sansStyle),
                           const SizedBox(width: 6),
-                          buildBadge(payment, bg: const Color(0xFFF2F3F1), fg: const Color(0xFF8A938C), sansStyle: widget.sansStyle),
+                          buildBadge(payment, bg: Colors.black.withOpacity(0.03), fg: Colors.black54, sansStyle: widget.sansStyle),
                         ],
                       ),
-                      Text(tripCode, style: widget.monoStyle.copyWith(fontSize: 10, color: widget.textFaint, letterSpacing: 0.2)),
+                      Text(tripCode, style: widget.monoStyle.copyWith(fontSize: 10, color: Colors.black26)),
                     ],
                   ),
                 ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:etoda_nagcarlan/main.dart';
-import 'package:etoda_nagcarlan/widgets/trip_card_widget.dart'; // Import the new shared widget
+import 'package:etoda_nagcarlan/widgets/trip_card_widget.dart';
 import 'package:etoda_nagcarlan/services/api_service.dart';
 import 'package:etoda_nagcarlan/widgets/branding_footer.dart';
 
@@ -26,14 +26,14 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
   static const int _itemsPerPage = 10;
 
   // ── Design tokens ──────────────────────────────────────────────
-  static const Color _headerGreen  = nagcarlanGreen;
+  static const Color _headerWhite  = nagcarlanWhite;
   static const Color _accentGreen  = nagcarlanGreen;
   static const Color _accentYellow = nagcarlanYellow;
   static const Color _bgPage = nagcarlanWhite;
-  static const Color _cardBorder = Color(0xFFE2E8F0); // More defined border against white bg
-  static const Color _textPrimary  = Color(0xFF1A202C); // Darker, sharper primary text
-  static const Color _textMuted    = Color(0xFF4A5568); // Significant contrast increase for secondary text
-  static const Color _textFaint    = Color(0xFF718096); // Clearer faint text for metadata
+  static const Color _cardBorder = Color(0xFFEEEEEE);
+  static const Color _textPrimary  = Colors.black87;
+  static const Color _textMuted    = Colors.black54;
+  static const Color _textFaint    = Colors.black38;
 
   TextStyle get _monoStyle => GoogleFonts.dmMono();
   TextStyle get _sansStyle => GoogleFonts.dmSans();
@@ -85,18 +85,16 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
     }).toList();
   }
 
-  // ── Header (green zone) ────────────────────────────────────────
-  Widget _buildGreenHeader(List<dynamic> filteredTrips) {
+  Widget _buildWhiteHeader(List<dynamic> filteredTrips) {
     double totalEarnings = filteredTrips.fold(
         0, (sum, t) => sum + ((t['fare_amount'] as num?)?.toDouble() ?? 0));
 
     return Container(
-      color: _headerGreen,
+      color: _headerWhite,
       child: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            // App bar row
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
               child: Row(
@@ -111,11 +109,11 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
                             controller: _searchController,
                             autofocus: true,
                             style: _sansStyle.copyWith(
-                                color: Colors.white, fontSize: 16),
+                                color: _accentGreen, fontSize: 16),
                             decoration: InputDecoration(
                               hintText: "Search name or route…",
                               hintStyle:
-                                  _sansStyle.copyWith(color: Colors.white54),
+                                  _sansStyle.copyWith(color: Colors.black26),
                               border: InputBorder.none,
                             ),
                             onChanged: (v) => setState(() {
@@ -127,7 +125,7 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
                             "Trip History",
                             textAlign: TextAlign.center,
                             style: _sansStyle.copyWith(
-                              color: Colors.white,
+                              color: _accentGreen,
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               letterSpacing: -0.3,
@@ -152,7 +150,6 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
 
             const SizedBox(height: 12),
 
-            // Stats row
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -160,15 +157,15 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
                   Expanded(child: _buildStatCard(
                     label: "EARNINGS",
                     value: "₱${totalEarnings.toStringAsFixed(2)}",
-                      icon: Icons.account_balance_wallet_outlined, // Consistent with passenger screen
-                    valueColor: _accentYellow,
+                    icon: Icons.account_balance_wallet_outlined,
+                    valueColor: _accentGreen,
                   )),
                   const SizedBox(width: 10),
                   Expanded(child: _buildStatCard(
                     label: "TRIPS",
                     value: "${filteredTrips.length}",
-                      icon: Icons.route_outlined, // Consistent with passenger screen
-                    valueColor: Colors.white,
+                    icon: Icons.route_outlined,
+                    valueColor: Colors.black87,
                   )),
                 ],
               ),
@@ -176,7 +173,6 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
 
             const SizedBox(height: 12),
 
-            // Filter pills
             Padding(
               padding: const EdgeInsets.only(bottom: 14),
               child: SingleChildScrollView(
@@ -203,10 +199,10 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
         height: 36,
         margin: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.12),
+          color: _accentGreen.withOpacity(0.05),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: Colors.white, size: 20),
+        child: Icon(icon, color: _accentGreen, size: 20),
       ),
     );
   }
@@ -220,21 +216,28 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+        border: Border.all(color: Colors.black.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ]
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: Colors.white54, size: 13),
+              Icon(icon, color: Colors.black38, size: 13),
               const SizedBox(width: 5),
               Text(
                 label,
                 style: _sansStyle.copyWith(
-                  color: Colors.white54,
+                  color: Colors.black38,
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.7,
@@ -269,16 +272,16 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? _accentYellow : Colors.transparent,
+          color: isSelected ? _accentGreen : Colors.transparent,
           borderRadius: BorderRadius.circular(100),
-          border: Border.all( // Consistent with passenger screen
-            color: isSelected ? _accentYellow : Colors.white30,
+          border: Border.all(
+            color: isSelected ? _accentGreen : Colors.black12,
           ),
         ),
         child: Text(
           filter,
           style: _sansStyle.copyWith(
-            color: isSelected ? _headerGreen : Colors.white70,
+            color: isSelected ? Colors.white : Colors.black54,
             fontWeight:
                 isSelected ? FontWeight.w700 : FontWeight.w500,
             fontSize: 13,
@@ -288,7 +291,6 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
     );
   }
 
-  // ── Section date label ─────────────────────────────────────────
   Widget _buildSectionLabel(String label) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
@@ -304,14 +306,13 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
     );
   }
 
-  // ── Trip card (now uses the shared widget) ─────────────────────
   Widget _buildTripCard(dynamic trip) {
     return TripCardWidget(
       trip: trip,
       monoStyle: _monoStyle,
       sansStyle: _sansStyle,
       accentGreen: _accentGreen,
-      accentYellow: nagcarlanYellow, // Use global constant
+      accentYellow: _accentYellow,
       cardBorder: _cardBorder,
       textPrimary: _textPrimary,
       textMuted: _textMuted,
@@ -319,7 +320,6 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
     );
   }
 
-  // ── Pagination ─────────────────────────────────────────────────
   Widget _buildPagination(int currentPage, int totalPages) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20),
@@ -372,13 +372,12 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
           border: Border.all(color: const Color(0xFFE3E5E3)),
         ),
         child: Icon(icon,
-            color: onTap != null ? const Color(0xFF6B7280) : _textFaint,
+            color: onTap != null ? _accentGreen : _textFaint,
             size: 20),
       ),
     );
   }
 
-  // ── Empty state ────────────────────────────────────────────────
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -399,7 +398,6 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
     );
   }
 
-  // ── Build ──────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -409,9 +407,9 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Container(
-              color: _headerGreen,
+              color: _bgPage,
               child: const Center(
-                child: CircularProgressIndicator(color: _accentYellow),
+                child: CircularProgressIndicator(color: _accentGreen),
               ),
             );
           } else if (snapshot.hasError) {
@@ -436,7 +434,6 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
               .take(_itemsPerPage)
               .toList();
 
-          // Group paginatedTrips by date label
           final Map<String, List<dynamic>> grouped = {};
           for (final trip in paginatedTrips) {
             final dt = _parseDate(trip['ended_at'] ?? '');
@@ -446,6 +443,19 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
             grouped.putIfAbsent(label, () => []).add(trip);
           }
 
+          final List<Widget> listItems = [];
+          for (final entry in grouped.entries) {
+            listItems.add(_buildSectionLabel(entry.key));
+            for (final trip in entry.value) {
+              listItems.add(_buildTripCard(trip));
+            }
+          }
+          if (totalPages > 1) {
+            listItems.add(_buildPagination(_currentPage, totalPages));
+          }
+          listItems.add(const BrandingFooter());
+          listItems.add(const SizedBox(height: 24));
+
           return RefreshIndicator(
             onRefresh: _handleRefresh,
             color: _accentGreen,
@@ -454,43 +464,16 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
               physics: const BouncingScrollPhysics(
                   parent: AlwaysScrollableScrollPhysics()),
               slivers: [
-                // ── Sticky green header
                 SliverToBoxAdapter(
-                  child: _buildGreenHeader(filteredTrips),
+                  child: _buildWhiteHeader(filteredTrips),
                 ),
-
-                // ── Trip cards grouped by date
                 if (paginatedTrips.isEmpty)
                   SliverFillRemaining(child: _buildEmptyState())
                 else
                   SliverList(
                     delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final entries = grouped.entries.toList();
-                        final widgets = <Widget>[];
-                        for (final entry in entries) {
-                          widgets.add(_buildSectionLabel(entry.key));
-                          for (final trip in entry.value) {
-                            widgets.add(_buildTripCard(trip));
-                          }
-                        }
-                        // pagination + footer after last item
-                        if (totalPages > 1) {
-                          widgets.add(_buildPagination(_currentPage, totalPages));
-                        }
-                        widgets.add(const BrandingFooter());
-                        widgets.add(const SizedBox(height: 24));
-                        return widgets[index];
-                      },
-                      childCount: () {
-                        int count = 0;
-                        for (final e in grouped.entries) {
-                          count += 1 + e.value.length; // label + cards
-                        }
-                        if (totalPages > 1) count++;
-                        count += 2; // BrandingFooter + SizedBox
-                        return count;
-                      }(),
+                      (context, index) => listItems[index],
+                      childCount: listItems.length,
                     ),
                   ),
               ],

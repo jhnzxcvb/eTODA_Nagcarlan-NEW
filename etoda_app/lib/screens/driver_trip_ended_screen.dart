@@ -37,33 +37,33 @@ class _DriverTripEndedScreenState extends State<DriverTripEndedScreen> {
               ? const Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(nagcarlanYellow)),
+                    CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(nagcarlanGreen)),
                     SizedBox(height: 16),
-                    Text("Finalizing Trip...", style: TextStyle(fontWeight: FontWeight.bold, color: nagcarlanWhite)),
+                    Text("Finalizing Trip...", style: TextStyle(fontWeight: FontWeight.bold, color: nagcarlanGreen)),
                   ],
                 )
               : Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.check_circle, color: nagcarlanYellow, size: 100),
+                    const Icon(Icons.check_circle, color: nagcarlanGreen, size: 100),
                     const SizedBox(height: 24),
                     const Text(
                       "Trip Completed!",
-                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: nagcarlanYellow),
+                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: nagcarlanGreen),
                     ),
                     const SizedBox(height: 8),
                     const Text(
                       "The passenger has been notified. You can now take your next trip.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16, color: nagcarlanWhite),
+                      style: TextStyle(fontSize: 16, color: Colors.black87),
                     ),
                     const SizedBox(height: 48),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: nagcarlanYellow,
-                          foregroundColor: nagcarlanGreen,
+                          backgroundColor: nagcarlanGreen,
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),

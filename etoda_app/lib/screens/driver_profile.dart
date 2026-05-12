@@ -93,15 +93,16 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
       appBar: AppBar(
         title: const Text("My Driver Profile"),
         backgroundColor: Colors.transparent,
-        foregroundColor: nagcarlanWhite,
+        foregroundColor: nagcarlanGreen, // Changed from nagcarlanWhite
         elevation: 0,
+        centerTitle: true,
       ),
       body: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: nagcarlanGradient,
         child: _isLoading && _driverData == null
-            ? const Center(child: CircularProgressIndicator(color: nagcarlanYellow))
+            ? const Center(child: CircularProgressIndicator(color: nagcarlanGreen))
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
@@ -110,8 +111,8 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                     const SizedBox(height: 100),
                     Container(
                       padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: nagcarlanWhite,
+                      decoration: BoxDecoration(
+                        color: nagcarlanGreen.withOpacity(0.1), // Changed from nagcarlanWhite
                         shape: BoxShape.circle,
                       ),
                       child: CircleAvatar(
@@ -129,12 +130,12 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                     Text(
                       fullName.toUpperCase(),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: nagcarlanYellow),
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: nagcarlanGreen), // Changed from nagcarlanYellow
                     ),
                     if (_driverId != null)
                       Text(
                         "ID: DRV-${_driverId.toString().padLeft(4, '0')}",
-                        style: TextStyle(fontSize: 14, color: nagcarlanWhite.withValues(alpha: 0.8)),
+                        style: TextStyle(fontSize: 14, color: Colors.black54), // Changed from nagcarlanWhite
                       ),
                     const SizedBox(height: 32),
                     InfoSectionCard(

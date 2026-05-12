@@ -50,6 +50,7 @@ class _RatingDialogState extends State<RatingDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: nagcarlanWhite,
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: _isSubmitted
@@ -66,7 +67,7 @@ class _RatingDialogState extends State<RatingDialog> {
                   const Text(
                     "Thanks for helping keep our community safe.",
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: Colors.black54),
                   ),
                 ],
               )
@@ -78,10 +79,10 @@ class _RatingDialogState extends State<RatingDialog> {
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: nagcarlanGreen),
                   ),
                   const SizedBox(height: 8),
-                  Text(
+                  const Text(
                     "How was your ride? Your rating helps other passengers.",
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(color: Colors.black54),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -92,7 +93,7 @@ class _RatingDialogState extends State<RatingDialog> {
                         onPressed: () => setState(() => _rating = index + 1),
                         icon: Icon(
                           index < _rating ? Icons.star_rounded : Icons.star_border_rounded,
-                          color: Colors.amber[600],
+                          color: nagcarlanYellow,
                         ),
                       );
                     }),
@@ -101,11 +102,12 @@ class _RatingDialogState extends State<RatingDialog> {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: nagcarlanGreen,
-                      foregroundColor: Colors.white,
+                      foregroundColor: nagcarlanWhite,
                       minimumSize: const Size(double.infinity, 50),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      elevation: 0,
                     ),
                     onPressed: _rating > 0 ? _submitRating : null,
                     child: const Text("SUBMIT RATING", style: TextStyle(fontWeight: FontWeight.bold)),

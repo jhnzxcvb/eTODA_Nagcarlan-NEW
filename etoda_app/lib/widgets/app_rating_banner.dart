@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:etoda_nagcarlan/main.dart';
 import 'package:etoda_nagcarlan/widgets/app_rating_dialog.dart';
@@ -19,9 +18,9 @@ class _AppRatingBannerState extends State<AppRatingBanner> {
       builder: (context) => AppRatingDialog(
         onSubmitted: () {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text("Thank you for rating the app!"),
-              backgroundColor: Colors.green[600],
+            const SnackBar(
+              content: Text("Thank you for rating the app!"),
+              backgroundColor: nagcarlanGreen,
             ),
           );
           setState(() {
@@ -42,18 +41,18 @@ class _AppRatingBannerState extends State<AppRatingBanner> {
       margin: const EdgeInsets.only(top: 16, bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.blueGrey[50],
+        color: nagcarlanGreen.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blueGrey.shade100),
+        border: Border.all(color: nagcarlanYellow.withOpacity(0.3)), // Minimal yellow border
       ),
       child: Row(
         children: [
-          Icon(Icons.favorite_border, color: Colors.grey[700], size: 24),
+          const Icon(Icons.star_rounded, color: nagcarlanYellow, size: 24), // Yellow star icon
           const SizedBox(width: 12),
-          Expanded(
+          const Expanded(
             child: Text(
               "Enjoying this app?",
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[800]),
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
             ),
           ),
           TextButton(
@@ -61,7 +60,7 @@ class _AppRatingBannerState extends State<AppRatingBanner> {
             child: const Text("RATE US", style: TextStyle(fontWeight: FontWeight.bold, color: nagcarlanGreen)),
           ),
           IconButton(
-            icon: Icon(Icons.close, size: 20, color: Colors.grey[600]),
+            icon: const Icon(Icons.close, size: 20, color: Colors.black38),
             onPressed: () => setState(() => _isVisible = false),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),

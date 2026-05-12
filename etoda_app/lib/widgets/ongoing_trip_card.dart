@@ -28,11 +28,9 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
   @override
   void initState() {
     super.initState();
-    // Parse and store the start time once to prevent resets on modal reopen
     _tripStartTime = widget.initialStartTime ?? _parseTripStartTime();
     _calculateElapsed();
 
-    // Start a local timer that updates the modal's UI every second
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         _calculateElapsed();
@@ -76,7 +74,6 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
       if (_tripStartTime != null) {
         final now = DateTime.now();
         final diff = now.difference(_tripStartTime!);
-        // Clamp to 0 to prevent negative durations if clocks are slightly out of sync
         _elapsedSecondsNotifier.value = diff.inSeconds > 0 ? diff.inSeconds : 0;
       } else {
         _elapsedSecondsNotifier.value = 0;
@@ -98,7 +95,7 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: iconColor.withValues(alpha: 0.1),
+            color: iconColor.withOpacity(0.05),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: iconColor, size: 20),
@@ -110,10 +107,10 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
             children: [
               Text(
                 label,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey[600],
+                  color: Colors.black54,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -138,7 +135,6 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
     final String passengerName =
         widget.tripData['passenger_name'] ?? 'Passenger';
 
-    // In details pop up, we show the combined route.
     final String route =
         widget.tripData['route'] ??
         "${widget.tripData['origin'] ?? '—'} → ${widget.tripData['destination'] ?? '—'}";
@@ -158,7 +154,7 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
           width: 40,
           height: 4,
           decoration: BoxDecoration(
-            color: Colors.grey[300],
+            color: Colors.black12,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
@@ -187,7 +183,7 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.grey[100],
+                            color: Colors.black.withOpacity(0.05),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -208,12 +204,12 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            const Text(
                               'Passenger',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.grey[600],
+                                color: Colors.black54,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -235,8 +231,8 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: nagcarlanGreen.withValues(alpha: 0.1),
-                          border: Border.all(color: nagcarlanGreen, width: 1.5),
+                          color: nagcarlanGreen.withOpacity(0.05),
+                          border: Border.all(color: nagcarlanGreen.withOpacity(0.1), width: 1.5),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -267,7 +263,7 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                   ),
                   const SizedBox(height: 12),
 
-                  Container(height: 1, color: Colors.grey[200]),
+                  Container(height: 1, color: Colors.black.withOpacity(0.05)),
                   const SizedBox(height: 12),
 
                   _buildDetailSection(
@@ -283,12 +279,12 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: nagcarlanYellow.withValues(alpha: 0.1),
+                          color: nagcarlanGreen.withOpacity(0.05),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.timer_outlined,
-                          color: nagcarlanYellow,
+                          color: nagcarlanGreen,
                           size: 20,
                         ),
                       ),
@@ -297,12 +293,12 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            const Text(
                               'Live Duration',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.grey[600],
+                                color: Colors.black54,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -328,7 +324,7 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                   const SizedBox(height: 12),
 
                   _buildDetailSection(
-                    icon: Icons.attach_money,
+                    icon: Icons.payments_outlined,
                     label: 'Fare Amount',
                     value: '₱${fare.toStringAsFixed(2)}',
                     iconColor: nagcarlanGreen,
@@ -359,6 +355,7 @@ class _TripDetailsModalState extends State<TripDetailsModal> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                         elevation: 4,
+                        shadowColor: nagcarlanYellow.withOpacity(0.3),
                       ),
                     ),
                   ),
@@ -399,7 +396,6 @@ class _OngoingTripCardState extends State<OngoingTripCard> {
   void initState() {
     super.initState();
     final parsed = _parseTripStartTime();
-    // If parsed date is valid and not in the future, use it. Otherwise, fallback to now.
     if (parsed != null && !parsed.isAfter(DateTime.now().add(const Duration(seconds: 2)))) {
       _tripStartTime = parsed;
     } else {
@@ -481,31 +477,32 @@ class _OngoingTripCardState extends State<OngoingTripCard> {
     return GestureDetector(
       onTap: () => _showTripDetailsModal(context),
       child: Card(
-        elevation: 4,
-        shadowColor: Colors.black.withValues(alpha: 0.15),
+        elevation: 2,
+        shadowColor: Colors.black.withOpacity(0.05),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: nagcarlanYellow, width: 1.5),
+          side: BorderSide(color: Colors.black.withOpacity(0.05)),
         ),
         color: Colors.white,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
           child: Row(
             children: [
-              const Stack(
+              Stack(
                 alignment: Alignment.center,
                 children: [
                   SizedBox(
                     width: 44,
                     height: 44,
                     child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        nagcarlanYellow,
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        nagcarlanGreen,
                       ),
+                      backgroundColor: nagcarlanYellow.withOpacity(0.2),
                       strokeWidth: 3,
                     ),
                   ),
-                  Icon(Icons.directions_car, color: nagcarlanGreen, size: 24),
+                  const Icon(Icons.directions_car, color: nagcarlanGreen, size: 24),
                 ],
               ),
               const SizedBox(width: 20),
@@ -537,11 +534,11 @@ class _OngoingTripCardState extends State<OngoingTripCard> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    Text(
+                    const Text(
                       "Tap to view details",
                       style: TextStyle(
                         fontSize: 12,
-                        color: nagcarlanGreen.withValues(alpha: 0.6),
+                        color: Colors.black54,
                         fontWeight: FontWeight.w500,
                       ),
                     ),

@@ -195,6 +195,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
     final bool howToUseShown = prefs.getBool(_howToUseShownKey) ?? false;
 
     if (!howToUseShown) {
+      if (!mounted) return;
       _showHowToUseDialog();
     }
   }
@@ -342,7 +343,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
         automaticallyImplyLeading: false,
         leading: isGuest
             ? IconButton(
-                icon: const Icon(Icons.arrow_back, color: nagcarlanWhite),
+                icon: const Icon(Icons.arrow_back, color: nagcarlanGreen),
                 onPressed: () =>
                     Navigator.pushReplacementNamed(context, '/login'),
               )
@@ -364,7 +365,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
               style: TextStyle(
                 fontSize: 42,
                 fontWeight: FontWeight.w900,
-                color: nagcarlanYellow,
+                color: nagcarlanGreen,
               ),
             ),
             const Text(
@@ -373,7 +374,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                 fontSize: 16,
                 letterSpacing: 3,
                 fontWeight: FontWeight.bold,
-                color: nagcarlanWhite,
+                color: Colors.black87,
               ),
             ),
 
@@ -383,7 +384,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
                   : "Welcome, ${passengerData?['first_name'] ?? 'Passenger'}",
               style: const TextStyle(
                 fontSize: 18,
-                color: nagcarlanWhite,
+                color: Colors.black54,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -418,7 +419,7 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
               title: "FARE MATRIX",
               subtitle: "Check exact rates per area",
               icon: Icons.payments,
-              color: nagcarlanWhite.withValues(alpha: 0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               textColor: nagcarlanGreen,
               onTap: () => Navigator.pushNamed(context, '/fare_matrix'),
             ),

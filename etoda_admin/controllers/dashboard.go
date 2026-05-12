@@ -201,7 +201,7 @@ func GetTripChartData(w http.ResponseWriter, r *http.Request) {
 		for h := 0; h < 24; h++ {
 			hourStr := fmt.Sprintf("%02d", h)
 			var hourVal int
-			if h%12 == 0 && h != 0 {
+			if h == 0 || h == 12 {
 				hourVal = 12
 			} else {
 				hourVal = h % 12

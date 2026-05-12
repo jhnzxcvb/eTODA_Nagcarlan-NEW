@@ -24,6 +24,13 @@ func AuditTrail(w http.ResponseWriter, r *http.Request) {
 	dateTo := r.URL.Query().Get("dateTo")
 	page := utils.QueryInt(r, "page", 1)
 	pageSize := utils.QueryInt(r, "pageSize", 10)
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
 	offset := (page - 1) * pageSize
 
 	args := []interface{}{}
@@ -77,11 +84,13 @@ func AuditTrail(w http.ResponseWriter, r *http.Request) {
 	list := []models.AuditLog{}
 	for rows.Next() {
 		var a models.AuditLog
-		rows.Scan(
+		if err := rows.Scan(
 			&a.ID, &a.Action, &a.Entity, &a.EntityID,
 			&a.Detail, &a.PerformedBy, &a.CreatedAt,
 			&a.ActorType,
-		)
+		); err != nil {
+			continue
+		}
 		list = append(list, a)
 	}
 
@@ -159,7 +168,7 @@ func AuditStats(w http.ResponseWriter, r *http.Request) {
 	// FIX #3: Today's log count
 	DB.QueryRow(`
 		SELECT COUNT(*)::int FROM audit_logs
-		WHERE created_at >= CURRENT_DATE
+		WHERE (created_at AT TIME ZONE 'Asia/Manila')::date = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date
 	`).Scan(&result.Today)
 
 	// FIX #3: Most recent activity timestamp

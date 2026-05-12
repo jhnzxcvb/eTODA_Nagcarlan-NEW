@@ -60,6 +60,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  assets:
+    - assets/images/logo.png
+
   # Recommended: Add your eTODA or Nagcarlan Seal assets here
   # assets:
   #   - assets/images/nagcarlan_seal.png
