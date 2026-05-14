@@ -14,12 +14,10 @@ class BrandingFooter extends StatelessWidget {
             Icon(Icons.verified_user, color: nagcarlanGreen, size: 16),
             SizedBox(width: 4),
             Text("Safe • ", style: TextStyle(color: nagcarlanGreen, fontWeight: FontWeight.bold, fontSize: 12)),
-            Text("Fair", style: TextStyle(color: nagcarlanYellow, fontWeight: FontWeight.bold, fontSize: 12)),
+            Text("Fair", style: TextStyle(color: nagcarlanGreen, fontWeight: FontWeight.bold, fontSize: 12)),
             Text(" • Verified", style: TextStyle(color: nagcarlanGreen, fontWeight: FontWeight.bold, fontSize: 12)),
           ],
         ),
-        const SizedBox(height: 2),
-        Text("Powered by CardBank", style: TextStyle(fontSize: 10, color: Colors.black.withOpacity(0.4))),
       ],
     );
   }

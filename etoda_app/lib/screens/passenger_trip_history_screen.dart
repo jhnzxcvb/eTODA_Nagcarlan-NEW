@@ -96,25 +96,28 @@ class _PassengerTripHistoryScreenState extends State<PassengerTripHistoryScreen>
     return filtered;
   }
 
-  // ── Header (green zone) ────────────────────────────────────────
-  Widget _buildGreenHeader(List<dynamic> filteredTrips) {
+  // ── Header (white & green combination) ─────────────────────────
+  Widget _buildHeader(List<dynamic> filteredTrips) {
     double totalSpent = filteredTrips.fold(
         0, (sum, t) => sum + ((t['fare_amount'] as num?)?.toDouble() ?? 0));
 
-    return Container(
-      color: _headerGreen,
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            // App bar row
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Section 1: White App Bar
+        Container(
+          color: Colors.white,
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
               child: Row(
                 children: [
                   _circleBtn(
                     Icons.chevron_left,
                     onTap: () => Navigator.pop(context),
+                    bgColor: _accentGreen.withOpacity(0.1),
+                    iconColor: _accentGreen,
                   ),
                   Expanded(
                     child: _isSearching
@@ -122,11 +125,11 @@ class _PassengerTripHistoryScreenState extends State<PassengerTripHistoryScreen>
                             controller: _searchController,
                             autofocus: true,
                             style: _sansStyle.copyWith(
-                                color: Colors.white, fontSize: 16),
+                                color: _accentGreen, fontSize: 16),
                             decoration: InputDecoration(
                               hintText: "Search driver or route…",
                               hintStyle:
-                                  _sansStyle.copyWith(color: Colors.white54),
+                                  _sansStyle.copyWith(color: _textFaint),
                               border: InputBorder.none,
                             ),
                             onChanged: (v) => setState(() {
@@ -138,7 +141,7 @@ class _PassengerTripHistoryScreenState extends State<PassengerTripHistoryScreen>
                             "My Trip History",
                             textAlign: TextAlign.center,
                             style: _sansStyle.copyWith(
-                              color: Colors.white,
+                              color: _accentGreen,
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               letterSpacing: -0.3,
@@ -154,59 +157,68 @@ class _PassengerTripHistoryScreenState extends State<PassengerTripHistoryScreen>
                         _searchController.clear();
                       }
                     }),
+                    bgColor: _accentGreen.withOpacity(0.1),
+                    iconColor: _accentGreen,
                   ),
-                  const SizedBox(width: 8),
-                  _circleBtn(Icons.refresh, onTap: _handleRefresh),
+                  const SizedBox(width: 4),
+                  _circleBtn(
+                    Icons.refresh,
+                    onTap: _handleRefresh,
+                    bgColor: _accentGreen.withOpacity(0.1),
+                    iconColor: _accentGreen,
+                  ),
                 ],
               ),
             ),
+          ),
+        ),
 
-            const SizedBox(height: 12),
-
-            // Stats row
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Expanded(child: _buildStatCard(
+        // Section 2: Green Stats Row
+        Container(
+          color: _accentGreen,
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
                     label: "TOTAL SPENT",
                     value: "₱${totalSpent.toStringAsFixed(2)}",
                     icon: Icons.account_balance_wallet_outlined,
                     valueColor: _accentYellow,
-                  )),
-                  const SizedBox(width: 10),
-                  Expanded(child: _buildStatCard(
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildStatCard(
                     label: "TRIPS",
                     value: "${filteredTrips.length}",
                     icon: Icons.route_outlined,
                     valueColor: Colors.white,
-                  )),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // Filter pills
-            Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: ["All", "Today", "This Week", "This Month"]
-                      .map(_buildFilterPill)
-                      .toList(),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+
+        // Section 3: Green Filters
+        Container(
+          color: _accentGreen,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: ["All", "Today", "This Week", "This Month"]
+                  .map(_buildFilterPill)
+                  .toList(),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _circleBtn(IconData icon, {required VoidCallback onTap}) {
+  Widget _circleBtn(IconData icon, {required VoidCallback onTap, Color? bgColor, Color? iconColor}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -214,10 +226,10 @@ class _PassengerTripHistoryScreenState extends State<PassengerTripHistoryScreen>
         height: 36,
         margin: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.12), // Fix: Deprecated withOpacity
+          color: bgColor ?? Colors.white.withValues(alpha: 0.12),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: Colors.white, size: 20),
+        child: Icon(icon, color: iconColor ?? Colors.white, size: 20),
       ),
     );
   }
@@ -240,12 +252,12 @@ class _PassengerTripHistoryScreenState extends State<PassengerTripHistoryScreen>
         children: [
           Row(
             children: [
-              Icon(icon, color: Colors.white54, size: 13),
+              Icon(icon, color: Colors.white.withValues(alpha: 0.6), size: 13),
               const SizedBox(width: 5),
               Text(
                 label,
                 style: _sansStyle.copyWith(
-                  color: Colors.white54,
+                  color: Colors.white.withValues(alpha: 0.6),
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.7,
@@ -256,11 +268,10 @@ class _PassengerTripHistoryScreenState extends State<PassengerTripHistoryScreen>
           const SizedBox(height: 5),
           Text(
             value,
-            style: _monoStyle.copyWith(
+            style: _sansStyle.copyWith(
               color: valueColor,
               fontSize: 20,
-              fontWeight: FontWeight.w500,
-              letterSpacing: -0.5,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
@@ -289,7 +300,7 @@ class _PassengerTripHistoryScreenState extends State<PassengerTripHistoryScreen>
         child: Text(
           filter,
           style: _sansStyle.copyWith(
-            color: isSelected ? _headerGreen : Colors.white70,
+            color: isSelected ? _accentGreen : Colors.white70,
             fontWeight:
                 isSelected ? FontWeight.w700 : FontWeight.w500,
             fontSize: 13,
@@ -353,9 +364,9 @@ class _PassengerTripHistoryScreenState extends State<PassengerTripHistoryScreen>
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Container(
-              color: _headerGreen,
+              color: _bgPage,
               child: const Center(
-                child: CircularProgressIndicator(color: _accentYellow),
+                child: CircularProgressIndicator(color: _accentGreen),
               ),
             );
           } else if (snapshot.hasError) {
@@ -412,9 +423,9 @@ class _PassengerTripHistoryScreenState extends State<PassengerTripHistoryScreen>
               physics: const BouncingScrollPhysics(
                   parent: AlwaysScrollableScrollPhysics()),
               slivers: [
-                // ── Sticky green header
+                // ── Header
                 SliverToBoxAdapter(
-                  child: _buildGreenHeader(filteredTrips),
+                  child: _buildHeader(filteredTrips),
                 ),
 
                 // ── Trip cards grouped by date

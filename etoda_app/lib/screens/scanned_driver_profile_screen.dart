@@ -169,251 +169,288 @@ class _ScannedDriverProfileScreenState
         width: double.infinity,
         height: double.infinity,
         decoration: nagcarlanGradient,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
+        child: SafeArea(
           child: Column(
             children: [
-              const SizedBox(height: 100),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 16),
 
-              // ── Profile Photo ──────────────────────────────────────────
-              Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: nagcarlanGreen.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: CircleAvatar(
-                      radius: 65,
-                      backgroundColor: Colors.white,
-                      backgroundImage: profilePic.isNotEmpty
-                          ? NetworkImage(
-                              '${ApiService.baseUrl}/uploads/$profilePic',
-                            )
-                          : null,
-                      child: profilePic.isEmpty
-                          ? const Icon(
-                              Icons.person,
-                              size: 85,
-                              color: Colors.grey,
-                            )
-                          : null,
-                    ),
-                  ),
-                  if (isVerified)
-                    Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
+                      // ── Profile Photo ──────────────────────────────────────────
+                      Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: nagcarlanGreen.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: CircleAvatar(
+                              radius: 55,
+                              backgroundColor: Colors.white,
+                              backgroundImage: profilePic.isNotEmpty
+                                  ? NetworkImage(
+                                      '${ApiService.baseUrl}/uploads/$profilePic',
+                                    )
+                                  : null,
+                              child: profilePic.isEmpty
+                                  ? const Icon(
+                                      Icons.person,
+                                      size: 75,
+                                      color: Colors.grey,
+                                    )
+                                  : null,
+                            ),
+                          ),
+                          if (isVerified)
+                            Container(
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.verified,
+                                color: Colors.blue,
+                                size: 30,
+                              ),
+                            ),
+                        ],
                       ),
-                      child: const Icon(
-                        Icons.verified,
-                        color: Colors.blue,
-                        size: 36,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
-              // ── Driver Name ────────────────────────────────────────────
-              Text(
-                fullName.isEmpty ? 'DRIVER NAME' : fullName,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: nagcarlanGreen,
-                  letterSpacing: 0.8,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // ── Rating ─────────────────────────────────
-              if (_isRatingLoading)
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.star_rounded, color: nagcarlanYellow, size: 18),
-                    SizedBox(width: 5),
-                    Text(
-                      '...',
-                      style: TextStyle(fontSize: 14, color: Colors.black54),
-                    ),
-                  ],
-                )
-              else if (_totalRatings == 0)
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.star_rounded,
-                      color: nagcarlanYellow,
-                      size: 18,
-                    ),
-                    SizedBox(width: 5),
-                    Text(
-                      'No ratings yet',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                )
-              else
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.star_rounded,
-                      color: nagcarlanYellow,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      _averageRating.toStringAsFixed(1),
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: nagcarlanGreen,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Text(
-                      'Rating',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black54,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      '·',
-                      style: TextStyle(color: Colors.black26, fontSize: 14),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '$_totalRatings reviews',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
-              const SizedBox(height: 12),
-
-              // ── Status Pills ───────────────────────────────────────────
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (isSuspended)
-                    _statusPill(label: "SUSPENDED", icon: Icons.block, color: Colors.redAccent)
-                  else
-                    _statusPill(
-                    label: isOnline ? "ACTIVE" : "OFFLINE",
-                    icon: isOnline ? Icons.check_circle_rounded : Icons.power_settings_new_rounded,
-                    color: isOnline ? Colors.green : Colors.grey,
-                  ),
-                  if (isVerified) ...[
-                    const SizedBox(width: 10),
-                    _statusPill(
-                      label: "VERIFIED",
-                      icon: Icons.shield_rounded,
-                      color: Colors.blueAccent,
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 30),
-
-              // ── Vehicle Details ────────────────────────────────────────
-              InfoSectionCard(
-                title: "VEHICLE DETAILS",
-                icon: Icons.directions_car_filled_rounded,
-                items: {
-                  "Body Number": d['body_no']?.toString() ?? 'N/A',
-                  "Plate Number": d['plate_number']?.toString() ?? 'N/A',
-                  "Franchise": d['franchise']?.toString() ?? 'N/A',
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // ── Trust & Safety ─────────────────────────────────────────
-              InfoSectionCard(
-                title: "TRUST & SAFETY",
-                icon: Icons.security_rounded,
-                items: {
-                  "License": d['license_no']?.toString() ?? 'REGISTERED',
-                  "Association":
-                      d['association']?.toString() ?? 'Nagcarlan TODA',
-                  "Member Since": d['created_at']?.toString() ?? 'N/A',
-                },
-              ),
-              const SizedBox(height: 35),
-
-              // ── Start Trip Button ──────────────────────────────────────
-              SizedBox(
-                width: double.infinity,
-                height: 60,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.play_circle_fill_rounded, size: 28),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: nagcarlanGreen,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    disabledBackgroundColor: Colors.grey[400],
-                  ),
-                  onPressed: () {
-                    if (isOnline && !isSuspended) {
-                      _showFareCalculator(context, {
-                          ...d, 
-                          'passenger_id': passengerId,
-                          'driver_id': driverId,
-                          'full_name': fullName,
-                          'body_no': d['body_no'],
-                          'contact_number': contactNumber,
-                      });
-                    } else if (isSuspended) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("BANNED: This driver's account has been suspended."),
-                          backgroundColor: Colors.black,
-                          behavior: SnackBarBehavior.floating,
+                      // ── Driver Name ────────────────────────────────────────────
+                      Text(
+                        fullName.isEmpty ? 'DRIVER NAME' : fullName,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: nagcarlanGreen,
+                          letterSpacing: 0.8,
                         ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("The driver is currently offline"),
-                          backgroundColor: Colors.black87,
-                          behavior: SnackBarBehavior.floating,
+                      ),
+                      const SizedBox(height: 4),
+
+                      // ── Rating ─────────────────────────────────
+                      if (_isRatingLoading)
+                        const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.star_rounded, color: nagcarlanYellow, size: 18),
+                            SizedBox(width: 5),
+                            Text(
+                              '...',
+                              style: TextStyle(fontSize: 14, color: Colors.black54),
+                            ),
+                          ],
+                        )
+                      else if (_totalRatings == 0)
+                        const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.star_rounded,
+                              color: nagcarlanYellow,
+                              size: 18,
+                            ),
+                            SizedBox(width: 5),
+                            Text(
+                              'No ratings yet',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        )
+                      else
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.star_rounded,
+                              color: nagcarlanYellow,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              _averageRating.toStringAsFixed(1),
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: nagcarlanGreen,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Text(
+                              'Rating',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Text(
+                              '·',
+                              style: TextStyle(color: Colors.black26, fontSize: 14),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '$_totalRatings reviews',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
                         ),
-                      );
-                    }
-                  },
-                  label: const Text(
-                    "START TRIP NOW",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                      const SizedBox(height: 12),
+
+                      // ── Status Pills ───────────────────────────────────────────
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (isSuspended)
+                            _statusPill(label: "SUSPENDED", icon: Icons.block, color: Colors.redAccent)
+                          else
+                            _statusPill(
+                            label: isOnline ? "ACTIVE" : "OFFLINE",
+                            icon: isOnline ? Icons.check_circle_rounded : Icons.power_settings_new_rounded,
+                            color: isOnline ? Colors.green : Colors.grey,
+                          ),
+                          if (isVerified) ...[
+                            const SizedBox(width: 10),
+                            _statusPill(
+                              label: "VERIFIED",
+                              icon: Icons.shield_rounded,
+                              color: Colors.blueAccent,
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // ── Vehicle Details ────────────────────────────────────────
+                      _buildElevatedCard(
+                        child: InfoSectionCard(
+                          title: "VEHICLE DETAILS",
+                          icon: Icons.directions_car_filled_rounded,
+                          items: {
+                            "Body Number": d['body_no']?.toString() ?? 'N/A',
+                            "Plate Number": d['plate_number']?.toString() ?? 'N/A',
+                            "Franchise": d['franchise']?.toString() ?? 'N/A',
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // ── Trust & Safety ─────────────────────────────────────────
+                      _buildElevatedCard(
+                        child: InfoSectionCard(
+                          title: "TRUST & SAFETY",
+                          icon: Icons.security_rounded,
+                          items: {
+                            "License": d['license_no']?.toString() ?? 'REGISTERED',
+                            "Association":
+                                d['association']?.toString() ?? 'Nagcarlan TODA',
+                            "Member Since": d['created_at']?.toString() ?? 'N/A',
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 25),
-              const BrandingFooter(),
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ── Start Trip Button ──────────────────────────────────────
+                    SizedBox(
+                      width: double.infinity,
+                      height: 55,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.play_circle_fill_rounded, size: 28),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: nagcarlanGreen,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          disabledBackgroundColor: Colors.grey[400],
+                        ),
+                        onPressed: () {
+                          if (isOnline && !isSuspended) {
+                            _showFareCalculator(context, {
+                                ...d, 
+                                'passenger_id': passengerId,
+                                'driver_id': driverId,
+                                'full_name': fullName,
+                                'body_no': d['body_no'],
+                                'contact_number': contactNumber,
+                            });
+                          } else if (isSuspended) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("BANNED: This driver's account has been suspended."),
+                                backgroundColor: Colors.black,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("The driver is currently offline"),
+                                backgroundColor: Colors.black87,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        },
+                        label: const Text(
+                          "START TRIP NOW",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const BrandingFooter(),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildElevatedCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15), // Darker shadow for "elevated black" look
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 
@@ -423,11 +460,11 @@ class _ScannedDriverProfileScreenState
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: color.withOpacity(0.5), width: 1.5),
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3), width: 1.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -438,8 +475,8 @@ class _ScannedDriverProfileScreenState
             label,
             style: TextStyle(
               color: color,
-              fontWeight: FontWeight.w900,
-              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              fontSize: 11,
             ),
           ),
         ],

@@ -300,10 +300,14 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
   void _showHowToUseDialog() {
     bool dontShowAgain = false;
 
-    showDialog(
+    showGeneralDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
+      barrierLabel: 'Driver Guide',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (BuildContext dialogContext, Animation<double> animation,
+          Animation<double> secondaryAnimation) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: const Text(
@@ -390,6 +394,15 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
               child: const Text("READY TO DRIVE!", style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(
+            scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+            child: child,
+          ),
         );
       },
     );
@@ -749,7 +762,7 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                                       vertical: 14,
                                     ),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
                                   onPressed: () {
@@ -789,11 +802,11 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                                     ),
                                     elevation: 2,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  onPressed: () {
-                                    ApiService().respondTripRequest({
+                                  onPressed: () async {
+                                    final result = await ApiService().respondTripRequest({
                                       'request_id': request['request_id'],
                                       'driver_id': int.tryParse(driverId) ?? 0,
                                       'passenger_id':
@@ -802,6 +815,14 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> with RouteAware {
                                           0,
                                       'accepted': true,
                                     });
+
+                                    if (result.isEmpty && context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("Failed to accept request. Check your connection.")),
+                                      );
+                                      return;
+                                    }
+
                                     setModalState(() {
                                       ApiService.pendingRequests.removeAt(
                                         index,
@@ -1197,13 +1218,11 @@ class MenuCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2, // Matched with passenger_home
-      shadowColor: Colors.black.withValues(alpha: 0.05),
+      elevation: 10,
+      shadowColor: Colors.black.withValues(alpha: 0.15),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20), 
-        side: color == Colors.white 
-          ? BorderSide(color: nagcarlanYellow.withOpacity(0.3)) // Added yellow border to white cards
-          : BorderSide(color: Colors.black.withOpacity(0.05))
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
       ),
       color: color,
       child: InkWell(

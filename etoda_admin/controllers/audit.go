@@ -24,7 +24,6 @@ func AuditTrail(w http.ResponseWriter, r *http.Request) {
 	dateTo := r.URL.Query().Get("dateTo")
 	page := utils.QueryInt(r, "page", 1)
 	pageSize := utils.QueryInt(r, "pageSize", 10)
-
 	if page < 1 {
 		page = 1
 	}
@@ -171,16 +170,11 @@ func AuditStats(w http.ResponseWriter, r *http.Request) {
 		WHERE (created_at AT TIME ZONE 'Asia/Manila')::date = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date
 	`).Scan(&result.Today)
 
-	// FIX #3: Most recent activity timestamp
-	var lastActivity string
-	err = DB.QueryRow(`
-		SELECT to_char(created_at, 'YYYY-MM-DD HH24:MI:SS')
-		FROM audit_logs
-		ORDER BY created_at DESC
-		LIMIT 1
-	`).Scan(&lastActivity)
-	if err == nil && lastActivity != "" {
-		result.LastActivity = &lastActivity
+	// Get last activity timestamp
+	var last string
+	err = DB.QueryRow("SELECT to_char(created_at, 'YYYY-MM-DD HH24:MI:SS') FROM audit_logs ORDER BY id DESC LIMIT 1").Scan(&last)
+	if err == nil {
+		result.LastActivity = &last
 	}
 
 	utils.JSONOK(w, result)
