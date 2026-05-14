@@ -137,11 +137,11 @@ class TripEndedScreen extends StatelessWidget {
                           );
                         },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isCancelled ? Colors.redAccent : nagcarlanYellow, // Yellow for success
-                      foregroundColor: isCancelled ? Colors.white : nagcarlanGreen,
+                      backgroundColor: isCancelled ? Colors.redAccent : nagcarlanGreen,
+                      foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       elevation: 4,
-                      shadowColor: (isCancelled ? Colors.redAccent : nagcarlanYellow).withOpacity(0.3),
+                      shadowColor: (isCancelled ? Colors.redAccent : nagcarlanGreen).withOpacity(0.3),
                     ),
                     child: const Text(
                       "RETURN TO DASHBOARD",

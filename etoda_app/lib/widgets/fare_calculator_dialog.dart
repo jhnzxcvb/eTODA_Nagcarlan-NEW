@@ -166,12 +166,12 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
     setState(() => _isProcessing = true);
     await Future.delayed(const Duration(milliseconds: 400));
 
-    await _ensurePassengerSocket(passengerId);
-    _listenForApprovalResponse();
-
     final route = [fromLocation, toLocation]
         .where((e) => e != null && e.toString().trim().isNotEmpty)
         .join(' → ');
+
+    // Ensure socket is ready before sending request
+    await _ensurePassengerSocket(passengerId);
 
     final result = await _apiService.createTripRequest({
       'passenger_id': passengerId,
@@ -192,6 +192,8 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
     }
 
     _currentRequestId = result['request_id'].toString();
+    // Start listening only after we have a valid request ID to match against
+    _listenForApprovalResponse();
     setState(() => _isProcessing = false);
     _showWaitingApprovalDialog();
   }
@@ -210,7 +212,11 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
     _wsSubscription = wsStream.listen((message) {
       final event = message['event']?.toString();
       final request = message['request'] as Map<String, dynamic>?;
-      if (request == null || request['request_id'] != _currentRequestId) return;
+      
+      // Ensure we match the request ID correctly (handling int vs String types)
+      final incomingId = request?['request_id']?.toString();
+      
+      if (incomingId == null || incomingId != _currentRequestId) return;
 
       if (event == 'trip_approved') {
         _closeWaitingDialog();
@@ -219,6 +225,7 @@ class _FareCalculatorDialogState extends State<FareCalculatorDialog> {
       } else if (event == 'trip_rejected') {
         _closeWaitingDialog();
         _showSnackbar("Driver rejected the request. Please try another driver.");
+        if (mounted) setState(() => _isProcessing = false);
       }
     }, onError: (error) {
       debugPrint('Passenger WebSocket error: $error');

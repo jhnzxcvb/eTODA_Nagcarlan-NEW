@@ -85,23 +85,27 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
     }).toList();
   }
 
-  Widget _buildWhiteHeader(List<dynamic> filteredTrips) {
+  Widget _buildHeader(List<dynamic> filteredTrips) {
     double totalEarnings = filteredTrips.fold(
         0, (sum, t) => sum + ((t['fare_amount'] as num?)?.toDouble() ?? 0));
 
-    return Container(
-      color: _headerWhite,
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Section 1: White App Bar
+        Container(
+          color: Colors.white,
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
               child: Row(
                 children: [
                   _circleBtn(
                     Icons.chevron_left,
                     onTap: () => Navigator.pop(context),
+                    bgColor: _accentGreen.withOpacity(0.1),
+                    iconColor: _accentGreen,
                   ),
                   Expanded(
                     child: _isSearching
@@ -113,7 +117,7 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
                             decoration: InputDecoration(
                               hintText: "Search name or route…",
                               hintStyle:
-                                  _sansStyle.copyWith(color: Colors.black26),
+                                  _sansStyle.copyWith(color: _textFaint),
                               border: InputBorder.none,
                             ),
                             onChanged: (v) => setState(() {
@@ -141,57 +145,64 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
                         _searchController.clear();
                       }
                     }),
+                    bgColor: _accentGreen.withOpacity(0.1),
+                    iconColor: _accentGreen,
                   ),
-                  const SizedBox(width: 8),
-                  _circleBtn(Icons.refresh, onTap: _handleRefresh),
+                  const SizedBox(width: 4),
+                  _circleBtn(
+                    Icons.refresh, 
+                    onTap: _handleRefresh,
+                    bgColor: _accentGreen.withOpacity(0.1),
+                    iconColor: _accentGreen,
+                  ),
                 ],
               ),
             ),
-
-            const SizedBox(height: 12),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Expanded(child: _buildStatCard(
-                    label: "EARNINGS",
-                    value: "₱${totalEarnings.toStringAsFixed(2)}",
-                    icon: Icons.account_balance_wallet_outlined,
-                    valueColor: _accentGreen,
-                  )),
-                  const SizedBox(width: 10),
-                  Expanded(child: _buildStatCard(
-                    label: "TRIPS",
-                    value: "${filteredTrips.length}",
-                    icon: Icons.route_outlined,
-                    valueColor: Colors.black87,
-                  )),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: ["All", "Today", "This Week", "This Month"]
-                      .map(_buildFilterPill)
-                      .toList(),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+
+        // Section 2: Green Stats Section (Transition to Green Zone)
+        Container(
+          color: _accentGreen,
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Row(
+            children: [
+              Expanded(child: _buildStatCard(
+                label: "EARNINGS",
+                value: "₱${totalEarnings.toStringAsFixed(2)}",
+                icon: Icons.account_balance_wallet_outlined,
+                valueColor: _accentYellow,
+              )),
+              const SizedBox(width: 10),
+              Expanded(child: _buildStatCard(
+                label: "TRIPS",
+                value: "${filteredTrips.length}",
+                icon: Icons.route_outlined,
+                valueColor: Colors.white,
+              )),
+            ],
+          ),
+        ),
+
+        // Section 3: Green Filters (Unified with Stats background)
+        Container(
+          color: _accentGreen,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: ["All", "Today", "This Week", "This Month"]
+                  .map(_buildFilterPill)
+                  .toList(),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _circleBtn(IconData icon, {required VoidCallback onTap}) {
+  Widget _circleBtn(IconData icon, {required VoidCallback onTap, Color? bgColor, Color? iconColor}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -199,10 +210,10 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
         height: 36,
         margin: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: _accentGreen.withOpacity(0.05),
+          color: bgColor ?? _accentGreen.withOpacity(0.1),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: _accentGreen, size: 20),
+        child: Icon(icon, color: iconColor ?? _accentGreen, size: 20),
       ),
     );
   }
@@ -216,28 +227,21 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withOpacity(0.12),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withOpacity(0.05)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ]
+        border: Border.all(color: Colors.white.withOpacity(0.15)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: Colors.black38, size: 13),
+              Icon(icon, color: Colors.white.withOpacity(0.6), size: 13),
               const SizedBox(width: 5),
               Text(
                 label,
                 style: _sansStyle.copyWith(
-                  color: Colors.black38,
+                  color: Colors.white.withOpacity(0.6),
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.7,
@@ -248,11 +252,10 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
           const SizedBox(height: 5),
           Text(
             value,
-            style: _monoStyle.copyWith(
+            style: _sansStyle.copyWith(
               color: valueColor,
               fontSize: 20,
-              fontWeight: FontWeight.w500,
-              letterSpacing: -0.5,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
@@ -272,16 +275,16 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? _accentGreen : Colors.transparent,
+          color: isSelected ? _accentYellow : Colors.transparent,
           borderRadius: BorderRadius.circular(100),
           border: Border.all(
-            color: isSelected ? _accentGreen : Colors.black12,
+            color: isSelected ? _accentYellow : Colors.white30,
           ),
         ),
         child: Text(
           filter,
           style: _sansStyle.copyWith(
-            color: isSelected ? Colors.white : Colors.black54,
+            color: isSelected ? _accentGreen : Colors.white70,
             fontWeight:
                 isSelected ? FontWeight.w700 : FontWeight.w500,
             fontSize: 13,
@@ -465,7 +468,7 @@ class _DriverTripHistoryScreenState extends State<DriverTripHistoryScreen> {
                   parent: AlwaysScrollableScrollPhysics()),
               slivers: [
                 SliverToBoxAdapter(
-                  child: _buildWhiteHeader(filteredTrips),
+                  child: _buildHeader(filteredTrips),
                 ),
                 if (paginatedTrips.isEmpty)
                   SliverFillRemaining(child: _buildEmptyState())

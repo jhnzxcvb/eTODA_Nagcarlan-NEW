@@ -170,8 +170,8 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: nagcarlanYellow,
-              foregroundColor: nagcarlanGreen,
+              backgroundColor: nagcarlanGreen,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -203,10 +203,14 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
   void _showHowToUseDialog() {
     bool dontShowAgain = false; // State for the checkbox within the dialog
 
-    showDialog(
+    showGeneralDialog(
       context: context,
-      barrierDismissible: false, // User must interact with buttons
-      builder: (BuildContext dialogContext) {
+      barrierDismissible: false,
+      barrierLabel: 'How to Use',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (BuildContext dialogContext, Animation<double> animation,
+          Animation<double> secondaryAnimation) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Text(
@@ -268,8 +272,8 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
           actions: [
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: nagcarlanYellow,
-                foregroundColor: nagcarlanGreen,
+                backgroundColor: nagcarlanGreen,
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -285,6 +289,15 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
               child: const Text("GOT IT!", style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(
+            scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+            child: child,
+          ),
         );
       },
     );
@@ -400,8 +413,8 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen>
               title: "SCAN DRIVER QR",
               subtitle: "Verify your driver safely",
               icon: Icons.qr_code_scanner,
-              color: nagcarlanYellow,
-              textColor: nagcarlanGreen,
+              color: nagcarlanGreen,
+              textColor: Colors.white,
               onTap: () {
                 if (isGuest) {
                   _showGuestRestrictionDialog(context);
@@ -543,8 +556,12 @@ class MenuCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      elevation: 10,
+      shadowColor: Colors.black.withValues(alpha: 0.15),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
+      ),
       color: color,
       child: InkWell(
         onTap: onTap,
@@ -571,7 +588,7 @@ class MenuCard extends StatelessWidget {
                       subtitle,
                       style: TextStyle(
                         fontSize: 12,
-                        color: textColor.withAlpha(178),
+                        color: textColor.withValues(alpha: 0.7),
                       ),
                     ),
                   ],

@@ -58,8 +58,8 @@ class _LandingScreenState extends State<LandingScreen> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: nagcarlanYellow,
-                foregroundColor: nagcarlanGreen,
+                backgroundColor: nagcarlanGreen,
+                foregroundColor: Colors.white,
               ),
               onPressed: () {
                 Navigator.pop(context);
@@ -86,17 +86,17 @@ class _LandingScreenState extends State<LandingScreen> {
               const Spacer(),
               // Logo image section with Yellow Ring
               Container(
-                width: 195,
-                height: 195,
+                width: 140,
+                height: 140,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: nagcarlanYellow, width: 3), // Added yellow ring
+                  border: Border.all(color: nagcarlanYellow, width: 2.5),
                   boxShadow: [
                     BoxShadow(
-                      color: nagcarlanYellow.withOpacity(0.2), // Yellow shadow
-                      blurRadius: 34,
-                      spreadRadius: 2,
-                      offset: const Offset(0, 12),
+                      color: nagcarlanYellow.withOpacity(0.25),
+                      blurRadius: 25,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 8),
                     )
                   ],
                 ),
@@ -127,7 +127,7 @@ class _LandingScreenState extends State<LandingScreen> {
                   fontSize: 18,
                   letterSpacing: 8,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: nagcarlanYellow
                 ),
               ),
               const SizedBox(height: 16),
@@ -150,14 +150,14 @@ class _LandingScreenState extends State<LandingScreen> {
                     // Login Button - Changed to Yellow
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: nagcarlanYellow,
-                        foregroundColor: nagcarlanGreen,
+                        backgroundColor: nagcarlanGreen,
+                        foregroundColor: Colors.white,
                         minimumSize: const Size(double.infinity, 60),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
                         ),
                         elevation: 4,
-                        shadowColor: nagcarlanYellow.withOpacity(0.4),
+                        shadowColor: nagcarlanGreen.withOpacity(0.3),
                       ),
                       onPressed: () => Navigator.pushNamed(context, '/login'),
                       child: const Text(
@@ -174,7 +174,7 @@ class _LandingScreenState extends State<LandingScreen> {
                     OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         backgroundColor: Colors.white,
-                        side: const BorderSide(color: nagcarlanYellow, width: 2), // Changed to Yellow border
+                        side: const BorderSide(color: nagcarlanGreen, width: 2),
                         minimumSize: const Size(double.infinity, 60),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),

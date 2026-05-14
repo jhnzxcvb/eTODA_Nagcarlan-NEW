@@ -386,42 +386,25 @@ class _TripStartedScreenState extends State<TripStartedScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30),
               child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => ReportDialog(
-                            passengerId: widget.passengerId,
-                            driverId: widget.driverId,
-                          ),
-                        );
-                      },
-                      icon: const Icon(
-                        Icons.warning_amber_rounded,
-                        size: 20,
-                        color: nagcarlanGreen,
-                      ),
-                      label: const Text(
-                        "Report",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: nagcarlanGreen,
+                mainAxisAlignment: MainAxisAlignment.center, // Center the button
+                children: [ // Removed Expanded to allow TextButton to size itself
+                  TextButton.icon(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => ReportDialog(
+                          passengerId: widget.passengerId,
+                          driverId: widget.driverId,
                         ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: nagcarlanGreen,
-                        side: const BorderSide(color: nagcarlanYellow, width: 1.5), // Yellow border accent
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
+                      );
+                    },
+                    icon: const Icon(Icons.report_problem_outlined, color: Colors.redAccent, size: 20),
+                    label: const Text(
+                      "REPORT AN ISSUE",
+                      style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ),
-                ],
+                ], // End of children
               ),
             ),
 

@@ -196,17 +196,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const SizedBox(height: 20),
                   // Updated logo header to use the app logo asset
-                  Container(
-                    width: 150,
-                    height: 150,
+                  Container(                    width: 120,
+                    height: 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
+                      border: Border.all(color: nagcarlanYellow, width: 2.5),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.22),
-                          blurRadius: 24,
-                          spreadRadius: 2,
-                          offset: const Offset(0, 10),
+                          color: nagcarlanYellow.withOpacity(0.25),
+                          blurRadius: 25,
+                          spreadRadius: 1,
+                          offset: const Offset(0, 8),
                         )
                       ],
                     ),
@@ -265,7 +265,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () => Navigator.pushNamed(context, '/forgot_password'),
                       child: const Text(
                         "Forgot Password?",
-                        style: TextStyle(color: nagcarlanYellow, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: nagcarlanGreen, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -274,15 +274,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Login Button - Updated to Yellow
                   _isLoading
-                      ? const CircularProgressIndicator(color: nagcarlanYellow)
+                      ? const CircularProgressIndicator(color: nagcarlanGreen)
                       : ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: nagcarlanYellow,
-                      foregroundColor: nagcarlanGreen,
+                      backgroundColor: nagcarlanGreen,
+                      foregroundColor: Colors.white,
                       minimumSize: const Size(double.infinity, 56),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       elevation: 8,
-                      shadowColor: nagcarlanYellow.withOpacity(0.5),
+                      shadowColor: nagcarlanGreen.withOpacity(0.3),
                     ),
                     onPressed: _handleLogin,
                     child: const Text("LOGIN", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -330,7 +330,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: () => Navigator.pushNamed(context, '/signup'),
                         child: const Text(
                           "Sign Up",
-                          style: TextStyle(color: nagcarlanYellow, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                          style: TextStyle(color: nagcarlanGreen, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
                         ),
                       ),
                     ],
@@ -360,7 +360,7 @@ class _LoginScreenState extends State<LoginScreen> {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: nagcarlanYellow.withOpacity(0.15),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             spreadRadius: 1,
             offset: const Offset(0, 3),
@@ -386,11 +386,11 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: BorderSide(color: nagcarlanYellow.withOpacity(0.4)),
+        borderSide: const BorderSide(color: Colors.black12),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: const BorderSide(color: nagcarlanYellow, width: 2),
+        borderSide: const BorderSide(color: nagcarlanGreen, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
